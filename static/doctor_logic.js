@@ -1,5 +1,5 @@
 // CONFIGURATION
-const API_BASE = ""; // Relative path for production
+const API_BASE = "https://smart-his-backend.onrender.com"; // Relative path for production
 
 // GLOBAL STATE
 // ... (Keep the rest of the file exactly as it was, just change the first line)
@@ -226,4 +226,5 @@ async function submitConsultation(apptId) {
     } else {
         alert("Error saving consultation.");
     }
+
 }
