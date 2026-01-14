@@ -1,6 +1,5 @@
 // CONFIGURATION
-// Leave empty for production (uses same domain). Use http://127.0.0.1:8000 only for local testing.
-const API_BASE = ""; 
+const API_BASE = "https://smart-his-backend.onrender.com"; 
 
 // GLOBAL STATE
 let currentUser = {
@@ -186,4 +185,5 @@ function initPatientEMR() {
     });
 
     container.innerHTML = html;
+
 }
