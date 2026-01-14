@@ -1,11 +1,11 @@
 // --- CONFIGURATION ---
 const SUPABASE_URL = 'https://hwoelsconqsybftgdxft.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_dMAyCUVPT2LK-NHu5NYeTg_zFkfSD8R'; // Public Key
+const SUPABASE_KEY = 'sb_publishable_dMAyCUVPT2LK-NHu5NYeTg_zFkfSD8R'; 
 
 // Initialize Supabase Client
-// Renamed to 'supabaseClient' to avoid conflict with the library 'supabase' global
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// DOM Elements
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
@@ -13,6 +13,22 @@ const submitBtn = document.getElementById('submit-btn');
 const errorMsg = document.getElementById('error-msg');
 const errorText = document.getElementById('error-text');
 
+// --- EXPOSE HELPER TO WINDOW (Fixes ReferenceError) ---
+window.fillCreds = function(email) {
+    const emailInput = document.getElementById('email');
+    const passInput = document.getElementById('password');
+    
+    // Highlight effect
+    if(emailInput.parentElement) {
+        emailInput.parentElement.classList.add('ring-2', 'ring-blue-100');
+        setTimeout(() => emailInput.parentElement.classList.remove('ring-2', 'ring-blue-100'), 500);
+    }
+
+    emailInput.value = email;
+    passInput.value = 'password123';
+};
+
+// --- LOGIN LOGIC ---
 if(loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -67,7 +83,6 @@ if(loginForm) {
 }
 
 function redirectUser(role) {
-    // Redirect everyone to the Portal (Hub) first
     window.location.href = 'PORTAL.html';
 }
 
@@ -76,7 +91,7 @@ function setLoading(isLoading) {
         submitBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i> Signing In...';
         submitBtn.disabled = true;
         submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-        feather.replace();
+        if(window.feather) feather.replace();
     } else {
         submitBtn.innerHTML = 'Sign In to Account';
         submitBtn.disabled = false;
