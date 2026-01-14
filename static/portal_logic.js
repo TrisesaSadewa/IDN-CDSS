@@ -26,7 +26,7 @@ function loadUserProfile() {
 
 function logout() {
     localStorage.clear();
-    window.location.href = 'LOGIN.html';
+    window.location.href = 'index.html';
 }
 
 function renderDashboard() {
@@ -221,4 +221,5 @@ function generatePatientDashboard() {
             </a>
         </div>
     `;
+
 }
