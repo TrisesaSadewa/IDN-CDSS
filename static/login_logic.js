@@ -1,6 +1,6 @@
 // --- CONFIGURATION ---
 const SUPABASE_URL = 'https://hwoelsconqsybftgdxft.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3b2Vsc2NvbnFzeWJmdGdkeGZ0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyNzE5MiwiZXhwIjoyMDgzODAzMTkyfQ.HDdmU4HATVu1ykNOjBjRydf6aJ6qm2xolmBWyPJprqY';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3b2Vsc2NvbnFzeWJmdGdkeGZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMjcxOTIsImV4cCI6MjA4MzgwMzE5Mn0.2FhYBIlXDfdRk-21R1uNiRp8rTNiROw0T9T35Cz8K4c';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -93,3 +93,4 @@ function hideError() {
     errorMsg.classList.add('hidden');
 
 }
+
