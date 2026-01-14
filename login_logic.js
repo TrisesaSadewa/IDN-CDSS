@@ -2,10 +2,8 @@
 const SUPABASE_URL = 'https://hwoelsconqsybftgdxft.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dMAyCUVPT2LK-NHu5NYeTg_zFkfSD8R'; 
 
-// Initialize Supabase Client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// DOM Elements
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
@@ -13,22 +11,18 @@ const submitBtn = document.getElementById('submit-btn');
 const errorMsg = document.getElementById('error-msg');
 const errorText = document.getElementById('error-text');
 
-// --- EXPOSE HELPER TO WINDOW (Fixes ReferenceError) ---
+// Expose helper to window
 window.fillCreds = function(email) {
     const emailInput = document.getElementById('email');
     const passInput = document.getElementById('password');
-    
-    // Highlight effect
     if(emailInput.parentElement) {
         emailInput.parentElement.classList.add('ring-2', 'ring-blue-100');
         setTimeout(() => emailInput.parentElement.classList.remove('ring-2', 'ring-blue-100'), 500);
     }
-
     emailInput.value = email;
     passInput.value = 'password123';
 };
 
-// --- LOGIN LOGIC ---
 if(loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -45,7 +39,13 @@ if(loginForm) {
                 password: password
             });
 
-            if (error) throw error;
+            if (error) {
+                // ENHANCED LOGGING
+                console.error("Supabase Auth Error Detail:", error);
+                console.error("Status:", error.status);
+                console.error("Message:", error.message);
+                throw error;
+            }
 
             // 2. Fetch Role
             const userId = data.user.id;
@@ -55,14 +55,22 @@ if(loginForm) {
                 .eq('id', userId)
                 .single();
 
+            if (profileRes.error) {
+                console.warn("Profile Fetch Error:", profileRes.error);
+                // Continue anyway if profile fails, just to let user in (fallback)
+            }
+
             const role = profileRes.data ? profileRes.data.role : 'patient'; 
             const fullName = profileRes.data ? profileRes.data.full_name : 'User';
 
             // 3. Log the Login
-            await supabaseClient.from('login_history').insert({
+            // We use a fire-and-forget approach here so it doesn't block login if it fails
+            supabaseClient.from('login_history').insert({
                 user_id: userId,
                 role: role,
                 user_agent: navigator.userAgent
+            }).then(res => {
+                if (res.error) console.warn("Login History Log Failed:", res.error);
             });
 
             // 4. Store Session & Redirect
@@ -74,8 +82,12 @@ if(loginForm) {
             redirectUser(role);
 
         } catch (err) {
-            console.error(err);
-            showError(err.message || 'Invalid login credentials');
+            // Show more detail in the UI
+            let msg = err.message || 'Invalid login credentials';
+            if (msg.includes("Database error")) {
+                msg += " (Server configuration issue. Check SQL permissions.)";
+            }
+            showError(msg);
         } finally {
             setLoading(false);
         }
