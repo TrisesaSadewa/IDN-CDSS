@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 
 # --- CONFIGURATION ---
-# CREDENTIALS FROM USER
 SUPABASE_URL = "https://hwoelsconqsybftgdxft.supabase.co"
 SUPABASE_KEY = "sb_secret_icjE6md4vSH3J48Tdt5izw_xYQzd32Y" 
 
@@ -18,14 +17,13 @@ app = FastAPI(title="Doctor's Module API", version="2.0")
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://idn-cdss.vercel.app/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize Client
-# NOTE: If this fails, ensure SUPABASE_KEY is the 'service_role' key (starts with eyJ...)
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
@@ -238,4 +236,5 @@ async def submit_consultation(data: ConsultationSubmit):
 
     except Exception as e:
         print(e)
+
         raise HTTPException(status_code=500, detail="Submission Failed")
