@@ -1,5 +1,5 @@
 // CONFIGURATION
-const API_BASE = "http://127.0.0.1:8000"; // Ensure Backend is running
+const API_BASE = "https://smart-his-backend.onrender.com";
 
 // STATE
 let currentQueue = [];
@@ -244,4 +244,5 @@ function renderInventory() {
     }).join('');
     
     feather.replace();
+
 }
