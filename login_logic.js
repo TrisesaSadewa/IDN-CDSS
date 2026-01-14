@@ -1,8 +1,10 @@
 // --- CONFIGURATION ---
 const SUPABASE_URL = 'https://hwoelsconqsybftgdxft.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3b2Vsc2NvbnFzeWJmdGdkeGZ0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyNzE5MiwiZXhwIjoyMDgzODAzMTkyfQ.HDdmU4HATVu1ykNOjBjRydf6aJ6qm2xolmBWyPJprqY'; // Public Key
+const SUPABASE_KEY = 'sb_publishable_dMAyCUVPT2LK-NHu5NYeTg_zFkfSD8R'; // Public Key
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Initialize Supabase Client
+// Renamed to 'supabaseClient' to avoid conflict with the library 'supabase' global
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
@@ -11,64 +13,62 @@ const submitBtn = document.getElementById('submit-btn');
 const errorMsg = document.getElementById('error-msg');
 const errorText = document.getElementById('error-text');
 
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    hideError();
+if(loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        hideError();
 
-    const email = emailInput.value;
-    const password = passwordInput.value;
+        const email = emailInput.value;
+        const password = passwordInput.value;
 
-    try {
-        // 1. Authenticate
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
+        try {
+            // 1. Authenticate
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
 
-        if (error) throw error;
+            if (error) throw error;
 
-        // 2. Fetch Role
-        const userId = data.user.id;
-        const profileRes = await supabase
-            .from('profiles')
-            .select('role, full_name')
-            .eq('id', userId)
-            .single();
+            // 2. Fetch Role
+            const userId = data.user.id;
+            const profileRes = await supabaseClient
+                .from('profiles')
+                .select('role, full_name')
+                .eq('id', userId)
+                .single();
 
-        const role = profileRes.data ? profileRes.data.role : 'patient';
-        const fullName = profileRes.data ? profileRes.data.full_name : 'User';
+            const role = profileRes.data ? profileRes.data.role : 'patient'; 
+            const fullName = profileRes.data ? profileRes.data.full_name : 'User';
 
-        // 3. Log the Login (Proper Auditing)
-        await supabase.from('login_history').insert({
-            user_id: userId,
-            role: role,
-            user_agent: navigator.userAgent
-        });
+            // 3. Log the Login
+            await supabaseClient.from('login_history').insert({
+                user_id: userId,
+                role: role,
+                user_agent: navigator.userAgent
+            });
 
-        // 4. Store Session & Redirect
-        localStorage.setItem('smart_his_token', data.session.access_token);
-        localStorage.setItem('smart_his_role', role);
-        localStorage.setItem('smart_his_name', fullName);
+            // 4. Store Session & Redirect
+            localStorage.setItem('smart_his_token', data.session.access_token);
+            localStorage.setItem('smart_his_role', role);
+            localStorage.setItem('smart_his_name', fullName);
+            localStorage.setItem('smart_his_user_id', userId);
 
-        redirectUser(role);
+            redirectUser(role);
 
-    } catch (err) {
-        showError(err.message || 'Invalid login credentials');
-    } finally {
-        setLoading(false);
-    }
-});
+        } catch (err) {
+            console.error(err);
+            showError(err.message || 'Invalid login credentials');
+        } finally {
+            setLoading(false);
+        }
+    });
+}
 
 function redirectUser(role) {
-    // Map roles to their specific dashboards
-    switch(role) {
-        case 'doctor':      window.location.href = 'portal.html'; break;
-        case 'nurse':       window.location.href = 'APPOINTMENTS.html'; break;
-        case 'pharmacist':  window.location.href = 'PHARMACY.html'; break;
-        case 'admin':       window.location.href = 'ADMIN_DASHBOARD.html'; break;
-        default:            window.location.href = 'PATIENT_PORTAL.html';
-    }
+    // Redirect everyone to the Portal (Hub) first
+    window.location.href = 'PORTAL.html';
 }
 
 function setLoading(isLoading) {
