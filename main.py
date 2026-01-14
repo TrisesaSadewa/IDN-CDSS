@@ -10,7 +10,7 @@ from supabase import create_client, Client
 
 # --- CONFIGURATION ---
 SUPABASE_URL = "https://hwoelsconqsybftgdxft.supabase.co"
-SUPABASE_KEY = "sb_secret_icjE6md4vSH3J48Tdt5izw_xYQzd32Y" 
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3b2Vsc2NvbnFzeWJmdGdkeGZ0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyNzE5MiwiZXhwIjoyMDgzODAzMTkyfQ.HDdmU4HATVu1ykNOjBjRydf6aJ6qm2xolmBWyPJprqY" 
 
 app = FastAPI(title="Doctor's Module API", version="2.0")
 
@@ -238,3 +238,4 @@ async def submit_consultation(data: ConsultationSubmit):
         print(e)
 
         raise HTTPException(status_code=500, detail="Submission Failed")
+
