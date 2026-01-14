@@ -6,3 +6,9 @@ requests
 fuzzywuzzy
 python-Levenshtein
 pydantic
+fastapi
+uvicorn
+supabase
+python-multipart
+fuzzywuzzy
+python-Levenshtein
