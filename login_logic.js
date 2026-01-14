@@ -96,7 +96,7 @@ if(loginForm) {
 }
 
 function redirectUser(role) {
-    window.location.href = 'PORTAL.html';
+    window.location.href = 'portal.html';
 }
 
 function setLoading(isLoading) {
@@ -120,5 +120,6 @@ function showError(msg) {
 function hideError() {
     errorMsg.classList.add('hidden');
 }
+
 
 
