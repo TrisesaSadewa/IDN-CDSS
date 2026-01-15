@@ -15,8 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     nameEls.forEach(el => el.textContent = currentUser.name);
 
     // 2. PAGE ROUTING - DETECT PAGE BY ELEMENT ID
-    if (document.getElementById('doctor-select')) {
+    // Check specifically for the doctor selection dropdown
+    const doctorSelect = document.getElementById('doctor-select');
+    
+    if (doctorSelect) {
         // We are on PATIENT_APPOINTMENTS.html
+        console.log("Appointment Page Detected: Initializing Booking Logic...");
         initBookingPage();
     } 
     else if (document.getElementById('timeline-container')) {
@@ -30,14 +34,21 @@ async function initBookingPage() {
     const doctorSelect = document.getElementById('doctor-select');
     const bookForm = document.getElementById('booking-form');
 
+    if (!doctorSelect) return;
+
     // A. Fetch Doctors List from Database
     try {
+        console.log("Fetching doctors from:", `${API_BASE}/patient/doctors`);
         const res = await fetch(`${API_BASE}/patient/doctors`);
         
-        if (!res.ok) throw new Error("Connection failed");
+        if (!res.ok) throw new Error(`Connection failed: ${res.status}`);
         
         const doctors = await res.json();
+        console.log("Doctors loaded:", doctors);
         
+        // Clear the "Loading..." placeholder
+        doctorSelect.innerHTML = '';
+
         if (doctors.length === 0) {
              doctorSelect.innerHTML = `<option>No doctors found in database</option>`;
         } else {
