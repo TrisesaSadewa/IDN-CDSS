@@ -82,9 +82,11 @@
     <script>
         feather.replace();
 
-        // 1. Init Supabase
+        // 1. Init Supabase with SERVICE KEY
+        // WARNING: Using Service Key on client side is for ADMIN INTERFACES ONLY.
         const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQwODgxMiwiZXhwIjoyMDgzOTg0ODEyfQ.Uk9AFwxRHi7pwgP_lqYIWQ6JD7Ov1d07OzxiHswPNPQ';
+        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const form = document.getElementById('register-form');
@@ -108,9 +110,11 @@
 
             try {
                 // A. Create Auth User
-                const { data: authData, error: authError } = await supabase.auth.signUp({
+                // Using service_role allows creation without logging in as that user
+                const { data: authData, error: authError } = await supabase.auth.admin.createUser({
                     email: email,
-                    password: password
+                    password: password,
+                    email_confirm: true // Auto confirm
                 });
 
                 if (authError) throw authError;
@@ -137,9 +141,9 @@
 
                 if (patientError) throw patientError;
 
-                showMessage("success", "Patient registered successfully!");
+                showMessage("success", "Patient registered successfully! You can now login.");
                 form.reset();
-                document.getElementById('reg-pass').value = "password123"; // Reset default
+                document.getElementById('reg-pass').value = "password123"; 
 
             } catch (err) {
                 console.error(err);
