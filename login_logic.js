@@ -61,6 +61,8 @@ if (loginForm) {
                 window.location.href = 'APPOINTMENTS.html';
             } else if (role === 'admin') {
                 window.location.href = 'portal.html'; 
+            } else if (role === 'nurse') {
+                window.location.href = 'portal.html'; 
             } else {
                 window.location.href = 'PATIENT_PORTAL.html';
             }
@@ -101,3 +103,4 @@ function setLoading(isLoading) {
     }
     if(window.feather) feather.replace();
 }
+
