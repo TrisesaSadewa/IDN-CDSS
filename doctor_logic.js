@@ -7,6 +7,8 @@ const DOCTOR_NAME = localStorage.getItem('smart_his_name');
 
 // --- PAGE ROUTER ---
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Doctor Logic Loaded - v3.5"); // Debugging Log
+
     // 1. Update UI Name
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) {
@@ -17,11 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     startClock();
 
     // 3. Route
-    const path = window.location.pathname;
-    if (path.includes('APPOINTMENTS.html')) {
+    // We check for specific elements to determine the page, rather than just URL
+    if (document.getElementById('queue-container')) {
         initAppointmentsPage();
-    } else if (path.includes('EMR.html')) {
-        initEMRPage();
+    } else if (document.getElementById('soap-subjective')) {
+        initEMRPage(); // Logic for EMR page if needed
     }
 });
 
@@ -45,53 +47,67 @@ async function initAppointmentsPage() {
     if (!container) return;
 
     try {
+        console.log(`Fetching Queue for Doctor: ${DOCTOR_ID}`);
         const res = await fetch(`${API_BASE}/doctor/queue?doctor_id=${DOCTOR_ID}`);
+        
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        
         const appointments = await res.json();
+        console.log("Appointments fetched:", appointments);
         
-        // --- 1. UPDATE STATS ---
-        document.getElementById('stat-total').innerText = appointments.length;
-        document.getElementById('stat-waiting').innerText = Math.max(0, appointments.length - 1);
+        // --- 1. SAFELY UPDATE STATS ---
+        // We wrap this in a helper to prevent crashing if an ID is missing
+        safeSetText('stat-total', appointments.length);
+        safeSetText('stat-waiting', Math.max(0, appointments.length - 1));
         
-        // Clear Lists
+        // --- 2. CLEAR LOADING STATE ---
+        // We do this BEFORE processing data to ensure "Loading..." goes away
         container.innerHTML = ''; 
 
         if (appointments.length === 0) {
-            heroCard.classList.add('hidden');
-            emptyState.classList.remove('hidden');
-            document.getElementById('stat-now-serving').innerText = "--";
+            if(heroCard) heroCard.classList.add('hidden');
+            if(emptyState) emptyState.classList.remove('hidden');
+            safeSetText('stat-now-serving', "--");
             return;
         }
 
-        emptyState.classList.add('hidden');
+        if(emptyState) emptyState.classList.add('hidden');
 
-        // --- 2. RENDER HERO CARD (FIRST IN LINE) ---
-        const activeAppt = appointments[0];
-        const activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
-        const activeT = (activeAppt.triage_notes && activeAppt.triage_notes.length > 0) ? activeAppt.triage_notes[0] : {};
+        // --- 3. RENDER HERO CARD (FIRST IN LINE) ---
+        if (heroCard) {
+            const activeAppt = appointments[0];
+            
+            // Handle Supabase Array/Object quirk for joined data
+            let activeP = activeAppt.patients;
+            if (Array.isArray(activeP)) activeP = activeP[0];
+            if (!activeP) activeP = { full_name: "Unknown", mrn: "N/A" };
 
-        heroCard.classList.remove('hidden');
-        document.getElementById('stat-now-serving').innerText = `A-${activeAppt.queue_number}`;
-        
-        document.getElementById('active-queue-no').innerText = `A-${activeAppt.queue_number}`;
-        document.getElementById('active-name').innerText = activeP.full_name;
-        document.getElementById('active-details').innerText = `MRN: ${activeP.mrn} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender}`;
-        document.getElementById('active-triage').innerText = `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`;
-        
-        // Bind Button
-        const heroBtn = document.getElementById('open-active-emr-btn');
-        heroBtn.onclick = () => openEMR(activeAppt.id, activeP.full_name);
+            let activeT = activeAppt.triage_notes;
+            if (Array.isArray(activeT)) activeT = activeT[0];
+            if (!activeT) activeT = {};
 
+            heroCard.classList.remove('hidden');
+            safeSetText('stat-now-serving', `A-${activeAppt.queue_number}`);
+            safeSetText('active-queue-no', `A-${activeAppt.queue_number}`);
+            safeSetText('active-name', activeP.full_name);
+            safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
+            safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
+            
+            // Bind Button
+            const heroBtn = document.getElementById('open-active-emr-btn');
+            if(heroBtn) heroBtn.onclick = () => openEMR(activeAppt.id, activeP.full_name);
+        }
 
-        // --- 3. RENDER QUEUE LIST (REMAINING ITEMS) ---
+        // --- 4. RENDER QUEUE LIST (REMAINING ITEMS) ---
         const waitingList = appointments.slice(1);
         
         if (waitingList.length === 0) {
             container.innerHTML = `<div class="text-center text-sm text-gray-400 py-4">No other patients waiting.</div>`;
         } else {
             waitingList.forEach(appt => {
-                const p = appt.patients || { full_name: "Unknown", mrn: "?" };
-                const initial = p.full_name.charAt(0).toUpperCase();
+                let p = appt.patients;
+                if (Array.isArray(p)) p = p[0];
+                if (!p) p = { full_name: "Unknown", mrn: "?" };
                 
                 const row = document.createElement('div');
                 row.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between group cursor-pointer hover:border-blue-300 transition-all";
@@ -119,8 +135,15 @@ async function initAppointmentsPage() {
 
     } catch (err) {
         console.error("Queue Error:", err);
-        container.innerHTML = `<div class="text-red-500 text-sm">Connection failed. Is backend running?</div>`;
+        container.innerHTML = `<div class="text-red-500 text-sm p-4 bg-red-50 rounded-lg">Error: ${err.message}</div>`;
     }
+}
+
+// --- HELPER FUNCTIONS ---
+
+function safeSetText(elementId, text) {
+    const el = document.getElementById(elementId);
+    if (el) el.textContent = text;
 }
 
 function openEMR(apptId, patientName) {
