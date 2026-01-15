@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadUserProfile();
     renderDashboard();
+    if(window.feather) feather.replace();
 });
 
-// Mock Data for Demo (In real app, fetch from Supabase 'view_daily_business_metrics')
+// Mock Data (In real app, fetch from Supabase 'view_daily_business_metrics')
 const METRICS = {
     doctor: { waiting: 12, completed: 5, urgent: 2 },
     nurse: { triage_pending: 8, vitals_check: 3, admitted: 45 },
@@ -17,208 +18,154 @@ function loadUserProfile() {
     const name = localStorage.getItem('smart_his_name') || 'User';
     const role = localStorage.getItem('smart_his_role') || 'guest';
     
-    // Update UI
-    document.getElementById('user-name').textContent = name;
-    document.getElementById('welcome-name').textContent = name.split(' ')[0]; // First name
-    document.getElementById('user-role').textContent = role.replace('_', ' ');
-    document.getElementById('user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
-}
+    // Update UI Elements
+    const nameEl = document.getElementById('user-name');
+    const welcomeEl = document.getElementById('welcome-name');
+    const roleEl = document.getElementById('user-role');
+    const avatarEl = document.getElementById('user-avatar');
 
-function logout() {
-    localStorage.clear();
-    window.location.href = 'index.html';
+    if (nameEl) nameEl.textContent = name;
+    if (welcomeEl) welcomeEl.textContent = name.split(' ')[0]; // First name
+    if (roleEl) roleEl.textContent = role.replace('_', ' ').toUpperCase();
+    if (avatarEl) avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
 }
 
 function renderDashboard() {
     const role = localStorage.getItem('smart_his_role') || 'guest';
     const container = document.getElementById('dashboard-content');
-    
-    let contentHTML = '';
+    if (!container) return;
 
-    switch(role) {
-        case 'doctor':
-            contentHTML = generateDoctorDashboard();
-            break;
-        case 'nurse':
-            contentHTML = generateNurseDashboard();
-            break;
-        case 'pharmacist':
-            contentHTML = generatePharmacistDashboard();
-            break;
-        case 'admin':
-            contentHTML = generateAdminDashboard();
-            break;
-        case 'patient':
-            contentHTML = generatePatientDashboard();
-            break;
-        default:
-            contentHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">Unknown Role. Please login again.</div>`;
+    let html = '';
+
+    // --- ADMIN VIEW ---
+    if (role === 'admin') {
+        html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Metrics -->
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">Monthly Revenue</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-1">${METRICS.admin.revenue}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">Active Users</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-1">${METRICS.admin.active_users}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">System Health</p>
+                    <h3 class="text-3xl font-bold text-green-600 mt-1">${METRICS.admin.system_health}</h3>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-gray-800 mb-6">Management Console</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- LINK TO ADMIN PANEL (Patient Registration) -->
+                <a href="ADMIN.html" class="group bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <div class="mb-4 bg-indigo-100 text-indigo-600 w-fit p-3 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <i data-feather="user-plus" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">Register Patient</h4>
+                        <p class="text-gray-500 text-sm mt-2">Create new patient accounts, assign MRN, and set temporary passwords.</p>
+                    </div>
+                </a>
+
+                <!-- Placeholder: User Management -->
+                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 border-dashed flex flex-col justify-center opacity-60">
+                    <div class="mb-4 bg-gray-200 text-gray-400 w-fit p-3 rounded-xl">
+                        <i data-feather="users" class="w-6 h-6"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-700">Staff Management</h4>
+                    <p class="text-gray-400 text-sm mt-2">Manage doctor and nurse access (Coming Soon).</p>
+                </div>
+
+                <!-- Placeholder: Reports -->
+                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 border-dashed flex flex-col justify-center opacity-60">
+                    <div class="mb-4 bg-gray-200 text-gray-400 w-fit p-3 rounded-xl">
+                        <i data-feather="bar-chart-2" class="w-6 h-6"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-700">Audit Logs</h4>
+                    <p class="text-gray-400 text-sm mt-2">View system access logs (Coming Soon).</p>
+                </div>
+            </div>
+        `;
     }
 
-    container.innerHTML = contentHTML;
-    feather.replace(); // Re-initialize icons for new content
-}
-
-// --- TEMPLATE GENERATORS ---
-
-function generateDoctorDashboard() {
-    const m = METRICS.doctor;
-    return `
-        <!-- Stats Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i data-feather="users"></i></div>
-                <div><p class="text-gray-500 text-sm font-medium">Waiting Queue</p><h3 class="text-2xl font-bold text-gray-900">${m.waiting}</h3></div>
+    // --- DOCTOR VIEW ---
+    else if (role === 'doctor') {
+        html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm">Patients Waiting</p>
+                    <h3 class="text-3xl font-bold text-indigo-600">${METRICS.doctor.waiting}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm">Completed Today</p>
+                    <h3 class="text-3xl font-bold text-gray-900">${METRICS.doctor.completed}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm">Urgent Flags</p>
+                    <h3 class="text-3xl font-bold text-red-500">${METRICS.doctor.urgent}</h3>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="p-3 bg-green-50 text-green-600 rounded-xl"><i data-feather="check-circle"></i></div>
-                <div><p class="text-gray-500 text-sm font-medium">Completed</p><h3 class="text-2xl font-bold text-gray-900">${m.completed}</h3></div>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="p-3 bg-red-50 text-red-600 rounded-xl"><i data-feather="alert-circle"></i></div>
-                <div><p class="text-gray-500 text-sm font-medium">Urgent Attention</p><h3 class="text-2xl font-bold text-gray-900">${m.urgent}</h3></div>
-            </div>
-        </div>
 
-        <!-- Quick Actions Grid -->
-        <h3 class="text-lg font-bold text-gray-800 mb-6">Quick Actions</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            <a href="APPOINTMENTS.html" class="dashboard-card bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl p-6 text-white relative overflow-hidden group">
-                <div class="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <a href="APPOINTMENTS.html" class="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center justify-between group">
+                    <div>
+                        <h3 class="text-xl font-bold">Go to Queue</h3>
+                        <p class="text-indigo-100 text-sm mt-1">View patient list & start consultations</p>
+                    </div>
+                    <i data-feather="arrow-right" class="group-hover:translate-x-1 transition-transform"></i>
+                </a>
+            </div>
+        `;
+    }
+
+    // --- PATIENT VIEW ---
+    else if (role === 'patient') {
+        html = `
+            <div class="bg-blue-600 rounded-3xl p-8 text-white shadow-xl shadow-blue-200 mb-8 relative overflow-hidden">
                 <div class="relative z-10">
-                    <div class="p-3 bg-white/20 w-fit rounded-xl backdrop-blur-sm mb-4"><i data-feather="stethoscope"></i></div>
-                    <h4 class="text-xl font-bold mb-1">Start Consultation</h4>
-                    <p class="text-blue-100 text-sm">View queue and begin SOAP process</p>
+                    <h3 class="text-2xl font-bold mb-2">Next Appointment</h3>
+                    <p class="text-blue-100 mb-6">${METRICS.patient.next_appt} • Dr. Sadewa</p>
+                    <div class="flex gap-3">
+                        <button class="bg-white text-blue-600 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors">Reschedule</button>
+                        <button class="bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-800 transition-colors">Details</button>
+                    </div>
                 </div>
-            </a>
+                <div class="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+            </div>
 
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm group">
-                <div class="p-3 bg-purple-50 text-purple-600 w-fit rounded-xl mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors"><i data-feather="search"></i></div>
-                <h4 class="text-lg font-bold text-gray-800 mb-1">Patient Search</h4>
-                <p class="text-gray-500 text-sm">Lookup medical records by ID or Name</p>
-            </a>
-
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm group">
-                <div class="p-3 bg-orange-50 text-orange-600 w-fit rounded-xl mb-4 group-hover:bg-orange-600 group-hover:text-white transition-colors"><i data-feather="calendar"></i></div>
-                <h4 class="text-lg font-bold text-gray-800 mb-1">My Schedule</h4>
-                <p class="text-gray-500 text-sm">Manage appointments and availability</p>
-            </a>
-
-        </div>
-    `;
-}
-
-function generateNurseDashboard() {
-    const m = METRICS.nurse;
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><p class="text-gray-500 text-sm">Triage Pending</p><h3 class="text-3xl font-bold text-indigo-600">${m.triage_pending}</h3></div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><p class="text-gray-500 text-sm">Vitals To Check</p><h3 class="text-3xl font-bold text-pink-600">${m.vitals_check}</h3></div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><p class="text-gray-500 text-sm">Total Admitted</p><h3 class="text-3xl font-bold text-teal-600">${m.admitted}</h3></div>
-        </div>
-
-        <h3 class="text-lg font-bold text-gray-800 mb-6">Nurse Station</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <a href="APPOINTMENTS.html" class="dashboard-card bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl p-6 text-white relative overflow-hidden">
-                <div class="mb-4 bg-white/20 w-fit p-3 rounded-xl"><i data-feather="clipboard"></i></div>
-                <h4 class="text-xl font-bold">Triage Queue</h4>
-                <p class="text-pink-100 text-sm mt-1">Input vitals and initial assessment</p>
-            </a>
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-blue-50 text-blue-600 w-fit p-3 rounded-xl"><i data-feather="user-plus"></i></div>
-                <h4 class="text-lg font-bold text-gray-800">Register Patient</h4>
-                <p class="text-gray-500 text-sm mt-1">New admission entry</p>
-            </a>
-        </div>
-    `;
-}
-
-function generatePharmacistDashboard() {
-    const m = METRICS.pharmacist;
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><p class="text-gray-500 text-sm">New Orders</p><h3 class="text-3xl font-bold text-green-600">${m.prescriptions}</h3></div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><p class="text-gray-500 text-sm">Stock Alerts</p><h3 class="text-3xl font-bold text-red-600">${m.stock_alerts}</h3></div>
-        </div>
-
-        <h3 class="text-lg font-bold text-gray-800 mb-6">Pharmacy Operations</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <a href="PHARMACY.html" class="dashboard-card bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-6 text-white">
-                <div class="mb-4 bg-white/20 w-fit p-3 rounded-xl"><i data-feather="package"></i></div>
-                <h4 class="text-xl font-bold">Dispense Queue</h4>
-                <p class="text-green-100 text-sm mt-1">Process incoming e-prescriptions</p>
-            </a>
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-orange-50 text-orange-600 w-fit p-3 rounded-xl"><i data-feather="database"></i></div>
-                <h4 class="text-lg font-bold text-gray-800">Inventory</h4>
-                <p class="text-gray-500 text-sm mt-1">Manage stock levels</p>
-            </a>
-        </div>
-    `;
-}
-
-function generateAdminDashboard() {
-    return `
-        <div class="bg-indigo-900 rounded-3xl p-8 text-white mb-10 relative overflow-hidden">
-            <div class="relative z-10">
-                <h2 class="text-2xl font-bold mb-2">Hospital Overview</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
-                    <div><p class="text-indigo-300 text-sm">Daily Revenue</p><p class="text-3xl font-bold">${METRICS.admin.revenue}</p></div>
-                    <div><p class="text-indigo-300 text-sm">Active Users</p><p class="text-3xl font-bold">${METRICS.admin.active_users}</p></div>
-                    <div><p class="text-indigo-300 text-sm">System Health</p><p class="text-3xl font-bold text-green-400">${METRICS.admin.system_health}</p></div>
+            <h3 class="text-lg font-bold text-gray-800 mb-6">Quick Actions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="PATIENT_APPOINTMENTS.html" class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+                    <div class="mb-4 bg-indigo-50 text-indigo-600 w-fit p-3 rounded-xl"><i data-feather="calendar"></i></div>
+                    <h4 class="text-lg font-bold group-hover:text-indigo-600 transition-colors">Book Appointment</h4>
+                </a>
+                <a href="PATIENT_EMR.html" class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+                    <div class="mb-4 bg-teal-50 text-teal-600 w-fit p-3 rounded-xl"><i data-feather="file-text"></i></div>
+                    <h4 class="text-lg font-bold group-hover:text-teal-600 transition-colors">Medical Records</h4>
+                </a>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm opacity-60">
+                    <div class="mb-4 bg-purple-50 text-purple-600 w-fit p-3 rounded-xl"><i data-feather="pill"></i></div>
+                    <h4 class="text-lg font-bold">Prescriptions</h4>
+                    <p class="text-xs text-gray-400 mt-1">Coming Soon</p>
                 </div>
             </div>
-            <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
-                <i data-feather="activity" width="200" height="200"></i>
-            </div>
-        </div>
+        `;
+    }
 
-        <h3 class="text-lg font-bold text-gray-800 mb-6">Administration</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-gray-100 w-fit p-3 rounded-xl"><i data-feather="users"></i></div>
-                <h4 class="text-lg font-bold">User Management</h4>
-            </a>
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-gray-100 w-fit p-3 rounded-xl"><i data-feather="bar-chart-2"></i></div>
-                <h4 class="text-lg font-bold">Reports & Analytics</h4>
-            </a>
-        </div>
-    `;
+    // --- DEFAULT / GUEST ---
+    else {
+        html = `<div class="text-center text-gray-500 py-10">Access restricted. Please log in.</div>`;
+    }
+
+    container.innerHTML = html;
+    if(window.feather) feather.replace();
 }
 
-function generatePatientDashboard() {
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
-                <p class="text-blue-100 text-sm mb-1">Next Appointment</p>
-                <h3 class="text-2xl font-bold flex items-center gap-2">
-                    <i data-feather="calendar"></i> ${METRICS.patient.next_appt}
-                </h3>
-                <p class="mt-4 text-sm bg-white/20 w-fit px-3 py-1 rounded-full">General Checkup</p>
-            </div>
-            <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col justify-center">
-                <p class="text-gray-500 text-sm">Outstanding Balance</p>
-                <h3 class="text-3xl font-bold text-gray-900">${METRICS.patient.bills}</h3>
-                <p class="text-green-600 text-xs mt-1 font-bold">All paid up!</p>
-            </div>
-        </div>
-
-        <h3 class="text-lg font-bold text-gray-800 mb-6">My Health</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-teal-50 text-teal-600 w-fit p-3 rounded-xl"><i data-feather="file-text"></i></div>
-                <h4 class="text-lg font-bold">Medical Records</h4>
-            </a>
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-purple-50 text-purple-600 w-fit p-3 rounded-xl"><i data-feather="pill"></i></div>
-                <h4 class="text-lg font-bold">My Prescriptions</h4>
-            </a>
-            <a href="#" class="dashboard-card bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <div class="mb-4 bg-blue-50 text-blue-600 w-fit p-3 rounded-xl"><i data-feather="calendar"></i></div>
-                <h4 class="text-lg font-bold">Book Appointment</h4>
-            </a>
-        </div>
-    `;
+function logout() {
+    localStorage.clear();
+    window.location.href = 'index.html';
 }
