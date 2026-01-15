@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     nameEls.forEach(el => el.textContent = currentUser.name);
 
     // 2. PAGE ROUTING - DETECT PAGE BY ELEMENT ID
-    // Check specifically for the doctor selection dropdown
     const doctorSelect = document.getElementById('doctor-select');
     
     if (doctorSelect) {
@@ -72,6 +71,8 @@ async function initBookingPage() {
             const time = document.getElementById('book-time').value;
 
             if(!date || !time) {
+                // Using a small toast for validation error instead of alert could be nice too, 
+                // but keeping alert here for simplicity on validation.
                 alert("Please select date and time");
                 return;
             }
@@ -95,8 +96,12 @@ async function initBookingPage() {
 
                 if (!res.ok) throw new Error("Booking failed");
 
-                alert("Appointment Booked Successfully!");
-                window.location.href = "PATIENT_PORTAL.html";
+                // SUCCESS: Show Modern Modal instead of Alert
+                showSuccessModal(
+                    "Appointment Confirmed", 
+                    "Your consultation has been successfully scheduled. We have notified the doctor.",
+                    "PATIENT_PORTAL.html"
+                );
 
             } catch (err) {
                 alert("Error booking appointment: " + err.message);
@@ -175,4 +180,44 @@ async function loadEMRHistory(isSummary = false) {
         console.error("History Error", err);
         if(!isSummary) container.innerHTML = `<div class="text-red-500">Failed to load records.</div>`;
     }
+}
+
+// --- HELPER: MODERN MODAL ---
+function showSuccessModal(title, message, redirectUrl) {
+    // 1. Create Modal Container
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300";
+    
+    // 2. Modal Content
+    modal.innerHTML = `
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300 text-center">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <i data-feather="check" class="w-10 h-10 text-green-600"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">${title}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-8">${message}</p>
+            <button id="modal-success-btn" class="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition-all transform active:scale-[0.98] shadow-lg">
+                Go to Dashboard
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 3. Initialize Icons
+    if(window.feather) feather.replace();
+
+    // 4. Animate In
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        const content = modal.querySelector('div');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+
+    // 5. Handle Click
+    const btn = modal.querySelector('#modal-success-btn');
+    btn.onclick = () => {
+        window.location.href = redirectUrl;
+    };
 }
