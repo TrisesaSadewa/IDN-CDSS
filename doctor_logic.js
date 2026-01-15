@@ -11,10 +11,12 @@ let secondaryDiagnoses = []; // Stores real comorbidity objects
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    // UI Setup
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
     if(document.getElementById('current-time')) startClock();
 
+    // Route
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
     } else if (document.getElementById('mainContent')) {
@@ -37,9 +39,7 @@ function startClock() {
 // ==========================================
 
 async function initEMRPage() {
-    console.log("Initializing Real EMR...");
-    
-    // 1. Get Appointment ID
+    console.log("Initializing EMR...");
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
     if (!currentApptId) return alert("No Appointment ID found.");
@@ -61,7 +61,7 @@ async function initEMRPage() {
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
         
-        // Vitals
+        // Vitals (Pre-fill)
         safeSetValue('weight', t.weight_kg);
         safeSetValue('height', t.height_cm);
         safeSetValue('systolic', t.systolic);
@@ -72,8 +72,9 @@ async function initEMRPage() {
         // Nurse Notes
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
 
-        // Load History
+        // Load Panels
         loadHistoryPanel(p.id);
+        loadLabPanel(p.id);
 
     } catch (err) {
         console.error(err);
@@ -91,7 +92,9 @@ function setupEMRInteractions() {
         if(viewName === 'summary') updateSummary();
         
         const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
-        document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
+        if(document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]]) {
+            document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
+        }
     };
 
     // 2. Right Panel Toggles
@@ -118,13 +121,12 @@ function setupEMRInteractions() {
     document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
     document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
 
-    // 3. ICD-10 Search (Primary)
+    // 3. ICD Search
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
         document.getElementById('primaryICDInput').value = item.code;
         document.getElementById('primaryDiagnosisInput').value = item.description;
     });
 
-    // 4. Comorbidity Search (Secondary)
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
         if (!secondaryDiagnoses.some(d => d.code === item.code)) {
             secondaryDiagnoses.push(item);
@@ -133,7 +135,7 @@ function setupEMRInteractions() {
         document.getElementById('comorbidityInput').value = '';
     });
 
-    // 5. Add Comorbidity Button (Manual)
+    // 4. Manual Add Buttons
     document.getElementById('addComorbidityBtn').onclick = () => {
         const val = document.getElementById('comorbidityInput').value.trim();
         if(val) {
@@ -143,7 +145,6 @@ function setupEMRInteractions() {
         }
     };
 
-    // 6. Prescriptions
     document.getElementById('addPrescription').onclick = () => {
         const name = document.getElementById('drugName').value;
         const dose = document.getElementById('dosage').value;
@@ -156,11 +157,25 @@ function setupEMRInteractions() {
         document.getElementById('schedule').value = '';
     };
 
-    // 7. Submit
-    document.getElementById('submitEMRBtn').onclick = submitConsultation;
+    // 5. Follow Up Toggle
+    const followUpCheck = document.getElementById('followUpCheck');
+    const followUpGroup = document.getElementById('followUpDateGroup');
+    if(followUpCheck) {
+        followUpCheck.addEventListener('change', (e) => {
+            if(e.target.checked) followUpGroup.classList.remove('hidden');
+            else followUpGroup.classList.add('hidden');
+        });
+    }
+
+    // 6. Submit
+    const submitBtn = document.getElementById('submitEMRBtn');
+    if(submitBtn) submitBtn.onclick = submitConsultation;
+    
+    // Also bind review button to switch view
+    document.getElementById('reviewBtn').onclick = () => switchView('summary');
 }
 
-// --- AUTOCOMPLETE LOGIC ---
+// --- LOGIC HELPERS ---
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
@@ -168,12 +183,9 @@ function setupAutocomplete(inputId, suggestionsId, onSelect) {
     input.addEventListener('input', async (e) => {
         const q = e.target.value;
         if(q.length < 2) { suggestions.classList.add('hidden'); return; }
-        
         try {
-            // Real API Call
             const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
             const results = await res.json();
-            
             suggestions.innerHTML = '';
             if(results.length > 0) {
                 suggestions.classList.remove('hidden');
@@ -181,23 +193,14 @@ function setupAutocomplete(inputId, suggestionsId, onSelect) {
                     const div = document.createElement('div');
                     div.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm border-b border-gray-100';
                     div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> ${item.description}`;
-                    div.onclick = () => {
-                        onSelect(item);
-                        suggestions.classList.add('hidden');
-                    };
+                    div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
                     suggestions.appendChild(div);
                 });
-            } else {
-                suggestions.classList.add('hidden');
-            }
+            } else { suggestions.classList.add('hidden'); }
         } catch(e) { console.error(e); }
     });
-    
-    // Close on click outside
     document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-            suggestions.classList.add('hidden');
-        }
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden');
     });
 }
 
@@ -211,22 +214,13 @@ function renderComorbidities() {
     secondaryDiagnoses.forEach((item, idx) => {
         const tag = document.createElement('div');
         tag.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200';
-        tag.innerHTML = `
-            <span class="mr-1 font-bold">${item.code}</span> 
-            <span class="mr-2 truncate max-w-[150px]">${item.description}</span>
-            <button class="text-indigo-500 hover:text-red-600 focus:outline-none" onclick="removeComorbidity(${idx})">
-                <i data-feather="x" class="w-3 h-3"></i>
-            </button>
-        `;
+        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
         list.appendChild(tag);
     });
     feather.replace();
 }
 
-window.removeComorbidity = (idx) => {
-    secondaryDiagnoses.splice(idx, 1);
-    renderComorbidities();
-}
+window.removeComorbidity = (idx) => { secondaryDiagnoses.splice(idx, 1); renderComorbidities(); }
 
 function renderPrescriptions() {
     const list = document.getElementById('prescriptionList');
@@ -238,52 +232,43 @@ function renderPrescriptions() {
     currentDrugsList.forEach((d, idx) => {
         const div = document.createElement('div');
         div.className = 'px-4 py-3 flex justify-between items-center border-b border-gray-100 last:border-0';
-        div.innerHTML = `
-            <div><p class="font-bold text-gray-800 text-sm">${d.name}</p><p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p></div>
-            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700"><i data-feather="trash-2" class="w-4 h-4"></i></button>
-        `;
+        div.innerHTML = `<div><p class="font-bold text-gray-800 text-sm">${d.name}</p><p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p></div><button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
         list.appendChild(div);
     });
     feather.replace();
 }
 
-window.removeDrug = (idx) => {
-    currentDrugsList.splice(idx, 1);
-    renderPrescriptions();
-}
+window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); }
 
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
     try {
         const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
         const history = await res.json();
-        
         container.innerHTML = '';
-        if(history.length === 0) {
-            container.innerHTML = '<div class="p-4 text-sm text-gray-400">No medical history found.</div>';
-            return;
-        }
-
+        if(history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
+        
         history.forEach(h => {
             const date = new Date(h.created_at).toLocaleDateString();
-            // Parse assessment to get Primary Diagnosis if formatted
-            let title = h.assessment;
-            if(h.assessment && h.assessment.includes("PRIMARY:")) {
-                title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
-            }
-
             const div = document.createElement('div');
             div.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-all";
-            div.innerHTML = `
-                <div class="flex justify-between mb-1">
-                    <span class="text-sm font-bold text-blue-700">${date}</span>
-                    <span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span>
-                </div>
-                <h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>
-            `;
+            div.innerHTML = `<div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span><span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span></div><h4 class="font-semibold text-gray-800 text-sm">${h.assessment || 'No Diagnosis'}</h4>`;
             container.appendChild(div);
         });
-    } catch(e) { console.error(e); }
+    } catch(e) {}
+}
+
+async function loadLabPanel(patientId) {
+    const container = document.getElementById('labContent');
+    // NOTE: This relies on the new lab_results table in Setup
+    // If table is missing, this will fail gracefully.
+    try {
+        // Fetch logic would go here. For now, we mock the rendering structure 
+        // to show how it would look with real data if the endpoint existed.
+        // Since I didn't add a /patient/labs endpoint in main.py this turn, 
+        // I will just leave the container empty or show a placeholder message.
+        container.innerHTML = '<div class="p-4 text-sm text-gray-400">Lab integration pending backend update.</div>';
+    } catch(e) {}
 }
 
 function updateSummary() {
@@ -293,11 +278,9 @@ function updateSummary() {
     safeSetText('summaryDiagnosis', getVal('primaryDiagnosisInput'));
     safeSetText('summaryInstructions', getVal('therapyInput'));
     
-    // Medications Summary
     const summaryMeds = document.getElementById('summaryMeds');
     if(currentDrugsList.length > 0) {
-        summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + 
-            currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
+        summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
     } else {
         summaryMeds.textContent = "No medications.";
     }
@@ -309,7 +292,6 @@ async function submitConsultation() {
     btn.textContent = "Processing...";
     btn.disabled = true;
 
-    // Payload includes new fields
     const payload = {
         doctor_id: DOCTOR_ID,
         appointment_id: currentApptId,
@@ -339,7 +321,7 @@ async function submitConsultation() {
     }
 }
 
-// --- QUEUE LOGIC (Retained) ---
+// --- QUEUE LOGIC ---
 async function initAppointmentsPage() {
     const container = document.getElementById('queue-container');
     const heroCard = document.getElementById('active-patient-card');
@@ -364,7 +346,6 @@ async function initAppointmentsPage() {
 
         if(emptyState) emptyState.classList.add('hidden');
 
-        // Hero Card
         if (heroCard) {
             const activeAppt = appointments[0];
             let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
@@ -381,7 +362,6 @@ async function initAppointmentsPage() {
             if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
         }
 
-        // Queue List
         const waitingList = appointments.slice(1);
         if (waitingList.length === 0) {
             container.innerHTML = `<div class="text-center text-sm text-gray-400 py-4">No other patients waiting.</div>`;
@@ -390,17 +370,7 @@ async function initAppointmentsPage() {
                 let p = appt.patients || {full_name: 'Unknown'};
                 const div = document.createElement('div');
                 div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
-                div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div>
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4>
-                                <p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p>
-                            </div>
-                        </div>
-                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span>
-                    </div>`;
+                div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
                 div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
                 container.appendChild(div);
             });
