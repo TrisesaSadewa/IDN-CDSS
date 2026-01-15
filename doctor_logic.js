@@ -1,8 +1,7 @@
 // --- CONFIGURATION ---
-// PRODUCTION URL
 const API_BASE = "https://smart-his-backend.onrender.com"; 
 
-// Get ID from the Login Session (set in login_logic.js)
+// Get ID from the Login Session
 const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
 const DOCTOR_NAME = localStorage.getItem('smart_his_name');
 
@@ -10,11 +9,11 @@ const DOCTOR_NAME = localStorage.getItem('smart_his_name');
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Security Check
     if (!DOCTOR_ID && !window.location.pathname.includes('index.html')) {
-        // window.location.href = 'index.html'; // Uncomment to enforce auth
-        console.warn("No Doctor ID found in session. Ensure you logged in.");
+        // console.warn("No Doctor ID found. Please Log In.");
+        // window.location.href = 'index.html';
     }
 
-    // 2. Update UI with Doctor Name
+    // 2. Update UI
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) {
         docNameEl.textContent = DOCTOR_NAME;
@@ -23,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Start Clock
     startClock();
 
-    // 4. Route to Page Logic
+    // 4. Route
     const path = window.location.pathname;
     if (path.includes('APPOINTMENTS.html')) {
         initAppointmentsPage();
@@ -50,6 +49,7 @@ async function initAppointmentsPage() {
     
     if (!container) return;
 
+    // Loading State
     container.innerHTML = `
         <div class="col-span-full flex justify-center p-12">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -63,7 +63,7 @@ async function initAppointmentsPage() {
         
         const appointments = await res.json();
         
-        // --- SYNC STATS ---
+        // Update Stats
         updateDashboardStats(appointments);
 
         container.innerHTML = ''; // Clear loading
@@ -82,8 +82,9 @@ async function initAppointmentsPage() {
             return;
         }
 
-        // Render Real Data
+        // Render Cards
         appointments.forEach(appt => {
+            // Safe Access for Joins
             const patient = appt.patients || { full_name: "Unknown", mrn: "N/A", dob: null };
             const triage = (appt.triage_notes && appt.triage_notes.length > 0) ? appt.triage_notes[0] : null;
 
@@ -104,7 +105,7 @@ async function initAppointmentsPage() {
                         </div>
                         <div>
                             <h3 class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">${patient.full_name}</h3>
-                            <p class="text-xs text-slate-500">MRN: ${patient.mrn}</p>
+                            <p class="text-xs text-slate-500">MRN: ${patient.mrn || 'N/A'}</p>
                         </div>
                     </div>
                     <span class="px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(appt.status)}">
@@ -144,7 +145,7 @@ async function initAppointmentsPage() {
         container.innerHTML = `
             <div class="col-span-full bg-red-50 text-red-600 p-4 rounded-xl text-center border border-red-100">
                 <p class="font-medium">Connection Failed</p>
-                <p class="text-sm opacity-80 mt-1">Could not fetch queue. Ensure Backend is running.</p>
+                <p class="text-sm opacity-80 mt-1">Could not fetch queue. Is the backend running?</p>
             </div>
         `;
     }
@@ -186,15 +187,6 @@ function openEMR(apptId, patientName) {
     window.location.href = `EMR.html?id=${apptId}&patient=${encodeURIComponent(patientName)}`;
 }
 
-// --- HELPER FUNCTIONS ---
-function calculateAge(dobStr) {
-    if (!dobStr) return '--';
-    const dob = new Date(dobStr);
-    const diff_ms = Date.now() - dob.getTime();
-    const age_dt = new Date(diff_ms); 
-    return Math.abs(age_dt.getUTCFullYear() - 1970);
-}
-
 function getInitials(name) {
     return name ? name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '??';
 }
@@ -213,7 +205,6 @@ function getStatusColor(status) {
     }
 }
 
-// --- EMR PAGE LOGIC STUBS ---
 function initEMRPage() {
     console.log("Initializing EMR...");
 }
