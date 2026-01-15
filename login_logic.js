@@ -12,14 +12,14 @@ const errorText = document.getElementById('error-text');
 // Expose helper to window for demo buttons
 window.fillCreds = function(email) {
     document.getElementById('email').value = email;
-    document.getElementById('password').value = "password123"; // Mock password for demo convenience
+    document.getElementById('password').value = "password123"; 
 }
 
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoading(true);
-        showError(null); // Clear previous errors
+        showError(null); 
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -42,7 +42,10 @@ if (loginForm) {
                 .eq('id', userId)
                 .single();
 
-            if (profileError) throw new Error("Profile not found. Contact Admin.");
+            if (profileError) {
+                console.warn("Profile fetch error:", profileError);
+                throw new Error("User found in Auth but has no Profile. Admin needs to set up the role.");
+            }
 
             const role = profile.role || 'patient';
             const fullName = profile.full_name || email.split('@')[0];
@@ -57,13 +60,17 @@ if (loginForm) {
             if (role === 'doctor') {
                 window.location.href = 'APPOINTMENTS.html';
             } else if (role === 'admin') {
-                window.location.href = 'ADMIN.html';
+                window.location.href = 'portal.html'; 
             } else {
                 window.location.href = 'PATIENT_PORTAL.html';
             }
 
         } catch (err) {
+            console.error("Login Error:", err);
             let msg = err.message || 'Invalid login credentials';
+            if (err.message && err.message.includes("Failed to fetch")) {
+                msg = "Network Error: Could not connect to Supabase. Check internet or URL.";
+            }
             showError(msg);
         } finally {
             setLoading(false);
@@ -73,14 +80,16 @@ if (loginForm) {
 
 function showError(msg) {
     if (msg) {
-        errorText.innerText = msg;
-        errorMsg.classList.remove('hidden');
+        if(errorText) errorText.innerText = msg;
+        if(errorMsg) errorMsg.classList.remove('hidden');
     } else {
-        errorMsg.classList.add('hidden');
+        if(errorMsg) errorMsg.classList.add('hidden');
     }
 }
 
 function setLoading(isLoading) {
+    if(!submitBtn) return;
+    
     if (isLoading) {
         submitBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i> Signing In...';
         submitBtn.disabled = true;
@@ -92,4 +101,3 @@ function setLoading(isLoading) {
     }
     if(window.feather) feather.replace();
 }
-
