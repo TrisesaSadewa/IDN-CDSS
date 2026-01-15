@@ -1,4 +1,5 @@
 // CONFIGURATION
+// PRODUCTION URL
 const API_BASE = "https://smart-his-backend.onrender.com"; 
 
 // GLOBAL STATE
@@ -34,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- 1. PORTAL DASHBOARD ---
 async function setupPortal() {
-    // A. Fetch Patient Details (MRN) from Backend
     try {
         const res = await fetch(`${API_BASE}/patient/profile?user_id=${currentUser.id}`);
         if(res.ok) {
@@ -42,9 +42,8 @@ async function setupPortal() {
             const mrnEl = document.getElementById('patient-mrn');
             if(mrnEl) {
                 if (profile.mrn === 'MISSING_ROW') {
-                    mrnEl.textContent = "Error: Registration Incomplete";
+                    mrnEl.textContent = "Error";
                     mrnEl.classList.add('text-red-500');
-                    alert("Account Error: Your patient record is missing. Please ask Admin to re-register you.");
                 } else {
                     mrnEl.textContent = profile.mrn || 'N/A';
                 }
@@ -53,8 +52,6 @@ async function setupPortal() {
     } catch(e) {
         console.error("Profile fetch failed:", e);
     }
-
-    // B. Load Timeline Summary
     await loadEMRHistory(true);
 }
 
@@ -139,7 +136,7 @@ async function loadEMRHistory(isSummary = false) {
         container.innerHTML = '';
 
         if (!records || records.length === 0) {
-            container.innerHTML = `<div class="p-6 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">No medical records found yet.</div>`;
+            container.innerHTML = `<div class="p-6 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">No medical records found.</div>`;
             return;
         }
 
@@ -148,29 +145,12 @@ async function loadEMRHistory(isSummary = false) {
         displayRecords.forEach(rec => {
             const docName = rec.doctors ? rec.doctors.full_name : 'Unknown Doctor';
             const dateStr = rec.appointments ? new Date(rec.appointments.scheduled_time).toLocaleDateString() : 'Unknown Date';
-            const meds = rec.prescription_items || [];
-
+            
             const card = document.createElement('div');
             card.className = "relative bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6";
             
             if(!isSummary) {
                 card.innerHTML += `<div class="absolute -left-[41px] top-6 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm"></div>`;
-            }
-
-            let medsHtml = '';
-            if (meds.length > 0) {
-                medsHtml = `
-                    <div class="mt-4 pt-4 border-t border-gray-100">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-2">Prescriptions</p>
-                        <div class="flex gap-2 flex-wrap">
-                            ${meds.map(m => `
-                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
-                                    ${m.drug_name_snapshot}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
             }
 
             card.innerHTML += `
@@ -180,19 +160,14 @@ async function loadEMRHistory(isSummary = false) {
                         <p class="text-sm text-gray-500">${dateStr} • ${docName}</p>
                     </div>
                 </div>
-                
-                <div class="text-gray-700 text-sm mt-3 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                <div class="text-gray-700 text-sm mt-3 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <p><strong>Assessment:</strong> ${rec.assessment || 'N/A'}</p>
-                    <p><strong>Plan:</strong> ${rec.plan || 'N/A'}</p>
                 </div>
-                ${medsHtml}
             `;
-            
             container.appendChild(card);
         });
 
     } catch (err) {
-        console.error("History Error", err);
-        if(!isSummary) container.innerHTML = `<div class="text-red-500">Failed to load records. Check connection.</div>`;
+        if(!isSummary) container.innerHTML = `<div class="text-red-500">Failed to load records.</div>`;
     }
 }
