@@ -1,93 +1,69 @@
 // --- CONFIGURATION ---
-const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
- 
+const SUPABASE_URL = 'https://wasadrygnoevtkckqqrv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhc2Fkcnlnbm9ldnRrY2txcXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzOTcyODAsImV4cCI6MjA4Mzk3MzI4MH0.rLwmxWdLu3qQlJx0yOoT5BsO-EmBwVs6wLq6Tk4Gnnk';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const loginForm = document.getElementById('login-form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
 const submitBtn = document.getElementById('submit-btn');
 const errorMsg = document.getElementById('error-msg');
 const errorText = document.getElementById('error-text');
 
-// Expose helper to window
+// Expose helper to window for demo buttons
 window.fillCreds = function(email) {
-    const emailInput = document.getElementById('email');
-    const passInput = document.getElementById('password');
-    if(emailInput.parentElement) {
-        emailInput.parentElement.classList.add('ring-2', 'ring-blue-100');
-        setTimeout(() => emailInput.parentElement.classList.remove('ring-2', 'ring-blue-100'), 500);
-    }
-    emailInput.value = email;
-    passInput.value = 'password123';
-};
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = "password123"; // Mock password for demo convenience
+}
 
-if(loginForm) {
+if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoading(true);
-        hideError();
+        showError(null); // Clear previous errors
 
-        const email = emailInput.value;
-        const password = passwordInput.value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
 
         try {
-            // 1. Authenticate
+            // 1. Auth with Supabase
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
+                email,
+                password
             });
 
-            if (error) {
-                // ENHANCED LOGGING
-                console.error("Supabase Auth Error Detail:", error);
-                console.error("Status:", error.status);
-                console.error("Message:", error.message);
-                throw error;
-            }
+            if (error) throw error;
 
-            // 2. Fetch Role
             const userId = data.user.id;
-            const profileRes = await supabaseClient
+
+            // 2. Fetch User Profile to get Role
+            const { data: profile, error: profileError } = await supabaseClient
                 .from('profiles')
                 .select('role, full_name')
                 .eq('id', userId)
                 .single();
 
-            if (profileRes.error) {
-                console.warn("Profile Fetch Error:", profileRes.error);
-                // Continue anyway if profile fails, just to let user in (fallback)
-            }
+            if (profileError) throw new Error("Profile not found. Contact Admin.");
 
-            const role = profileRes.data ? profileRes.data.role : 'patient'; 
-            const fullName = profileRes.data ? profileRes.data.full_name : 'User';
+            const role = profile.role || 'patient';
+            const fullName = profile.full_name || email.split('@')[0];
 
-            // 3. Log the Login
-            // We use a fire-and-forget approach here so it doesn't block login if it fails
-            supabaseClient.from('login_history').insert({
-                user_id: userId,
-                role: role,
-                user_agent: navigator.userAgent
-            }).then(res => {
-                if (res.error) console.warn("Login History Log Failed:", res.error);
-            });
-
-            // 4. Store Session & Redirect
+            // 3. Store Session
             localStorage.setItem('smart_his_token', data.session.access_token);
             localStorage.setItem('smart_his_role', role);
             localStorage.setItem('smart_his_name', fullName);
             localStorage.setItem('smart_his_user_id', userId);
 
-            redirectUser(role);
+            // 4. Redirect based on Role
+            if (role === 'doctor') {
+                window.location.href = 'APPOINTMENTS.html';
+            } else if (role === 'admin') {
+                window.location.href = 'ADMIN.html';
+            } else {
+                window.location.href = 'PATIENT_PORTAL.html';
+            }
 
         } catch (err) {
-            // Show more detail in the UI
             let msg = err.message || 'Invalid login credentials';
-            if (msg.includes("Database error")) {
-                msg += " (Server configuration issue. Check SQL permissions.)";
-            }
             showError(msg);
         } finally {
             setLoading(false);
@@ -95,31 +71,24 @@ if(loginForm) {
     });
 }
 
-function redirectUser(role) {
-    window.location.href = 'portal.html';
+function showError(msg) {
+    if (msg) {
+        errorText.innerText = msg;
+        errorMsg.classList.remove('hidden');
+    } else {
+        errorMsg.classList.add('hidden');
+    }
 }
 
 function setLoading(isLoading) {
     if (isLoading) {
         submitBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i> Signing In...';
         submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-        if(window.feather) feather.replace();
+        submitBtn.classList.add('opacity-75');
     } else {
         submitBtn.innerHTML = 'Sign In to Account';
         submitBtn.disabled = false;
-        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        submitBtn.classList.remove('opacity-75');
     }
+    if(window.feather) feather.replace();
 }
-
-function showError(msg) {
-    errorText.innerText = msg;
-    errorMsg.classList.remove('hidden');
-}
-
-function hideError() {
-    errorMsg.classList.add('hidden');
-}
-
-
-
