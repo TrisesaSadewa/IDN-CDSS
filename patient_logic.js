@@ -12,7 +12,6 @@ let currentUser = {
 if (!currentUser.id || currentUser.role !== 'patient') {
     if (!window.location.pathname.includes('index.html')) {
         // console.warn("Access denied. Redirecting...");
-        // window.location.href = 'index.html'; 
     }
 }
 
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
 
     if (path.includes('PATIENT_PORTAL.html')) {
-        loadPortalDashboard();
+        setupPortal();
     } else if (path.includes('PATIENT_APPOINTMENTS.html')) {
         initBookingPage();
     } else if (path.includes('PATIENT_EMR.html')) {
@@ -34,8 +33,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- 1. PORTAL DASHBOARD ---
-async function loadPortalDashboard() {
-    // Load a summary of history (limit 3)
+async function setupPortal() {
+    // A. Fetch Patient Details (MRN) from Backend
+    try {
+        const res = await fetch(`${API_BASE}/patient/profile?user_id=${currentUser.id}`);
+        if(res.ok) {
+            const profile = await res.json();
+            const mrnEl = document.getElementById('patient-mrn');
+            if(mrnEl) {
+                if (profile.mrn === 'MISSING_ROW') {
+                    mrnEl.textContent = "Error: Registration Incomplete";
+                    mrnEl.classList.add('text-red-500');
+                    alert("Account Error: Your patient record is missing. Please ask Admin to re-register you.");
+                } else {
+                    mrnEl.textContent = profile.mrn || 'N/A';
+                }
+            }
+        }
+    } catch(e) {
+        console.error("Profile fetch failed:", e);
+    }
+
+    // B. Load Timeline Summary
     await loadEMRHistory(true);
 }
 
@@ -47,14 +66,20 @@ async function initBookingPage() {
     // A. Fetch Doctors List
     try {
         const res = await fetch(`${API_BASE}/patient/doctors`);
+        if (!res.ok) throw new Error("API Connection Failed");
+        
         const doctors = await res.json();
         
-        doctorSelect.innerHTML = doctors.map(d => 
-            `<option value="${d.id}">${d.full_name} (${d.specialization || 'General'})</option>`
-        ).join('');
+        if (doctors.length === 0) {
+             doctorSelect.innerHTML = `<option>No doctors available</option>`;
+        } else {
+            doctorSelect.innerHTML = doctors.map(d => 
+                `<option value="${d.id}">${d.full_name} (${d.specialization || 'General'})</option>`
+            ).join('');
+        }
     } catch (e) {
         console.error("Failed to load doctors", e);
-        doctorSelect.innerHTML = `<option>Error loading doctors</option>`;
+        doctorSelect.innerHTML = `<option>Error: Is Backend Running?</option>`;
     }
 
     // B. Handle Form Submit
@@ -105,7 +130,7 @@ async function loadEMRHistory(isSummary = false) {
     const container = document.getElementById(isSummary ? 'timeline-container' : 'emr-history-container');
     if (!container) return;
 
-    container.innerHTML = `<div class="p-4 text-center text-gray-400">Loading records...</div>`;
+    if (!isSummary) container.innerHTML = `<div class="p-4 text-center text-gray-400">Loading records...</div>`;
 
     try {
         const res = await fetch(`${API_BASE}/patient/history?patient_id=${currentUser.id}`);
@@ -113,15 +138,14 @@ async function loadEMRHistory(isSummary = false) {
 
         container.innerHTML = '';
 
-        if (records.length === 0) {
-            container.innerHTML = `<div class="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">No medical records found.</div>`;
+        if (!records || records.length === 0) {
+            container.innerHTML = `<div class="p-6 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">No medical records found yet.</div>`;
             return;
         }
 
         const displayRecords = isSummary ? records.slice(0, 2) : records;
 
         displayRecords.forEach(rec => {
-            // Helper to safely access nested data
             const docName = rec.doctors ? rec.doctors.full_name : 'Unknown Doctor';
             const dateStr = rec.appointments ? new Date(rec.appointments.scheduled_time).toLocaleDateString() : 'Unknown Date';
             const meds = rec.prescription_items || [];
@@ -129,7 +153,6 @@ async function loadEMRHistory(isSummary = false) {
             const card = document.createElement('div');
             card.className = "relative bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6";
             
-            // Timeline dot (only for EMR page)
             if(!isSummary) {
                 card.innerHTML += `<div class="absolute -left-[41px] top-6 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm"></div>`;
             }
@@ -170,6 +193,6 @@ async function loadEMRHistory(isSummary = false) {
 
     } catch (err) {
         console.error("History Error", err);
-        container.innerHTML = `<div class="text-red-500">Failed to load records.</div>`;
+        if(!isSummary) container.innerHTML = `<div class="text-red-500">Failed to load records. Check connection.</div>`;
     }
 }
