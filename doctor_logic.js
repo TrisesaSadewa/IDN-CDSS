@@ -1,5 +1,5 @@
 // --- CONFIGURATION ---
-const API_BASE = "http://127.0.0.1:8000"; 
+const API_BASE = "https://smart-his-backend.onrender.com"; 
 
 // GLOBAL STATE
 const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
@@ -222,3 +222,4 @@ function startClock() { /* ... */ }
 function getInitials(name) { /* ... */ }
 function capitalize(str) { /* ... */ }
 function getStatusColor(status) { /* ... */ }
+
