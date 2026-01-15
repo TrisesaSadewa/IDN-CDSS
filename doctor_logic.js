@@ -1,36 +1,28 @@
 // --- CONFIGURATION ---
-// Change to "http://127.0.0.1:8000" if testing locally
 const API_BASE = "https://smart-his-backend.onrender.com"; 
 
 // GLOBAL STATE
 const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
 const DOCTOR_NAME = localStorage.getItem('smart_his_name');
-let currentDrugsList = []; // Stores prescriptions temporarily for EMR page
-let currentPatientId = null;
 let currentApptId = null;
+let currentPatientId = null;
+let currentDrugsList = [];
 
-// --- PAGE ROUTER ---
+// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Update UI Name
     const docNameEl = document.getElementById('doc-name-display');
-    if (docNameEl && DOCTOR_NAME) {
-        docNameEl.textContent = DOCTOR_NAME;
-    }
+    if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
+    if(document.getElementById('current-time')) startClock();
 
-    // 2. Start Clock
-    startClock();
-
-    // 3. Route based on which page elements exist
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
-    } else if (document.getElementById('soap-subjective')) {
+    } else if (document.getElementById('mainContent')) {
         initEMRPage();
     }
 });
 
 function startClock() {
     const timeEl = document.getElementById('current-time');
-    if (!timeEl) return;
     function update() {
         const now = new Date();
         timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -40,30 +32,202 @@ function startClock() {
 }
 
 // ==========================================
-// 1. APPOINTMENTS DASHBOARD LOGIC
+// EMR PAGE LOGIC
 // ==========================================
 
+async function initEMRPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    currentApptId = urlParams.get('id');
+    if (!currentApptId) return alert("No Appointment ID.");
+
+    setupEMRInteractions();
+
+    try {
+        const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
+        if(!res.ok) throw new Error("Load failed");
+        
+        const data = await res.json();
+        const p = data.patients || {};
+        const t = (data.triage_notes && data.triage_notes.length) ? data.triage_notes[0] : {};
+        
+        currentPatientId = p.id;
+
+        // Info Card
+        safeSetText('pt-name', p.full_name || 'Unknown');
+        safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
+        safeSetText('pt-id', p.mrn || 'N/A');
+        
+        // Vitals (Pre-fill for reference)
+        safeSetValue('weight', t.weight_kg);
+        safeSetValue('height', t.height_cm);
+        safeSetValue('systolic', t.systolic);
+        safeSetValue('diastolic', t.diastolic);
+        safeSetValue('temperature', t.temperature);
+        calculateBMI(); 
+
+        // Nurse Notes
+        safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
+
+        // Load History
+        loadHistoryPanel(p.id);
+
+    } catch (err) {
+        console.error(err);
+        alert("Failed to load patient data.");
+    }
+}
+
+function setupEMRInteractions() {
+    // Toggles
+    window.switchView = function(viewName) {
+        ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(viewName + 'View').classList.remove('hidden-view');
+        
+        if(viewName === 'summary') updateSummary();
+        
+        // Button State Logic (Simple mapping)
+        const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
+        document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
+    };
+
+    // Right Panel
+    const rightPanel = document.getElementById('rightPanel');
+    const togglePanel = (type) => {
+        const isClosed = rightPanel.classList.contains('translate-x-full');
+        if(isClosed) rightPanel.classList.remove('translate-x-full');
+        else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
+        
+        rightPanel.dataset.type = type;
+        document.getElementById('labContent').classList.add('hidden');
+        document.getElementById('historyContent').classList.add('hidden');
+        
+        if(type === 'lab') {
+            document.getElementById('labContent').classList.remove('hidden');
+            document.getElementById('rightPanelTitle').textContent = "Recent Lab Results";
+        } else {
+            document.getElementById('historyContent').classList.remove('hidden');
+            document.getElementById('rightPanelTitle').textContent = "Past Medical History";
+        }
+    };
+
+    document.getElementById('sidebarLabBtn').onclick = () => togglePanel('lab');
+    document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
+    document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
+
+    // Prescription Add
+    document.getElementById('addPrescription').onclick = () => {
+        const name = document.getElementById('drugName').value;
+        const dose = document.getElementById('dosage').value;
+        const freq = document.getElementById('schedule').value;
+        if(!name) return;
+        currentDrugsList.push({ name, dosage: dose, frequency: freq });
+        renderPrescriptions();
+        document.getElementById('drugName').value = '';
+        document.getElementById('dosage').value = '';
+        document.getElementById('schedule').value = '';
+    };
+
+    // Submit
+    document.getElementById('submitEMRBtn').onclick = submitConsultation;
+}
+
+function renderPrescriptions() {
+    const list = document.getElementById('prescriptionList');
+    list.innerHTML = '';
+    currentDrugsList.forEach((d, idx) => {
+        const div = document.createElement('div');
+        div.className = 'px-4 py-3 flex justify-between items-center border-b border-gray-100 last:border-0';
+        div.innerHTML = `
+            <div><p class="font-bold text-gray-800 text-sm">${d.name}</p><p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p></div>
+            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700"><i data-feather="trash-2" class="w-4 h-4"></i></button>
+        `;
+        list.appendChild(div);
+    });
+    feather.replace();
+}
+
+window.removeDrug = (idx) => {
+    currentDrugsList.splice(idx, 1);
+    renderPrescriptions();
+}
+
+async function loadHistoryPanel(patientId) {
+    const container = document.getElementById('historyContent');
+    try {
+        const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
+        const history = await res.json();
+        container.innerHTML = '';
+        history.forEach(h => {
+            const date = new Date(h.created_at).toLocaleDateString();
+            const div = document.createElement('div');
+            div.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3";
+            div.innerHTML = `
+                <div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span></div>
+                <h4 class="font-semibold text-gray-800 text-sm">${h.assessment || 'No Diagnosis'}</h4>
+            `;
+            container.appendChild(div);
+        });
+    } catch(e) {}
+}
+
+function updateSummary() {
+    safeSetText('summaryCC', document.getElementById('chiefComplaintInput').value);
+    safeSetText('summaryHistory', document.getElementById('historyInput').value);
+    safeSetText('summaryBP', `${document.getElementById('systolic').value}/${document.getElementById('diastolic').value}`);
+    safeSetText('summaryDiagnosis', document.getElementById('primaryDiagnosisInput').value);
+    safeSetText('summaryInstructions', document.getElementById('therapyInput').value);
+}
+
+async function submitConsultation() {
+    if(!confirm("Finalize EMR?")) return;
+    const btn = document.getElementById('submitEMRBtn');
+    btn.textContent = "Processing...";
+    btn.disabled = true;
+
+    // Use specific fields from the new UI
+    const payload = {
+        doctor_id: DOCTOR_ID,
+        appointment_id: currentApptId,
+        chief_complaint: getVal('chiefComplaintInput'),
+        history_illness: getVal('historyInput'),
+        primary_diagnosis: getVal('primaryDiagnosisInput'),
+        icd10_code: getVal('primaryICDInput'),
+        clinical_notes: getVal('analysisNotesInput'),
+        therapy_instructions: getVal('therapyInput'),
+        prescription_items: currentDrugsList
+    };
+
+    try {
+        const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw new Error("Error");
+        alert("Consultation Saved!");
+        window.location.href = "APPOINTMENTS.html";
+    } catch(e) {
+        alert("Submit failed: " + e.message);
+        btn.textContent = "Finalize & Submit";
+        btn.disabled = false;
+    }
+}
+
+// --- QUEUE LOGIC (Retained) ---
 async function initAppointmentsPage() {
     const container = document.getElementById('queue-container');
     const heroCard = document.getElementById('active-patient-card');
     const emptyState = document.getElementById('empty-state');
-    
     if (!container) return;
 
     try {
-        console.log(`Fetching Queue for Doctor: ${DOCTOR_ID}`);
         const res = await fetch(`${API_BASE}/doctor/queue?doctor_id=${DOCTOR_ID}`);
-        
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        
         const appointments = await res.json();
-        console.log("Appointments fetched:", appointments);
         
-        // --- 1. SAFELY UPDATE STATS ---
         safeSetText('stat-total', appointments.length);
         safeSetText('stat-waiting', Math.max(0, appointments.length - 1));
         
-        // --- 2. CLEAR LOADING STATE ---
         container.innerHTML = ''; 
 
         if (appointments.length === 0) {
@@ -75,18 +239,11 @@ async function initAppointmentsPage() {
 
         if(emptyState) emptyState.classList.add('hidden');
 
-        // --- 3. RENDER HERO CARD (FIRST IN LINE) ---
+        // Hero Card
         if (heroCard) {
             const activeAppt = appointments[0];
-            
-            // Handle Supabase Array/Object quirk for joined data
-            let activeP = activeAppt.patients;
-            if (Array.isArray(activeP)) activeP = activeP[0];
-            if (!activeP) activeP = { full_name: "Unknown", mrn: "N/A" };
-
-            let activeT = activeAppt.triage_notes;
-            if (Array.isArray(activeT)) activeT = activeT[0];
-            if (!activeT) activeT = {};
+            let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
+            let activeT = (activeAppt.triage_notes && activeAppt.triage_notes.length > 0) ? activeAppt.triage_notes[0] : {};
 
             heroCard.classList.remove('hidden');
             safeSetText('stat-now-serving', `A-${activeAppt.queue_number}`);
@@ -95,263 +252,44 @@ async function initAppointmentsPage() {
             safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
             safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
             
-            // Bind Button
             const heroBtn = document.getElementById('open-active-emr-btn');
-            if(heroBtn) heroBtn.onclick = () => openEMR(activeAppt.id, activeP.full_name);
+            if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
         }
 
-        // --- 4. RENDER QUEUE LIST (REMAINING ITEMS) ---
+        // Queue List
         const waitingList = appointments.slice(1);
-        
         if (waitingList.length === 0) {
             container.innerHTML = `<div class="text-center text-sm text-gray-400 py-4">No other patients waiting.</div>`;
         } else {
             waitingList.forEach(appt => {
-                let p = appt.patients;
-                if (Array.isArray(p)) p = p[0];
-                if (!p) p = { full_name: "Unknown", mrn: "?" };
-                
-                const row = document.createElement('div');
-                row.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between group cursor-pointer hover:border-blue-300 transition-all";
-                row.onclick = () => openEMR(appt.id, p.full_name);
-
-                row.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                            ${appt.queue_number}
+                let p = appt.patients || {full_name: 'Unknown'};
+                const div = document.createElement('div');
+                div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4>
+                                <p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="font-semibold text-slate-800">${p.full_name}</h4>
-                            <p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs • ${p.gender || 'Unknown'}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span>
-                    </div>
-                `;
-                container.appendChild(row);
+                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span>
+                    </div>`;
+                div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
+                container.appendChild(div);
             });
         }
-
-        if (window.feather) feather.replace();
-
-    } catch (err) {
-        console.error("Queue Error:", err);
-        container.innerHTML = `<div class="text-red-500 text-sm p-4 bg-red-50 rounded-lg">Error: ${err.message}</div>`;
-    }
+    } catch(e) {}
 }
 
-// ==========================================
-// 2. EMR & CONSULTATION LOGIC
-// ==========================================
-
-async function initEMRPage() {
-    console.log("Initializing EMR...");
-    
-    // 1. Get Appointment ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    currentApptId = urlParams.get('id');
-
-    if (!currentApptId) {
-        alert("No Appointment ID provided!");
-        window.location.href = 'APPOINTMENTS.html';
-        return;
-    }
-
-    // 2. Fetch Data (Patient Info + Triage)
-    try {
-        const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
-        if (!res.ok) throw new Error("Failed to load appointment");
-        
-        const appt = await res.json();
-        
-        // Handle Supabase Array/Object quirks
-        let p = appt.patients;
-        if (Array.isArray(p)) p = p[0];
-        
-        let t = appt.triage_notes;
-        if (Array.isArray(t)) t = t.length > 0 ? t[0] : {};
-        else if (!t) t = {};
-        
-        currentPatientId = p.id;
-
-        // 3. Populate Header Info
-        safeSetText('emr-patient-name', p.full_name);
-        safeSetText('emr-patient-mrn', `MRN: ${p.mrn || 'N/A'}`);
-        safeSetText('emr-patient-age', `${calculateAge(p.dob)} yrs`);
-        safeSetText('emr-patient-gender', p.gender || '--');
-        
-        // 4. Populate Triage Bar
-        safeSetText('triage-bp', `${t.systolic || '--'}/${t.diastolic || '--'}`);
-        safeSetText('triage-hr', `${t.heart_rate || '--'}`);
-        safeSetText('triage-temp', `${t.temperature || '--'}°C`);
-        safeSetText('triage-weight', `${t.weight_kg || '--'} kg`);
-        safeSetText('triage-notes', t.chief_complaint || "No complaints recorded.");
-
-        // 5. Load History
-        loadPatientHistory(p.id);
-
-    } catch (err) {
-        console.error("EMR Load Error:", err);
-        alert("Error loading patient data.");
-    }
-
-    // 6. Setup Prescription UI
-    const addDrugBtn = document.getElementById('add-rx-btn');
-    if (addDrugBtn) {
-        addDrugBtn.addEventListener('click', addPrescriptionToUI);
-    }
-
-    // 7. Setup Submit
-    const submitBtn = document.getElementById('submit-consultation-btn');
-    if (submitBtn) {
-        submitBtn.addEventListener('click', submitConsultation);
-    }
+// --- HELPERS ---
+function safeSetText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val || '--'; }
+function safeSetValue(id, val) { const el = document.getElementById(id); if(el && val) el.value = val; }
+function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function calculateBMI() {
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value) / 100;
+    if(w && h) document.getElementById('bmi').textContent = (w/(h*h)).toFixed(1);
 }
-
-async function loadPatientHistory(patientId) {
-    const container = document.getElementById('patient-history-list');
-    if (!container) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
-        const history = await res.json();
-
-        container.innerHTML = '';
-        if (history.length === 0) {
-            container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">No past history.</div>`;
-            return;
-        }
-
-        history.forEach(rec => {
-            const dateStr = new Date(rec.created_at).toLocaleDateString();
-            const diagnosis = rec.assessment || "No Diagnosis";
-            
-            const div = document.createElement('div');
-            div.className = "p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm";
-            div.innerHTML = `
-                <div class="flex justify-between font-bold text-gray-700">
-                    <span>${dateStr}</span>
-                    <span class="text-blue-600 cursor-pointer hover:underline">View</span>
-                </div>
-                <p class="text-gray-600 mt-1 line-clamp-2">${diagnosis}</p>
-            `;
-            container.appendChild(div);
-        });
-
-    } catch (e) {
-        console.error("History Error", e);
-    }
-}
-
-function addPrescriptionToUI() {
-    const nameInput = document.getElementById('rx-name');
-    const dosageInput = document.getElementById('rx-dosage');
-    const freqInput = document.getElementById('rx-freq');
-    const list = document.getElementById('rx-list');
-
-    if (!nameInput.value) return alert("Enter drug name");
-
-    const drug = {
-        name: nameInput.value,
-        dosage: dosageInput.value,
-        frequency: freqInput.value
-    };
-
-    currentDrugsList.push(drug);
-
-    // Add to Visual List
-    const row = document.createElement('div');
-    row.className = "flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm mb-2";
-    row.innerHTML = `
-        <div>
-            <p class="font-bold text-gray-800 text-sm">${drug.name}</p>
-            <p class="text-xs text-gray-500">${drug.dosage} • ${drug.frequency}</p>
-        </div>
-        <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="removeDrug(this, '${drug.name}')">Remove</button>
-    `;
-    list.appendChild(row);
-
-    // Clear Inputs
-    nameInput.value = '';
-    dosageInput.value = '';
-}
-
-// Expose to window for inline onclick
-window.removeDrug = function(btn, name) {
-    btn.closest('div').remove();
-    currentDrugsList = currentDrugsList.filter(d => d.name !== name);
-}
-
-async function submitConsultation() {
-    if (!confirm("Submit Consultation? This cannot be undone.")) return;
-
-    const btn = document.getElementById('submit-consultation-btn');
-    btn.disabled = true;
-    btn.textContent = "Processing...";
-
-    const payload = {
-        doctor_id: DOCTOR_ID,
-        appointment_id: currentApptId,
-        subjective: document.getElementById('soap-subjective').value,
-        objective: document.getElementById('soap-objective').value,
-        assessment: document.getElementById('soap-assessment').value,
-        plan: document.getElementById('soap-plan').value,
-        prescription_items: currentDrugsList
-    };
-
-    try {
-        const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw new Error("Submission failed");
-
-        alert("Consultation Completed Successfully!");
-        window.location.href = "APPOINTMENTS.html";
-
-    } catch (err) {
-        alert("Error: " + err.message);
-        btn.disabled = false;
-        btn.textContent = "Complete & Sign";
-    }
-}
-
-// --- HELPER FUNCTIONS ---
-
-function safeSetText(elementId, text) {
-    const el = document.getElementById(elementId);
-    if (el) el.textContent = text;
-}
-
-function openEMR(apptId, patientName) {
-    window.location.href = `EMR.html?id=${apptId}&patient=${encodeURIComponent(patientName)}`;
-}
-
-function calculateAge(dobStr) {
-    if (!dobStr) return '--';
-    const dob = new Date(dobStr);
-    const diff_ms = Date.now() - dob.getTime();
-    const age_dt = new Date(diff_ms); 
-    return Math.abs(age_dt.getUTCFullYear() - 1970);
-}
-
-function getInitials(name) {
-    return name ? name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '??';
-}
-
-function capitalize(str) {
-    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-}
-
-function getStatusColor(status) {
-    switch(status) {
-        case 'scheduled': return 'bg-blue-50 text-blue-600';
-        case 'checked_in': return 'bg-yellow-50 text-yellow-600';
-        case 'triage': return 'bg-purple-50 text-purple-600';
-        case 'consultation': return 'bg-green-50 text-green-600';
-        default: return 'bg-gray-50 text-gray-500';
-    }
-}
+function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
