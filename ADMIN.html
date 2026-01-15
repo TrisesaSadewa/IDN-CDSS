@@ -6,7 +6,6 @@
     <title>Admin - Register Patient</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
-    <!-- Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -57,8 +56,9 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                     <select id="reg-gender" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
+                        <!-- UPDATED: Values must be lowercase to match DB Constraint -->
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
                     </select>
                 </div>
             </div>
@@ -84,7 +84,6 @@
         feather.replace();
 
         // 1. Init Supabase with SERVICE KEY
-        // RENAMED VARIABLE TO 'adminClient' TO AVOID CONFLICT
         const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQwODgxMiwiZXhwIjoyMDgzOTg0ODEyfQ.Uk9AFwxRHi7pwgP_lqYIWQ6JD7Ov1d07OzxiHswPNPQ';
         
@@ -110,7 +109,7 @@
             const nik = document.getElementById('reg-nik').value;
 
             try {
-                // A. Create Auth User using adminClient
+                // A. Create Auth User
                 const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
                     email: email,
                     password: password,
@@ -120,7 +119,7 @@
                 if (authError) throw authError;
                 const userId = authData.user.id;
 
-                // B. Create Profile
+                // B. Create Profile (Role = Patient)
                 const { error: profileError } = await adminClient.from('profiles').insert({
                     id: userId,
                     email: email,
