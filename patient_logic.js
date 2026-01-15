@@ -18,18 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const doctorSelect = document.getElementById('doctor-select');
     
     if (doctorSelect) {
-        // Appointment Page
         initBookingPage();
     } 
     else if (document.getElementById('timeline-container')) {
-        // Portal / EMR Page
         setupPortal(); 
     }
 });
 
 // --- PORTAL DASHBOARD ---
 async function setupPortal() {
-    // 1. Get Profile (MRN)
     try {
         const res = await fetch(`${API_BASE}/patient/profile?user_id=${currentUser.id}`);
         if(res.ok) {
@@ -39,28 +36,23 @@ async function setupPortal() {
         }
     } catch(e) { console.error("Profile Error", e); }
 
-    // 2. Get Next Appointment (NEW LOGIC)
     await loadNextAppointment();
-
-    // 3. Load History
     await loadEMRHistory(true);
 }
 
-// --- NEW: FETCH NEXT APPOINTMENT ---
+// --- FETCH NEXT APPOINTMENT ---
 async function loadNextAppointment() {
-    // Elements in PATIENT_PORTAL.html
     const container = document.getElementById('next-appt-card');
     const noApptMsg = document.getElementById('no-appt-msg');
     
-    if (!container) return; // Not on portal page
+    if (!container) return; 
 
     try {
         const res = await fetch(`${API_BASE}/patient/appointments?patient_id=${currentUser.id}`);
         const appts = await res.json();
 
         if (appts && appts.length > 0) {
-            // We have an appointment
-            const next = appts[0]; // First one sorted by date
+            const next = appts[0]; 
             const docName = next.doctor ? next.doctor.full_name : 'Unknown Doctor';
             const docSpec = next.doctor ? (next.doctor.specialization || 'General') : '';
             
@@ -68,16 +60,13 @@ async function loadNextAppointment() {
             const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-            // Update UI
             document.getElementById('next-appt-date').textContent = `${dateStr} • ${timeStr}`;
             document.getElementById('next-appt-doc').textContent = docName;
             document.getElementById('next-appt-spec').textContent = docSpec;
             
-            // Show Card, Hide Message
             container.classList.remove('hidden');
             if(noApptMsg) noApptMsg.classList.add('hidden');
         } else {
-            // No appointments
             container.classList.add('hidden');
             if(noApptMsg) noApptMsg.classList.remove('hidden');
         }
@@ -92,7 +81,6 @@ async function initBookingPage() {
     const bookForm = document.getElementById('booking-form');
     if (!doctorSelect) return;
 
-    // Fetch Doctors
     try {
         const res = await fetch(`${API_BASE}/patient/doctors`);
         const doctors = await res.json();
@@ -103,7 +91,6 @@ async function initBookingPage() {
         doctorSelect.innerHTML = `<option>Error loading doctors</option>`;
     }
 
-    // Handle Submit
     if (bookForm) {
         bookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
