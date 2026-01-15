@@ -1,6 +1,6 @@
 // --- CONFIGURATION ---
-const SUPABASE_URL = 'https://wasadrygnoevtkckqqrv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhc2Fkcnlnbm9ldnRrY2txcXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzOTcyODAsImV4cCI6MjA4Mzk3MzI4MH0.rLwmxWdLu3qQlJx0yOoT5BsO-EmBwVs6wLq6Tk4Gnnk';
+const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -92,3 +92,4 @@ function setLoading(isLoading) {
     }
     if(window.feather) feather.replace();
 }
+
