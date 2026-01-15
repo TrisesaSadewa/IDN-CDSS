@@ -1,5 +1,5 @@
 // --- CONFIGURATION ---
-// Change this to your Render URL in production
+// PRODUCTION URL
 const API_BASE = "https://smart-his-backend.onrender.com"; 
 
 // Get ID from the Login Session (set in login_logic.js)
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function startClock() {
     const timeEl = document.getElementById('current-time');
     if (!timeEl) return;
-    
     function update() {
         const now = new Date();
         timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -51,7 +50,6 @@ async function initAppointmentsPage() {
     
     if (!container) return;
 
-    // Show loading state
     container.innerHTML = `
         <div class="col-span-full flex justify-center p-12">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -86,11 +84,9 @@ async function initAppointmentsPage() {
 
         // Render Real Data
         appointments.forEach(appt => {
-            // Handle Joins (Supabase returns objects/arrays for relations)
             const patient = appt.patients || { full_name: "Unknown", mrn: "N/A", dob: null };
             const triage = (appt.triage_notes && appt.triage_notes.length > 0) ? appt.triage_notes[0] : null;
 
-            const age = patient.dob ? calculateAge(patient.dob) : '--';
             const complaint = triage ? triage.chief_complaint : 'No triage data available';
             const bp = triage ? `${triage.systolic}/${triage.diastolic}` : '--/--';
             const hr = triage ? `${triage.heart_rate} bpm` : '--';
@@ -148,18 +144,16 @@ async function initAppointmentsPage() {
         container.innerHTML = `
             <div class="col-span-full bg-red-50 text-red-600 p-4 rounded-xl text-center border border-red-100">
                 <p class="font-medium">Connection Failed</p>
-                <p class="text-sm opacity-80 mt-1">Could not fetch queue. Ensure Backend is running at ${API_BASE}</p>
+                <p class="text-sm opacity-80 mt-1">Could not fetch queue. Ensure Backend is running.</p>
             </div>
         `;
     }
 }
 
 function updateDashboardStats(appointments) {
-    // 1. Total Patients
     const totalEl = document.getElementById('stat-total');
     if (totalEl) totalEl.innerText = appointments.length;
 
-    // 2. Avg Wait Time
     const waitEl = document.getElementById('stat-wait');
     if (waitEl) {
         if (appointments.length === 0) {
@@ -168,17 +162,15 @@ function updateDashboardStats(appointments) {
             let totalWait = 0;
             const now = new Date();
             appointments.forEach(a => {
-                // Assuming created_at or scheduled_time exists
                 const startTime = new Date(a.scheduled_time || a.created_at);
                 const diffMs = now - startTime;
                 totalWait += diffMs;
             });
             const avgMins = Math.floor((totalWait / appointments.length) / 60000);
-            waitEl.innerText = Math.max(0, avgMins); // Ensure no negative numbers
+            waitEl.innerText = Math.max(0, avgMins);
         }
     }
 
-    // 3. Critical Cases (Simple Logic: Temp > 39 or Systolic > 160)
     const criticalEl = document.getElementById('stat-critical');
     if (criticalEl) {
         const criticalCount = appointments.filter(a => {
@@ -191,7 +183,6 @@ function updateDashboardStats(appointments) {
 }
 
 function openEMR(apptId, patientName) {
-    // Pass data via URL params
     window.location.href = `EMR.html?id=${apptId}&patient=${encodeURIComponent(patientName)}`;
 }
 
@@ -225,16 +216,4 @@ function getStatusColor(status) {
 // --- EMR PAGE LOGIC STUBS ---
 function initEMRPage() {
     console.log("Initializing EMR...");
-    // Retrieve Appt ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const apptId = urlParams.get('id');
-    const patientName = urlParams.get('patient');
-
-    if(patientName) {
-        // Update header if element exists
-        const headerName = document.querySelector('h1');
-        if(headerName) headerName.textContent = patientName;
-    }
-    
-    // Add logic to load existing consultation notes if any...
 }
