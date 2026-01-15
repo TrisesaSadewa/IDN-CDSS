@@ -6,7 +6,6 @@
     <title>Appointments - Hospital EMR System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -60,10 +59,20 @@
         }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 overflow-hidden">
@@ -87,7 +96,7 @@
             <!-- User Profile -->
             <div class="flex items-center space-x-3 pl-6 border-l border-slate-200">
                 <div class="text-right hidden md:block">
-                    <!-- Dynamic Doctor Name -->
+                    <!-- ID ADDED: doc-name-display -->
                     <p class="text-sm font-semibold text-slate-700" id="doc-name-display">Doctor</p>
                     <p class="text-xs text-slate-500">General Practitioner</p>
                 </div>
@@ -112,9 +121,14 @@
                     <span class="sidebar-tooltip">Queue</span>
                 </a>
 
-                <a href="#" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <a href="EMR.html" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
                     <i data-feather="file-text" class="w-5 h-5"></i>
-                    <span class="sidebar-tooltip">Records</span>
+                    <span class="sidebar-tooltip">EMR System</span>
+                </a>
+
+                <a href="#" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="calendar" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Schedule</span>
                 </a>
             </nav>
 
@@ -127,7 +141,7 @@
         </aside>
 
         <!-- Main Workspace -->
-        <main class="flex-grow overflow-auto p-6 md:p-8 bg-slate-50">
+        <main class="flex-grow overflow-auto p-6 md:p-8">
             <div class="max-w-7xl mx-auto space-y-8">
                 
                 <!-- Page Title & Date -->
@@ -137,6 +151,7 @@
                         <p class="text-slate-500 mt-1">Manage your patient queue and consultations</p>
                     </div>
                     <div class="text-right hidden sm:block">
+                        <!-- ID ADDED: current-time -->
                         <p class="text-2xl font-light text-slate-700" id="current-time">--:--</p>
                         <p class="text-sm font-medium text-slate-400 uppercase tracking-wide">Today</p>
                     </div>
@@ -149,7 +164,7 @@
                         <div class="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-blue-600"></div>
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Now Serving</p>
-                            <!-- ID ADDED HERE -->
+                            <!-- ID ADDED: stat-now-serving -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-now-serving">--</h3>
                             <p class="text-xs text-blue-600 font-medium mt-2 flex items-center">
                                 <span class="w-2 h-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span> In Consultation
@@ -164,7 +179,7 @@
                     <div class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Waiting List</p>
-                            <!-- ID ADDED HERE -->
+                            <!-- ID ADDED: stat-waiting -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-waiting">--</h3>
                             <p class="text-xs text-slate-400 mt-2">Patients in queue</p>
                         </div>
@@ -177,7 +192,7 @@
                     <div class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Total</p>
-                            <!-- ID ADDED HERE -->
+                            <!-- ID ADDED: stat-total -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-total">--</h3>
                             <p class="text-xs text-green-600 mt-2 font-medium">Scheduled Today</p>
                         </div>
@@ -192,37 +207,46 @@
                     <!-- Left Column: Queue List -->
                     <div class="lg:col-span-2 space-y-6">
                         
-                        <!-- NOW SERVING HERO CARD (Hidden if empty) -->
+                        <!-- NOW SERVING HERO CARD (Dynamic ID: active-patient-card) -->
                         <div id="active-patient-card" class="hidden glass-panel rounded-2xl p-6 border-l-4 border-blue-500 shadow-md relative overflow-hidden">
                             <div class="absolute top-0 right-0 p-4 opacity-10">
                                 <i data-feather="activity" class="w-32 h-32"></i>
                             </div>
                             <div class="flex justify-between items-start relative z-10">
                                 <div class="flex gap-5">
+                                    <!-- ID ADDED: active-queue-no -->
                                     <div class="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl shadow-inner" id="active-queue-no">
                                         --
                                     </div>
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
+                                            <!-- ID ADDED: active-name -->
                                             <h3 class="text-xl font-bold text-slate-800" id="active-name">--</h3>
                                             <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">CURRENT</span>
                                         </div>
+                                        <!-- ID ADDED: active-details -->
                                         <p class="text-slate-500 text-sm mb-3" id="active-details">--</p>
                                         <div class="flex gap-2">
+                                            <!-- ID ADDED: active-triage -->
                                             <span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200" id="active-triage">--</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="flex flex-col gap-2">
+                                    <!-- ID ADDED: open-active-emr-btn -->
                                     <button id="open-active-emr-btn" class="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-200 transform hover:-translate-y-0.5">
                                         <i data-feather="file-text" class="w-4 h-4"></i>
                                         <span>Open EMR</span>
+                                    </button>
+                                    <button class="flex items-center justify-center space-x-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-5 py-2 rounded-xl font-medium transition-colors">
+                                        <i data-feather="mic" class="w-4 h-4"></i>
+                                        <span>Call Patient</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- EMPTY STATE -->
+                        <!-- EMPTY STATE (Dynamic ID: empty-state) -->
                         <div id="empty-state" class="hidden text-center py-12">
                             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
                                 <i data-feather="coffee" class="w-8 h-8"></i>
@@ -235,23 +259,27 @@
                         <div>
                             <div class="flex justify-between items-center mb-4 px-1">
                                 <h3 class="text-lg font-bold text-slate-700">Up Next</h3>
+                                <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">View Full List</button>
                             </div>
                             <!-- DYNAMIC QUEUE CONTAINER -->
-                            <div id="queue-container" class="space-y-3">
+                            <div class="space-y-3" id="queue-container">
                                 <!-- JS will inject rows here -->
-                                <div class="p-4 text-center text-gray-400">Loading queue...</div>
+                                <div class="p-6 text-center text-slate-400">Loading...</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right Column: Recent Activity -->
+                    <!-- Right Column: Recent Activity / Completed -->
                     <div class="lg:col-span-1">
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col">
                             <div class="p-5 border-b border-slate-100 flex justify-between items-center">
                                 <h3 class="font-bold text-slate-700">Completed</h3>
+                                <button class="p-1 hover:bg-slate-100 rounded-full text-slate-400">
+                                    <i data-feather="more-horizontal" class="w-4 h-4"></i>
+                                </button>
                             </div>
-                            <!-- Placeholder for completed list (can be implemented later) -->
-                            <div class="flex-grow p-4 overflow-auto flex items-center justify-center text-gray-400 text-sm">
+                            <!-- Placeholder for completed appointments -->
+                            <div class="flex-grow p-4 overflow-auto flex items-center justify-center text-slate-400 text-sm">
                                 No completed sessions yet.
                             </div>
                             <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -271,8 +299,9 @@
         </main>
     </div>
 
-    <!-- Connect Logic -->
+    <!-- Logic Script -->
     <script src="doctor_logic.js"></script>
+
     <script>
         // Initialize AOS & Feather
         AOS.init();
