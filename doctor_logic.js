@@ -9,7 +9,6 @@ let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
 
-// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function startClock() {
     const timeEl = document.getElementById('current-time');
-    if(!timeEl) return;
     function update() {
         const now = new Date();
         timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -38,7 +36,6 @@ function startClock() {
 // ==========================================
 
 async function initEMRPage() {
-    console.log("Initializing EMR...");
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
     if (!currentApptId) return alert("No Appointment ID found.");
@@ -67,13 +64,7 @@ async function initEMRPage() {
         calculateBMI(); 
 
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
-        
-        // Safety checks for vitals display in Nurse View
-        safeSetText('pain-score', t.pain_score || '--');
-        safeSetText('pain-location', t.pain_location || '--');
-        
         loadHistoryPanel(p.id);
-        loadLabPanel(p.id); // Placeholder for now
 
     } catch (err) {
         console.error(err);
@@ -84,64 +75,44 @@ async function initEMRPage() {
 function setupEMRInteractions() {
     // 1. View Toggles
     window.switchView = function(viewName) {
-        ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.classList.add('hidden-view');
-        });
+        ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
         document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
-        
-        const target = document.getElementById(viewName + 'View');
-        if(target) target.classList.remove('hidden-view');
+        document.getElementById(viewName + 'View').classList.remove('hidden-view');
         
         if(viewName === 'summary') updateSummary();
         
-        // Button Logic
         const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
-        const buttons = document.querySelectorAll('.view-toggle-btn');
-        if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
+        document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
     };
 
-    // 2. Right Panel Toggles
+    // 2. Right Panel
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
-        if(!rightPanel) return;
         const isClosed = rightPanel.classList.contains('translate-x-full');
         if(isClosed) rightPanel.classList.remove('translate-x-full');
         else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
         
         rightPanel.dataset.type = type;
-        const lab = document.getElementById('labContent');
-        const hist = document.getElementById('historyContent');
-        const title = document.getElementById('rightPanelTitle');
+        document.getElementById('labContent').classList.add('hidden');
+        document.getElementById('historyContent').classList.add('hidden');
         
-        if(lab) lab.classList.add('hidden');
-        if(hist) hist.classList.add('hidden');
-        
-        if(type === 'lab' && lab) {
-            lab.classList.remove('hidden');
-            if(title) title.textContent = "Recent Lab Results";
-        } else if (type === 'history' && hist) {
-            hist.classList.remove('hidden');
-            if(title) title.textContent = "Past Medical History";
+        if(type === 'lab') {
+            document.getElementById('labContent').classList.remove('hidden');
+            document.getElementById('rightPanelTitle').textContent = "Recent Lab Results";
+        } else {
+            document.getElementById('historyContent').classList.remove('hidden');
+            document.getElementById('rightPanelTitle').textContent = "Past Medical History";
         }
     };
 
-    // Safe Bindings
-    const labBtn = document.getElementById('sidebarLabBtn');
-    if(labBtn) labBtn.onclick = () => togglePanel('lab');
-    
-    const histBtn = document.getElementById('sidebarHistoryBtn');
-    if(histBtn) histBtn.onclick = () => togglePanel('history');
-    
-    const closeBtn = document.getElementById('closeRightPanel');
-    if(closeBtn) closeBtn.onclick = () => rightPanel.classList.add('translate-x-full');
+    document.getElementById('sidebarLabBtn').onclick = () => togglePanel('lab');
+    document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
+    document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
 
     // 3. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        const codeInput = document.getElementById('primaryICDInput');
-        const descInput = document.getElementById('primaryDiagnosisInput');
-        if(codeInput) codeInput.value = item.code;
-        if(descInput) descInput.value = item.description;
+        document.getElementById('primaryICDInput').value = item.code;
+        document.getElementById('primaryDiagnosisInput').value = item.description;
     });
 
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
@@ -149,46 +120,32 @@ function setupEMRInteractions() {
             secondaryDiagnoses.push(item);
             renderComorbidities();
         }
-        const input = document.getElementById('comorbidityInput');
-        if(input) input.value = '';
+        document.getElementById('comorbidityInput').value = '';
     });
 
-    const addComorbBtn = document.getElementById('addComorbidityBtn');
-    if(addComorbBtn) {
-        addComorbBtn.onclick = () => {
-            const input = document.getElementById('comorbidityInput');
-            const val = input ? input.value.trim() : '';
-            if(val) {
-                secondaryDiagnoses.push({ code: 'DX', description: val });
-                renderComorbidities();
-                input.value = '';
-            }
-        };
-    }
+    document.getElementById('addComorbidityBtn').onclick = () => {
+        const val = document.getElementById('comorbidityInput').value.trim();
+        if(val) {
+            secondaryDiagnoses.push({ code: 'DX', description: val });
+            renderComorbidities();
+            document.getElementById('comorbidityInput').value = '';
+        }
+    };
 
     // 4. Prescriptions
-    const addRxBtn = document.getElementById('addPrescription');
-    if(addRxBtn) {
-        addRxBtn.onclick = () => {
-            const nameEl = document.getElementById('drugName');
-            const doseEl = document.getElementById('dosage');
-            const freqEl = document.getElementById('schedule');
-            
-            const name = nameEl ? nameEl.value : '';
-            const dose = doseEl ? doseEl.value : '';
-            const freq = freqEl ? freqEl.value : '';
-            
-            if(!name) return;
-            currentDrugsList.push({ name, dosage: dose, frequency: freq });
-            renderPrescriptions();
-            
-            if(nameEl) nameEl.value = '';
-            if(doseEl) doseEl.value = '';
-            if(freqEl) freqEl.value = '';
-        };
-    }
+    document.getElementById('addPrescription').onclick = () => {
+        const name = document.getElementById('drugName').value;
+        const dose = document.getElementById('dosage').value;
+        const freq = document.getElementById('schedule').value;
+        if(!name) return;
+        currentDrugsList.push({ name, dosage: dose, frequency: freq });
+        renderPrescriptions();
+        document.getElementById('drugName').value = '';
+        document.getElementById('dosage').value = '';
+        document.getElementById('schedule').value = '';
+    };
 
-    // 5. Bulk Insert Logic (NER)
+    // 5. Bulk Insert Logic (Updated for Robustness)
     const parseBtn = document.getElementById('parseBulkBtn');
     if (parseBtn) {
         parseBtn.onclick = async () => {
@@ -209,32 +166,50 @@ function setupEMRInteractions() {
                     body: JSON.stringify({ text: text })
                 });
 
-                if(!res.ok) throw new Error("Parsing Failed");
+                if(!res.ok) throw new Error("Parsing Failed (Check Backend Logs)");
                 const data = await res.json();
                 
+                // Add Separate Drugs
                 if(data.separate_drugs) {
                     data.separate_drugs.forEach(drug => {
                         currentDrugsList.push({
                             name: drug.drugName || "Unknown",
                             dosage: drug.dosage || "",
-                            frequency: drug.frequency || ""
+                            frequency: drug.frequency || "",
+                            quantity: drug.quantity || ""
                         });
                     });
                 }
+                
+                // Add Racikan (Compounds)
                 if(data.racikan) {
                     data.racikan.forEach(r => {
+                        // Format ingredients nicely
+                        const ingList = r.ingredients ? r.ingredients.map(i => `${i.name} ${i.strength}`).join(', ') : r.recipe_text;
                         currentDrugsList.push({
-                            name: "Compound: " + (r.components || ""),
-                            dosage: "1",
+                            name: "Compound (Racikan)",
+                            dosage: ingList,
                             frequency: r.frequency || ""
                         });
                     });
                 }
+                
+                // Add Equipment
+                if(data.equipment) {
+                    data.equipment.forEach(e => {
+                        currentDrugsList.push({
+                            name: "Equipment: " + e.name,
+                            dosage: "1",
+                            frequency: "Use as directed"
+                        });
+                    });
+                }
+
                 renderPrescriptions();
                 if(input) input.value = "";
             } catch(e) {
                 console.error(e);
-                alert("Parsing error.");
+                alert("Parsing error: " + e.message);
             } finally {
                 parseBtn.disabled = false;
                 parseBtn.innerHTML = originalHtml;
@@ -243,16 +218,7 @@ function setupEMRInteractions() {
         };
     }
 
-    // 6. Submit Buttons (Bind both if they exist)
-    const submitBtn1 = document.getElementById('submitDoctorView');
-    if(submitBtn1) submitBtn1.onclick = submitConsultation;
-
-    const submitBtn2 = document.getElementById('submitSummaryView');
-    if(submitBtn2) submitBtn2.onclick = submitConsultation;
-
-    // Review Button
-    const reviewBtn = document.getElementById('reviewBtn');
-    if(reviewBtn) reviewBtn.onclick = () => window.switchView('summary');
+    document.getElementById('submitEMRBtn').onclick = submitConsultation;
 }
 
 // --- SHARED HELPERS ---
@@ -347,7 +313,8 @@ async function loadHistoryPanel(patientId) {
 }
 
 async function loadLabPanel(patientId) {
-    // Placeholder - Real logic would fetch from /api/patient/labs if available
+    const container = document.getElementById('labContent');
+    // ... (Use previous logic or leave placeholder) ...
 }
 
 function updateSummary() {
@@ -369,10 +336,8 @@ function updateSummary() {
 
 async function submitConsultation() {
     if(!confirm("Finalize EMR?")) return;
-    
-    // Disable any submit button found
-    const btns = document.querySelectorAll('[id^="submit"]');
-    btns.forEach(b => { b.textContent = "Processing..."; b.disabled = true; });
+    const btn = document.getElementById('submitEMRBtn');
+    if (btn) { btn.textContent = "Processing..."; btn.disabled = true; }
 
     const payload = {
         doctor_id: DOCTOR_ID,
@@ -398,7 +363,7 @@ async function submitConsultation() {
         window.location.href = "APPOINTMENTS.html";
     } catch(e) {
         alert("Submit failed: " + e.message);
-        btns.forEach(b => { b.textContent = "Finalize & Submit"; b.disabled = false; });
+        if (btn) { btn.textContent = "Finalize & Submit"; btn.disabled = false; }
     }
 }
 
@@ -459,16 +424,13 @@ async function initAppointmentsPage() {
     } catch(e) {}
 }
 
+// --- HELPERS ---
 function safeSetText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val || '--'; }
 function safeSetValue(id, val) { const el = document.getElementById(id); if(el && val) el.value = val; }
 function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
 function calculateBMI() {
-    const wEl = document.getElementById('weight');
-    const hEl = document.getElementById('height');
-    if(wEl && hEl) {
-        const w = parseFloat(wEl.value);
-        const h = parseFloat(hEl.value) / 100;
-        if(w && h) document.getElementById('bmi').textContent = (w/(h*h)).toFixed(1);
-    }
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value) / 100;
+    if(w && h) document.getElementById('bmi').textContent = (w/(h*h)).toFixed(1);
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
