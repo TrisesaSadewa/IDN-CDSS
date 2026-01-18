@@ -9,20 +9,25 @@ let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
 
+// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    // UI Setup
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
     if(document.getElementById('current-time')) startClock();
 
+    // Router
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
     } else if (document.getElementById('mainContent')) {
+        // EMR Page detected by unique ID from your layout
         initEMRPage();
     }
 });
 
 function startClock() {
     const timeEl = document.getElementById('current-time');
+    if (!timeEl) return;
     function update() {
         const now = new Date();
         timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -36,6 +41,9 @@ function startClock() {
 // ==========================================
 
 async function initEMRPage() {
+    console.log("Initializing Real EMR...");
+    
+    // 1. Get Appointment ID
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
     if (!currentApptId) return alert("No Appointment ID found.");
@@ -52,10 +60,12 @@ async function initEMRPage() {
         
         currentPatientId = p.id;
 
+        // Info Card
         safeSetText('pt-name', p.full_name || 'Unknown');
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
         
+        // Vitals
         safeSetValue('weight', t.weight_kg);
         safeSetValue('height', t.height_cm);
         safeSetValue('systolic', t.systolic);
@@ -63,7 +73,10 @@ async function initEMRPage() {
         safeSetValue('temperature', t.temperature);
         calculateBMI(); 
 
+        // Nurse Notes
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
+
+        // Load History
         loadHistoryPanel(p.id);
 
     } catch (err) {
@@ -75,44 +88,62 @@ async function initEMRPage() {
 function setupEMRInteractions() {
     // 1. View Toggles
     window.switchView = function(viewName) {
-        ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
+        ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.add('hidden-view');
+        });
         document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(viewName + 'View').classList.remove('hidden-view');
+        
+        const view = document.getElementById(viewName + 'View');
+        if(view) view.classList.remove('hidden-view');
         
         if(viewName === 'summary') updateSummary();
         
         const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
-        document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
+        const buttons = document.querySelectorAll('.view-toggle-btn');
+        if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
     };
 
-    // 2. Right Panel
+    // 2. Right Panel Toggles
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
+        if(!rightPanel) return;
         const isClosed = rightPanel.classList.contains('translate-x-full');
         if(isClosed) rightPanel.classList.remove('translate-x-full');
         else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
         
         rightPanel.dataset.type = type;
-        document.getElementById('labContent').classList.add('hidden');
-        document.getElementById('historyContent').classList.add('hidden');
+        const labContent = document.getElementById('labContent');
+        const historyContent = document.getElementById('historyContent');
+        const title = document.getElementById('rightPanelTitle');
+
+        if(labContent) labContent.classList.add('hidden');
+        if(historyContent) historyContent.classList.add('hidden');
         
         if(type === 'lab') {
-            document.getElementById('labContent').classList.remove('hidden');
-            document.getElementById('rightPanelTitle').textContent = "Recent Lab Results";
+            if(labContent) labContent.classList.remove('hidden');
+            if(title) title.textContent = "Recent Lab Results";
         } else {
-            document.getElementById('historyContent').classList.remove('hidden');
-            document.getElementById('rightPanelTitle').textContent = "Past Medical History";
+            if(historyContent) historyContent.classList.remove('hidden');
+            if(title) title.textContent = "Past Medical History";
         }
     };
 
-    document.getElementById('sidebarLabBtn').onclick = () => togglePanel('lab');
-    document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
-    document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
+    const labBtn = document.getElementById('sidebarLabBtn');
+    if(labBtn) labBtn.onclick = () => togglePanel('lab');
+
+    const histBtn = document.getElementById('sidebarHistoryBtn');
+    if(histBtn) histBtn.onclick = () => togglePanel('history');
+
+    const closeBtn = document.getElementById('closeRightPanel');
+    if(closeBtn) closeBtn.onclick = () => rightPanel.classList.add('translate-x-full');
 
     // 3. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        document.getElementById('primaryICDInput').value = item.code;
-        document.getElementById('primaryDiagnosisInput').value = item.description;
+        const icdInput = document.getElementById('primaryICDInput');
+        const diagInput = document.getElementById('primaryDiagnosisInput');
+        if(icdInput) icdInput.value = item.code;
+        if(diagInput) diagInput.value = item.description;
     });
 
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
@@ -120,30 +151,46 @@ function setupEMRInteractions() {
             secondaryDiagnoses.push(item);
             renderComorbidities();
         }
-        document.getElementById('comorbidityInput').value = '';
+        const input = document.getElementById('comorbidityInput');
+        if(input) input.value = '';
     });
 
-    document.getElementById('addComorbidityBtn').onclick = () => {
-        const val = document.getElementById('comorbidityInput').value.trim();
-        if(val) {
-            secondaryDiagnoses.push({ code: 'DX', description: val });
-            renderComorbidities();
-            document.getElementById('comorbidityInput').value = '';
-        }
-    };
+    const addComorbBtn = document.getElementById('addComorbidityBtn');
+    if(addComorbBtn) {
+        addComorbBtn.onclick = () => {
+            const input = document.getElementById('comorbidityInput');
+            const val = input ? input.value.trim() : '';
+            if(val) {
+                secondaryDiagnoses.push({ code: 'DX', description: val });
+                renderComorbidities();
+                input.value = '';
+            }
+        };
+    }
 
     // 4. Prescriptions
-    document.getElementById('addPrescription').onclick = () => {
-        const name = document.getElementById('drugName').value;
-        const dose = document.getElementById('dosage').value;
-        const freq = document.getElementById('schedule').value;
-        if(!name) return;
-        currentDrugsList.push({ name, dosage: dose, frequency: freq });
-        renderPrescriptions();
-        document.getElementById('drugName').value = '';
-        document.getElementById('dosage').value = '';
-        document.getElementById('schedule').value = '';
-    };
+    const addRxBtn = document.getElementById('addPrescription');
+    if(addRxBtn) {
+        addRxBtn.onclick = () => {
+            const nameEl = document.getElementById('drugName');
+            const doseEl = document.getElementById('dosage');
+            const freqEl = document.getElementById('schedule');
+            
+            if(!nameEl || !doseEl || !freqEl) return;
+
+            const name = nameEl.value;
+            const dose = doseEl.value;
+            const freq = freqEl.value;
+
+            if(!name) return;
+            currentDrugsList.push({ name, dosage: dose, frequency: freq });
+            renderPrescriptions();
+            
+            nameEl.value = '';
+            doseEl.value = '';
+            freqEl.value = '';
+        };
+    }
 
     // 5. Bulk Insert Logic (Updated for Robustness)
     const parseBtn = document.getElementById('parseBulkBtn');
@@ -218,21 +265,26 @@ function setupEMRInteractions() {
         };
     }
 
-    document.getElementById('submitEMRBtn').onclick = submitConsultation;
+    const submitBtn = document.getElementById('submitEMRBtn');
+    if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
 // --- SHARED HELPERS ---
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
-    if (!input || !suggestions) return;
     
+    if(!input || !suggestions) return;
+
     input.addEventListener('input', async (e) => {
         const q = e.target.value;
         if(q.length < 2) { suggestions.classList.add('hidden'); return; }
+        
         try {
+            // Real API Call
             const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
             const results = await res.json();
+            
             suggestions.innerHTML = '';
             if(results.length > 0) {
                 suggestions.classList.remove('hidden');
@@ -240,20 +292,30 @@ function setupAutocomplete(inputId, suggestionsId, onSelect) {
                     const div = document.createElement('div');
                     div.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm border-b border-gray-100';
                     div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> ${item.description}`;
-                    div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
+                    div.onclick = () => {
+                        onSelect(item);
+                        suggestions.classList.add('hidden');
+                    };
                     suggestions.appendChild(div);
                 });
-            } else { suggestions.classList.add('hidden'); }
+            } else {
+                suggestions.classList.add('hidden');
+            }
         } catch(e) { console.error(e); }
     });
+    
+    // Close on click outside
     document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden');
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.classList.add('hidden');
+        }
     });
 }
 
 function renderComorbidities() {
     const list = document.getElementById('comorbidityList');
     if(!list) return;
+
     list.innerHTML = '';
     if (secondaryDiagnoses.length === 0) {
         list.innerHTML = '<span class="text-xs text-gray-400 self-center italic px-2">No secondary diagnoses added.</span>';
@@ -262,17 +324,27 @@ function renderComorbidities() {
     secondaryDiagnoses.forEach((item, idx) => {
         const tag = document.createElement('div');
         tag.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200';
-        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
+        tag.innerHTML = `
+            <span class="mr-1 font-bold">${item.code}</span> 
+            <span class="mr-2 truncate max-w-[150px]">${item.description}</span>
+            <button class="text-indigo-500 hover:text-red-600 focus:outline-none" onclick="removeComorbidity(${idx})">
+                <i data-feather="x" class="w-3 h-3"></i>
+            </button>
+        `;
         list.appendChild(tag);
     });
     if(window.feather) feather.replace();
 }
 
-window.removeComorbidity = (idx) => { secondaryDiagnoses.splice(idx, 1); renderComorbidities(); }
+window.removeComorbidity = (idx) => {
+    secondaryDiagnoses.splice(idx, 1);
+    renderComorbidities();
+}
 
 function renderPrescriptions() {
     const list = document.getElementById('prescriptionList');
     if(!list) return;
+
     list.innerHTML = '';
     if(currentDrugsList.length === 0) {
         list.innerHTML = '<div class="px-4 py-3 text-gray-500 text-sm">No drugs added.</div>';
@@ -281,40 +353,59 @@ function renderPrescriptions() {
     currentDrugsList.forEach((d, idx) => {
         const div = document.createElement('div');
         div.className = 'px-4 py-3 flex justify-between items-center border-b border-gray-100 last:border-0';
-        div.innerHTML = `<div><p class="font-bold text-gray-800 text-sm">${d.name}</p><p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p></div><button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+        div.innerHTML = `
+            <div><p class="font-bold text-gray-800 text-sm">${d.name}</p><p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p></div>
+            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700"><i data-feather="trash-2" class="w-4 h-4"></i></button>
+        `;
         list.appendChild(div);
     });
     if(window.feather) feather.replace();
 }
 
-window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); }
+window.removeDrug = (idx) => {
+    currentDrugsList.splice(idx, 1);
+    renderPrescriptions();
+}
 
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
     if(!container) return;
+
     try {
         const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
         const history = await res.json();
-        container.innerHTML = '';
-        if(history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
         
+        container.innerHTML = '';
+        if(history.length === 0) {
+            container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>';
+            return;
+        }
+
         history.forEach(h => {
             const date = new Date(h.created_at).toLocaleDateString();
+            // Parse assessment to get Primary Diagnosis if formatted
             let title = h.assessment;
             if(h.assessment && h.assessment.includes("PRIMARY:")) {
                 title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
             }
+
             const div = document.createElement('div');
             div.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-all";
-            div.innerHTML = `<div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span><span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span></div><h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>`;
+            div.innerHTML = `
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-bold text-blue-700">${date}</span>
+                    <span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span>
+                </div>
+                <h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>
+            `;
             container.appendChild(div);
         });
-    } catch(e) {}
+    } catch(e) { console.error(e); }
 }
 
 async function loadLabPanel(patientId) {
     const container = document.getElementById('labContent');
-    // ... (Use previous logic or leave placeholder) ...
+    // Placeholder - Real logic would fetch from /api/patient/labs if available
 }
 
 function updateSummary() {
@@ -327,7 +418,8 @@ function updateSummary() {
     const summaryMeds = document.getElementById('summaryMeds');
     if(summaryMeds) {
         if(currentDrugsList.length > 0) {
-            summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
+            summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + 
+                currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
         } else {
             summaryMeds.textContent = "No medications.";
         }
@@ -337,7 +429,7 @@ function updateSummary() {
 async function submitConsultation() {
     if(!confirm("Finalize EMR?")) return;
     const btn = document.getElementById('submitEMRBtn');
-    if (btn) { btn.textContent = "Processing..."; btn.disabled = true; }
+    if(btn) { btn.textContent = "Processing..."; btn.disabled = true; }
 
     const payload = {
         doctor_id: DOCTOR_ID,
@@ -363,7 +455,7 @@ async function submitConsultation() {
         window.location.href = "APPOINTMENTS.html";
     } catch(e) {
         alert("Submit failed: " + e.message);
-        if (btn) { btn.textContent = "Finalize & Submit"; btn.disabled = false; }
+        if(btn) { btn.textContent = "Finalize & Submit EMR"; btn.disabled = false; }
     }
 }
 
@@ -416,7 +508,17 @@ async function initAppointmentsPage() {
                 let p = appt.patients || {full_name: 'Unknown'};
                 const div = document.createElement('div');
                 div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
-                div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4>
+                                <p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span>
+                    </div>`;
                 div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
                 container.appendChild(div);
             });
@@ -429,8 +531,15 @@ function safeSetText(id, val) { const el = document.getElementById(id); if(el) e
 function safeSetValue(id, val) { const el = document.getElementById(id); if(el && val) el.value = val; }
 function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
 function calculateBMI() {
-    const w = parseFloat(document.getElementById('weight').value);
-    const h = parseFloat(document.getElementById('height').value) / 100;
-    if(w && h) document.getElementById('bmi').textContent = (w/(h*h)).toFixed(1);
+    const wEl = document.getElementById('weight');
+    const hEl = document.getElementById('height');
+    if(wEl && hEl) {
+        const w = parseFloat(wEl.value);
+        const h = parseFloat(hEl.value) / 100;
+        if(w && h) {
+            const bmiEl = document.getElementById('bmi');
+            if(bmiEl) bmiEl.textContent = (w/(h*h)).toFixed(1);
+        }
+    }
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
