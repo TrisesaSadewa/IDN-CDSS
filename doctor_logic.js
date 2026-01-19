@@ -393,7 +393,54 @@ function calculateBMI() {
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
 function renderComorbidities() {/*...*/}
-function renderPrescriptions() {/*...*/}
+function renderPrescriptions() {
+    const list = document.getElementById('prescriptionList');
+    if(!list) return;
+
+    list.innerHTML = '';
+    if(currentDrugsList.length === 0) {
+        list.innerHTML = '<div class="px-4 py-3 text-gray-500 text-sm">No drugs added.</div>';
+        return;
+    }
+
+    currentDrugsList.forEach((d, idx) => {
+        const div = document.createElement('div');
+        div.className = 'px-4 py-3 flex justify-between items-start border-b border-gray-100 last:border-0';
+        
+        let detailsHtml = '';
+        
+        // VISUALIZE PARSED INGREDIENTS
+        if (d.ingredients && d.ingredients.length > 0) {
+            const ingList = d.ingredients.map(i => 
+                `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100">${i.name} ${i.strength}</span>`
+            ).join('');
+            detailsHtml = `
+                <div class="mt-1">
+                    <p class="text-xs text-gray-500 font-medium mb-1">Contains:</p>
+                    <div class="flex flex-wrap gap-1">${ingList}</div>
+                    <p class="text-xs text-gray-500 mt-1 italic">${d.dosage} • ${d.frequency}</p>
+                </div>
+            `;
+        } else {
+            // Standard Drug
+            detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
+        }
+
+        div.innerHTML = `
+            <div>
+                <p class="font-bold text-gray-800 text-sm">${d.name}</p>
+                ${detailsHtml}
+            </div>
+            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700 mt-1">
+                <i data-feather="trash-2" class="w-4 h-4"></i>
+            </button>
+        `;
+        list.appendChild(div);
+    });
+    if(window.feather) feather.replace();
+}
+
 function loadHistoryPanel() {/*...*/}
 function updateSummary() {/*...*/}
 function setupAutocomplete() {/*...*/}
+
