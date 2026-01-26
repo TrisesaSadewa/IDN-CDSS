@@ -135,9 +135,9 @@ function setupEMRInteractions() {
 
     // 4. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        const icdInput = document.getElementById('primaryICDInput');
+        const codeInput = document.getElementById('primaryICDInput');
         const diagInput = document.getElementById('primaryDiagnosisInput');
-        if(icdInput) icdInput.value = item.code;
+        if(codeInput) codeInput.value = item.code;
         if(diagInput) diagInput.value = item.description;
     });
 
@@ -212,14 +212,13 @@ function setupEMRInteractions() {
                     });
                 }
                 
-                // IMPORTANT: Save ingredients for DDI check
                 if(data.racikan) {
                     data.racikan.forEach(r => {
                         currentDrugsList.push({
                             name: "Compound (Racikan)",
                             dosage: r.recipe_text,
                             frequency: r.frequency,
-                            ingredients: r.ingredients // Save ingredients list
+                            ingredients: r.ingredients 
                         });
                     });
                 }
@@ -241,7 +240,7 @@ function setupEMRInteractions() {
     if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// --- DDI LOGIC ---
+// --- DDI LOGIC (Categorized) ---
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const statusDiv = document.getElementById('ddi-status-area');
@@ -254,7 +253,6 @@ async function runDDICheck() {
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
     
-    // Flatten Ingredients for DDI
     let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
@@ -272,22 +270,52 @@ async function runDDICheck() {
         });
         
         const data = await res.json();
+        const warnings = data.warnings; // Expecting { high: [], medium: [], low: [] }
         
         statusDiv.classList.remove('hidden');
+        statusDiv.innerHTML = ''; // Clear previous
+
         if (data.safe) {
             statusDiv.className = "mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm";
             statusDiv.innerHTML = `<i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No interactions found.`;
         } else {
-            statusDiv.className = "mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm";
-            const warningsHtml = data.warnings.map(w => `<li>${w}</li>`).join('');
-            statusDiv.innerHTML = `
-                <div class="flex items-center mb-1 font-bold"><i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i> Interaction Alert</div>
-                <ul class="list-disc pl-5 space-y-1 text-xs">${warningsHtml}</ul>
-            `;
+            // Render High Severity
+            if (warnings.high && warnings.high.length > 0) {
+                const div = document.createElement('div');
+                div.className = "mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm mb-2";
+                div.innerHTML = `
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-octagon" class="w-4 h-4 mr-2"></i> HIGH SEVERITY (URGENT)</div>
+                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.high.map(w => `<li>${w}</li>`).join('')}</ul>
+                `;
+                statusDiv.appendChild(div);
+            }
+
+            // Render Medium Severity
+            if (warnings.medium && warnings.medium.length > 0) {
+                const div = document.createElement('div');
+                div.className = "mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 text-sm mb-2";
+                div.innerHTML = `
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i> MODERATE SEVERITY</div>
+                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.medium.map(w => `<li>${w}</li>`).join('')}</ul>
+                `;
+                statusDiv.appendChild(div);
+            }
+
+            // Render Low Severity
+            if (warnings.low && warnings.low.length > 0) {
+                const div = document.createElement('div');
+                div.className = "mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm";
+                div.innerHTML = `
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="info" class="w-4 h-4 mr-2"></i> LOW SEVERITY (ADVISORY)</div>
+                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.low.map(w => `<li>${w}</li>`).join('')}</ul>
+                `;
+                statusDiv.appendChild(div);
+            }
         }
         feather.replace();
 
     } catch (e) {
+        console.error("DDI Error", e);
         alert("Could not check interactions.");
     } finally {
         btn.disabled = false;
@@ -300,51 +328,10 @@ function resetDDIStatus() {
     if(statusDiv) statusDiv.classList.add('hidden');
 }
 
-// --- SUBMIT ---
-async function submitConsultation() {
-    if(!confirm("Finalize EMR?")) return;
-    const btn = document.getElementById('submitEMRBtn');
-    if(btn) { btn.textContent = "Processing..."; btn.disabled = true; }
-
-    const payload = {
-        doctor_id: DOCTOR_ID,
-        appointment_id: currentApptId,
-        chief_complaint: getVal('chiefComplaintInput'),
-        history_illness: getVal('historyInput'),
-        primary_diagnosis: getVal('primaryDiagnosisInput'),
-        icd10_code: getVal('primaryICDInput'),
-        secondary_diagnoses: secondaryDiagnoses.map(d => `${d.description} (${d.code})`),
-        clinical_notes: getVal('analysisNotesInput'),
-        therapy_instructions: getVal('therapyInput'),
-        prescription_items: currentDrugsList
-    };
-
-    try {
-        const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        if(!res.ok) throw new Error("Error");
-        
-        const responseData = await res.json();
-        if (responseData.warnings && responseData.warnings.length > 0) {
-            alert("Saved with DDI Warnings:\n" + responseData.warnings.join("\n"));
-        } else {
-            alert("Consultation Saved Successfully!");
-        }
-        window.location.href = "APPOINTMENTS.html";
-    } catch(e) {
-        alert("Submit failed: " + e.message);
-        if(btn) { btn.textContent = "Finalize & Submit EMR"; btn.disabled = false; }
-    }
-}
-
 // ... (Rest of Helpers & Queue Logic Same as Before) ...
 async function initAppointmentsPage() {
     const container = document.getElementById('queue-container');
     if(!container) return;
-    // ... Queue Logic ...
     try {
         const res = await fetch(`${API_BASE}/doctor/queue?doctor_id=${DOCTOR_ID}`);
         const appointments = await res.json();
@@ -362,7 +349,6 @@ async function initAppointmentsPage() {
                 div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
                 container.appendChild(div);
             });
-            // Handle Hero Card (Active Patient)
              const heroCard = document.getElementById('active-patient-card');
              if(heroCard && appointments.length > 0) {
                  heroCard.classList.remove('hidden');
@@ -393,54 +379,7 @@ function calculateBMI() {
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
 function renderComorbidities() {/*...*/}
-function renderPrescriptions() {
-    const list = document.getElementById('prescriptionList');
-    if(!list) return;
-
-    list.innerHTML = '';
-    if(currentDrugsList.length === 0) {
-        list.innerHTML = '<div class="px-4 py-3 text-gray-500 text-sm">No drugs added.</div>';
-        return;
-    }
-
-    currentDrugsList.forEach((d, idx) => {
-        const div = document.createElement('div');
-        div.className = 'px-4 py-3 flex justify-between items-start border-b border-gray-100 last:border-0';
-        
-        let detailsHtml = '';
-        
-        // VISUALIZE PARSED INGREDIENTS
-        if (d.ingredients && d.ingredients.length > 0) {
-            const ingList = d.ingredients.map(i => 
-                `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100">${i.name} ${i.strength}</span>`
-            ).join('');
-            detailsHtml = `
-                <div class="mt-1">
-                    <p class="text-xs text-gray-500 font-medium mb-1">Contains:</p>
-                    <div class="flex flex-wrap gap-1">${ingList}</div>
-                    <p class="text-xs text-gray-500 mt-1 italic">${d.dosage} • ${d.frequency}</p>
-                </div>
-            `;
-        } else {
-            // Standard Drug
-            detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
-        }
-
-        div.innerHTML = `
-            <div>
-                <p class="font-bold text-gray-800 text-sm">${d.name}</p>
-                ${detailsHtml}
-            </div>
-            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700 mt-1">
-                <i data-feather="trash-2" class="w-4 h-4"></i>
-            </button>
-        `;
-        list.appendChild(div);
-    });
-    if(window.feather) feather.replace();
-}
-
+function renderPrescriptions() {/*...*/}
 function loadHistoryPanel() {/*...*/}
 function updateSummary() {/*...*/}
 function setupAutocomplete() {/*...*/}
-
