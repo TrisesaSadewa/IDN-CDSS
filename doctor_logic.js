@@ -258,7 +258,6 @@ async function runDDICheck() {
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
     
-    // Flatten Ingredients for DDI
     let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
@@ -285,32 +284,34 @@ async function runDDICheck() {
             statusDiv.className = "mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm";
             statusDiv.innerHTML = `<i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No interactions found.`;
         } else {
-            // Render High Severity
+            // Render High Severity (Major)
             if (warnings.high && warnings.high.length > 0) {
                 const div = document.createElement('div');
                 div.className = "mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm mb-2";
                 div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-octagon" class="w-4 h-4 mr-2"></i> HIGH SEVERITY (URGENT)</div>
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-octagon" class="w-4 h-4 mr-2"></i> MAJOR (URGENT SUBSTITUTION)</div>
                     <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.high.map(w => `<li>${w}</li>`).join('')}</ul>
                 `;
                 statusDiv.appendChild(div);
             }
-            // Render Medium Severity
+
+            // Render Medium Severity (Intermediate)
             if (warnings.medium && warnings.medium.length > 0) {
                 const div = document.createElement('div');
                 div.className = "mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 text-sm mb-2";
                 div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i> MODERATE SEVERITY</div>
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i> INTERMEDIATE (MONITOR)</div>
                     <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.medium.map(w => `<li>${w}</li>`).join('')}</ul>
                 `;
                 statusDiv.appendChild(div);
             }
-            // Render Low Severity
+
+            // Render Low Severity (Minor)
             if (warnings.low && warnings.low.length > 0) {
                 const div = document.createElement('div');
                 div.className = "mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm";
                 div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="info" class="w-4 h-4 mr-2"></i> LOW SEVERITY (ADVISORY)</div>
+                    <div class="flex items-center mb-1 font-bold"><i data-feather="info" class="w-4 h-4 mr-2"></i> MINOR (ADVISORY)</div>
                     <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.low.map(w => `<li>${w}</li>`).join('')}</ul>
                 `;
                 statusDiv.appendChild(div);
