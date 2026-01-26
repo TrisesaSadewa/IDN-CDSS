@@ -7,22 +7,16 @@ const DOCTOR_NAME = localStorage.getItem('smart_his_name');
 let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
-let secondaryDiagnoses = []; // Stores real comorbidity objects
+let secondaryDiagnoses = [];
 
-// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Set Doctor Name
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
-
-    // 2. Start Clock (if element exists)
     if(document.getElementById('current-time')) startClock();
 
-    // 3. Router
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
     } else if (document.getElementById('mainContent')) {
-        // EMR Page detected by unique ID from your layout
         initEMRPage();
     }
 });
@@ -43,16 +37,12 @@ function startClock() {
 // ==========================================
 
 async function initEMRPage() {
-    console.log("Initializing EMR UI...");
-    
-    // 1. Get Appointment ID
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
-    if (!currentApptId) return alert("No Appointment ID provided.");
+    if (!currentApptId) return alert("No Appointment ID found.");
 
     setupEMRInteractions();
 
-    // 2. Fetch Real Data
     try {
         const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
         if(!res.ok) throw new Error("Load failed");
@@ -63,12 +53,10 @@ async function initEMRPage() {
         
         currentPatientId = p.id;
 
-        // 3. Populate Patient Info Card
         safeSetText('pt-name', p.full_name || 'Unknown');
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
         
-        // 4. Populate Vitals Input (Pre-filled)
         safeSetValue('weight', t.weight_kg);
         safeSetValue('height', t.height_cm);
         safeSetValue('systolic', t.systolic);
@@ -76,12 +64,10 @@ async function initEMRPage() {
         safeSetValue('temperature', t.temperature);
         calculateBMI(); 
 
-        // 5. Populate Nurse View (Read-Only)
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
         safeSetText('pain-score', t.pain_score || '--');
         safeSetText('pain-location', t.pain_location || '--');
-
-        // 6. Load History for Right Panel
+        
         loadHistoryPanel(p.id);
 
     } catch (err) {
@@ -91,7 +77,11 @@ async function initEMRPage() {
 }
 
 function setupEMRInteractions() {
-    // --- VIEW TOGGLES ---
+    // 1. DDI Check Button
+    const checkDDIBtn = document.getElementById('btnCheckDDI');
+    if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
+
+    // 2. View Toggles
     window.switchView = function(viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
             const el = document.getElementById(id);
@@ -109,7 +99,7 @@ function setupEMRInteractions() {
         if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
     };
 
-    // --- RIGHT PANEL TOGGLES ---
+    // 3. Right Panel Toggles
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
         if(!rightPanel) return;
@@ -121,7 +111,7 @@ function setupEMRInteractions() {
         const labContent = document.getElementById('labContent');
         const historyContent = document.getElementById('historyContent');
         const title = document.getElementById('rightPanelTitle');
-        
+
         if(labContent) labContent.classList.add('hidden');
         if(historyContent) historyContent.classList.add('hidden');
         
@@ -136,24 +126,21 @@ function setupEMRInteractions() {
 
     const labBtn = document.getElementById('sidebarLabBtn');
     if(labBtn) labBtn.onclick = () => togglePanel('lab');
+
     const histBtn = document.getElementById('sidebarHistoryBtn');
     if(histBtn) histBtn.onclick = () => togglePanel('history');
+
     const closeBtn = document.getElementById('closeRightPanel');
     if(closeBtn) closeBtn.onclick = () => rightPanel.classList.add('translate-x-full');
 
-    // --- DDI CHECK ---
-    const checkDDIBtn = document.getElementById('btnCheckDDI');
-    if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
-
-    // --- ICD AUTOCOMPLETE (REAL DATA) ---
+    // 4. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        const icdInput = document.getElementById('primaryICDInput');
+        const codeInput = document.getElementById('primaryICDInput');
         const diagInput = document.getElementById('primaryDiagnosisInput');
-        if(icdInput) icdInput.value = item.code;
+        if(codeInput) codeInput.value = item.code;
         if(diagInput) diagInput.value = item.description;
     });
 
-    // --- COMORBIDITY LOGIC ---
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
         if (!secondaryDiagnoses.some(d => d.code === item.code)) {
             secondaryDiagnoses.push(item);
@@ -176,27 +163,25 @@ function setupEMRInteractions() {
         };
     }
 
-    // --- PRESCRIPTION LOGIC ---
+    // 5. Prescriptions
     const addRxBtn = document.getElementById('addPrescription');
     if(addRxBtn) {
         addRxBtn.onclick = () => {
             const nameEl = document.getElementById('drugName');
             const doseEl = document.getElementById('dosage');
             const freqEl = document.getElementById('schedule');
-            
-            if(!nameEl || !doseEl || !freqEl) return;
-            const name = nameEl.value; const dose = doseEl.value; const freq = freqEl.value;
-            
+            const name = nameEl.value;
+            const dose = doseEl.value;
+            const freq = freqEl.value;
             if(!name) return;
             currentDrugsList.push({ name, dosage: dose, frequency: freq });
             renderPrescriptions();
-            
             nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
             resetDDIStatus();
         };
     }
 
-    // --- BULK INSERT LOGIC ---
+    // 6. Bulk Insert
     const parseBtn = document.getElementById('parseBulkBtn');
     if (parseBtn) {
         parseBtn.onclick = async () => {
@@ -204,11 +189,9 @@ function setupEMRInteractions() {
             const text = input ? input.value : '';
             if(!text) return;
             
-            const originalHtml = parseBtn.innerHTML;
             parseBtn.disabled = true;
-            parseBtn.innerHTML = `<i data-feather="loader" class="w-3 h-3 mr-1 animate-spin"></i>`;
-            if(window.feather) feather.replace();
-
+            parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
+            
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
                     method: 'POST',
@@ -228,50 +211,37 @@ function setupEMRInteractions() {
                         });
                     });
                 }
+                
+                // IMPORTANT: Save ingredients for DDI check
                 if(data.racikan) {
                     data.racikan.forEach(r => {
                         currentDrugsList.push({
                             name: "Compound (Racikan)",
                             dosage: r.recipe_text,
                             frequency: r.frequency,
-                            ingredients: r.ingredients 
+                            ingredients: r.ingredients // Save ingredients list
                         });
                     });
                 }
-                if(data.equipment) {
-                    data.equipment.forEach(e => {
-                        currentDrugsList.push({ name: "Equipment: " + e.name, dosage: "1", frequency: "Use as directed" });
-                    });
-                }
-
+                
                 renderPrescriptions();
                 input.value = "";
                 resetDDIStatus();
             } catch(e) {
-                console.error(e);
-                alert("Parsing error.");
+                alert("Parsing error");
             } finally {
                 parseBtn.disabled = false;
-                parseBtn.innerHTML = originalHtml;
-                if(window.feather) feather.replace();
+                parseBtn.innerHTML = "Parse";
+                feather.replace();
             }
         };
     }
 
-    // --- SUBMIT BUTTONS ---
-    const submitBtn1 = document.getElementById('submitDoctorView');
-    if(submitBtn1) submitBtn1.onclick = submitConsultation;
-
-    const submitBtn2 = document.getElementById('submitSummaryView');
-    if(submitBtn2) submitBtn2.onclick = submitConsultation;
-    
-    const reviewBtn = document.getElementById('reviewBtn');
-    if(reviewBtn) reviewBtn.onclick = () => window.switchView('summary');
+    const submitBtn = document.getElementById('submitEMRBtn');
+    if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// ==========================================
-// DDI LOGIC (Time-Aware)
-// ==========================================
+// --- DDI LOGIC ---
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const statusDiv = document.getElementById('ddi-status-area');
@@ -284,14 +254,13 @@ async function runDDICheck() {
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
     
-    // Gather lists
-    let drugNames = [];
-    
+    // Flatten Ingredients for DDI
+    let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
-            d.ingredients.forEach(i => drugNames.push(i.name));
+            d.ingredients.forEach(i => checkList.push(i.name));
         } else {
-            drugNames.push(d.name);
+            checkList.push(d.name);
         }
     });
 
@@ -299,7 +268,7 @@ async function runDDICheck() {
         const res = await fetch(`${API_BASE}/api/check-ddi`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ drugs: drugNames })
+            body: JSON.stringify({ drugs: checkList })
         });
         
         const data = await res.json();
@@ -310,7 +279,7 @@ async function runDDICheck() {
 
         if (data.safe) {
             statusDiv.className = "mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm";
-            statusDiv.innerHTML = `<i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No overlapping interactions found.`;
+            statusDiv.innerHTML = `<i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No interactions found.`;
         } else {
             // Render High Severity
             if (warnings.high && warnings.high.length > 0) {
@@ -359,9 +328,7 @@ function resetDDIStatus() {
     if(statusDiv) statusDiv.classList.add('hidden');
 }
 
-// ==========================================
-// HELPER FUNCTIONS (RESTORED)
-// ==========================================
+// ... (Rest of Helpers & Queue Logic Same as Before) ...
 
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
@@ -403,7 +370,7 @@ function renderComorbidities() {
     secondaryDiagnoses.forEach((item, idx) => {
         const tag = document.createElement('div');
         tag.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200';
-        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600 ml-1" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
+        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
         list.appendChild(tag);
     });
     if(window.feather) feather.replace();
@@ -521,7 +488,6 @@ async function submitConsultation() {
     }
 }
 
-// --- QUEUE LOGIC ---
 async function initAppointmentsPage() {
     const container = document.getElementById('queue-container');
     const heroCard = document.getElementById('active-patient-card');
