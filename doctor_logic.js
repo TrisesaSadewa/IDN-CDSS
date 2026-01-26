@@ -36,6 +36,10 @@ function startClock() {
 // EMR PAGE LOGIC
 // ==========================================
 
+// ==========================================
+// EMR PAGE LOGIC
+// ==========================================
+
 async function initEMRPage() {
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
@@ -328,7 +332,9 @@ function resetDDIStatus() {
     if(statusDiv) statusDiv.classList.add('hidden');
 }
 
-// ... (Rest of Helpers & Queue Logic Same as Before) ...
+// ==========================================
+// HELPER FUNCTIONS (RESTORED)
+// ==========================================
 
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
