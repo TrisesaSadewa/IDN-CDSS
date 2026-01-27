@@ -36,10 +36,6 @@ function startClock() {
 // EMR PAGE LOGIC
 // ==========================================
 
-// ==========================================
-// EMR PAGE LOGIC
-// ==========================================
-
 async function initEMRPage() {
     const urlParams = new URLSearchParams(window.location.search);
     currentApptId = urlParams.get('id');
@@ -216,14 +212,13 @@ function setupEMRInteractions() {
                     });
                 }
                 
-                // IMPORTANT: Save ingredients for DDI check
                 if(data.racikan) {
                     data.racikan.forEach(r => {
                         currentDrugsList.push({
                             name: "Compound (Racikan)",
                             dosage: r.recipe_text,
                             frequency: r.frequency,
-                            ingredients: r.ingredients // Save ingredients list
+                            ingredients: r.ingredients 
                         });
                     });
                 }
@@ -245,7 +240,7 @@ function setupEMRInteractions() {
     if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// --- DDI LOGIC ---
+// --- DDI LOGIC (ACTIONABLE INTELLIGENCE UI) ---
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const statusDiv = document.getElementById('ddi-status-area');
@@ -258,6 +253,7 @@ async function runDDICheck() {
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
     
+    // Flatten Ingredients for DDI
     let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
@@ -275,47 +271,62 @@ async function runDDICheck() {
         });
         
         const data = await res.json();
-        const warnings = data.warnings; 
+        const interactions = data.interactions; // Expecting list of objects
         
         statusDiv.classList.remove('hidden');
         statusDiv.innerHTML = ''; 
 
         if (data.safe) {
-            statusDiv.className = "mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm";
-            statusDiv.innerHTML = `<i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No interactions found.`;
+            statusDiv.className = "mt-3 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm";
+            statusDiv.innerHTML = `<i data-feather="check-circle" class="w-5 h-5 mr-3"></i> <div><strong>Safe:</strong> No major interactions found.</div>`;
         } else {
-            // Render High Severity (Major)
-            if (warnings.high && warnings.high.length > 0) {
-                const div = document.createElement('div');
-                div.className = "mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm mb-2";
-                div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-octagon" class="w-4 h-4 mr-2"></i> MAJOR (URGENT SUBSTITUTION)</div>
-                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.high.map(w => `<li>${w}</li>`).join('')}</ul>
-                `;
-                statusDiv.appendChild(div);
-            }
+            statusDiv.className = "mt-4 space-y-3";
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = "text-sm font-bold text-gray-700 flex items-center";
+            header.innerHTML = `<i data-feather="alert-triangle" class="w-4 h-4 mr-2 text-orange-500"></i> ${interactions.length} Interactions Found`;
+            statusDiv.appendChild(header);
 
-            // Render Medium Severity (Intermediate)
-            if (warnings.medium && warnings.medium.length > 0) {
-                const div = document.createElement('div');
-                div.className = "mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 text-sm mb-2";
-                div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i> INTERMEDIATE (MONITOR)</div>
-                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.medium.map(w => `<li>${w}</li>`).join('')}</ul>
-                `;
-                statusDiv.appendChild(div);
-            }
+            // Render each interaction card
+            interactions.forEach(item => {
+                const card = document.createElement('div');
+                
+                // Color coding based on severity
+                let borderClass = "border-gray-200";
+                let badgeClass = "bg-gray-100 text-gray-600";
+                
+                if (item.severity === "Major") {
+                    borderClass = "border-red-300 bg-red-50";
+                    badgeClass = "bg-red-600 text-white";
+                } else if (item.severity === "Moderate") {
+                    borderClass = "border-orange-200 bg-orange-50";
+                    badgeClass = "bg-orange-500 text-white";
+                } else if (item.severity === "Minor") {
+                    borderClass = "border-blue-200 bg-blue-50";
+                    badgeClass = "bg-blue-500 text-white";
+                }
 
-            // Render Low Severity (Minor)
-            if (warnings.low && warnings.low.length > 0) {
-                const div = document.createElement('div');
-                div.className = "mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm";
-                div.innerHTML = `
-                    <div class="flex items-center mb-1 font-bold"><i data-feather="info" class="w-4 h-4 mr-2"></i> MINOR (ADVISORY)</div>
-                    <ul class="list-disc pl-5 space-y-1 text-xs">${warnings.low.map(w => `<li>${w}</li>`).join('')}</ul>
+                card.className = `p-4 rounded-xl border ${borderClass} shadow-sm`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2 items-center">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded uppercase ${badgeClass}">${item.severity}</span>
+                            <span class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-700 mb-2 leading-relaxed">
+                        <strong>Risk:</strong> ${item.description}
+                    </p>
+                    <div class="bg-white/60 p-2 rounded-lg border border-gray-200/50">
+                        <p class="text-xs text-gray-600 flex items-start">
+                            <i data-feather="info" class="w-3 h-3 mr-1 mt-0.5 text-blue-500"></i>
+                            <span><strong>Recommendation:</strong> ${item.advice}</span>
+                        </p>
+                    </div>
                 `;
-                statusDiv.appendChild(div);
-            }
+                statusDiv.appendChild(card);
+            });
         }
         feather.replace();
 
@@ -324,7 +335,7 @@ async function runDDICheck() {
         alert("Could not check interactions.");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = `Check Interactions`;
+        btn.innerHTML = `<i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions`;
     }
 }
 
@@ -333,9 +344,7 @@ function resetDDIStatus() {
     if(statusDiv) statusDiv.classList.add('hidden');
 }
 
-// ==========================================
-// HELPER FUNCTIONS (RESTORED)
-// ==========================================
+// ... (Rest of Helpers & Queue Logic Same as Before) ...
 
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
@@ -377,7 +386,7 @@ function renderComorbidities() {
     secondaryDiagnoses.forEach((item, idx) => {
         const tag = document.createElement('div');
         tag.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200';
-        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
+        tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600 ml-1" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
         list.appendChild(tag);
     });
     if(window.feather) feather.replace();
@@ -483,8 +492,10 @@ async function submitConsultation() {
         if(!res.ok) throw new Error("Error");
         
         const responseData = await res.json();
-        if (responseData.warnings && responseData.warnings.length > 0) {
-            alert("Consultation Saved with DDI Warnings:\n" + responseData.warnings.join("\n"));
+        // Updated Alert for Rich Data
+        if (responseData.interactions && responseData.interactions.length > 0) {
+            const msg = responseData.interactions.map(i => `- ${i.pair[0]} + ${i.pair[1]} (${i.severity})`).join("\n");
+            alert("Consultation Saved with Interactions:\n" + msg);
         } else {
             alert("Consultation Saved Successfully!");
         }
