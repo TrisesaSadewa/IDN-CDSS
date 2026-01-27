@@ -212,13 +212,14 @@ function setupEMRInteractions() {
                     });
                 }
                 
+                // IMPORTANT: Save ingredients for DDI check
                 if(data.racikan) {
                     data.racikan.forEach(r => {
                         currentDrugsList.push({
                             name: "Compound (Racikan)",
                             dosage: r.recipe_text,
                             frequency: r.frequency,
-                            ingredients: r.ingredients 
+                            ingredients: r.ingredients // Save ingredients list
                         });
                     });
                 }
@@ -240,7 +241,7 @@ function setupEMRInteractions() {
     if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// --- DDI LOGIC (ACTIONABLE INTELLIGENCE UI) ---
+// --- DDI LOGIC (ACTIONABLE UI) ---
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const statusDiv = document.getElementById('ddi-status-area');
@@ -271,7 +272,7 @@ async function runDDICheck() {
         });
         
         const data = await res.json();
-        const interactions = data.interactions; // Expecting list of objects
+        const interactions = data.interactions; // List of rich objects
         
         statusDiv.classList.remove('hidden');
         statusDiv.innerHTML = ''; 
@@ -292,39 +293,54 @@ async function runDDICheck() {
             interactions.forEach(item => {
                 const card = document.createElement('div');
                 
-                // Color coding based on severity
+                // Color coding
                 let borderClass = "border-gray-200";
                 let badgeClass = "bg-gray-100 text-gray-600";
+                let icon = "info";
                 
                 if (item.severity === "Major") {
                     borderClass = "border-red-300 bg-red-50";
                     badgeClass = "bg-red-600 text-white";
+                    icon = "alert-octagon";
                 } else if (item.severity === "Moderate") {
                     borderClass = "border-orange-200 bg-orange-50";
                     badgeClass = "bg-orange-500 text-white";
+                    icon = "alert-triangle";
                 } else if (item.severity === "Minor") {
                     borderClass = "border-blue-200 bg-blue-50";
                     badgeClass = "bg-blue-500 text-white";
+                    icon = "info";
                 }
 
                 card.className = `p-4 rounded-xl border ${borderClass} shadow-sm`;
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start mb-3">
                         <div class="flex gap-2 items-center">
-                            <span class="text-xs font-bold px-2 py-0.5 rounded uppercase ${badgeClass}">${item.severity}</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded uppercase flex items-center ${badgeClass}">
+                                <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
+                            </span>
                             <span class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</span>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-700 mb-2 leading-relaxed">
-                        <strong>Risk:</strong> ${item.description}
-                    </p>
-                    <div class="bg-white/60 p-2 rounded-lg border border-gray-200/50">
-                        <p class="text-xs text-gray-600 flex items-start">
-                            <i data-feather="info" class="w-3 h-3 mr-1 mt-0.5 text-blue-500"></i>
-                            <span><strong>Recommendation:</strong> ${item.advice}</span>
-                        </p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Reason / Mechanism</p>
+                            <p class="text-xs text-gray-700 leading-relaxed">${item.description}</p>
+                        </div>
+                        
+                        <div class="bg-white/60 p-3 rounded-lg border border-gray-200/50">
+                            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">Actionable Advice</p>
+                            <p class="text-xs text-gray-800 font-medium leading-relaxed">
+                                ${item.advice}
+                            </p>
+                        </div>
                     </div>
                 `;
+                
+                // Highlight interacting drugs
+                highlightInteractingDrugs(item.pair);
+                
                 statusDiv.appendChild(card);
             });
         }
@@ -339,9 +355,39 @@ async function runDDICheck() {
     }
 }
 
+function highlightInteractingDrugs(pair) {
+    const listItems = document.getElementById('prescriptionList').children;
+    Array.from(listItems).forEach(item => {
+        const drugNameEl = item.querySelector('.font-bold');
+        if (!drugNameEl) return;
+        const drugName = drugNameEl.textContent.toLowerCase();
+        
+        // Simple fuzzy check
+        const isMatch = pair.some(p => drugName.includes(p.toLowerCase()));
+        
+        if (isMatch) {
+            item.classList.add('bg-red-50');
+            if (!item.querySelector('.ddi-warning-icon')) {
+                const icon = document.createElement('i');
+                icon.setAttribute('data-feather', 'alert-circle');
+                icon.className = "w-4 h-4 text-red-500 ml-2 ddi-warning-icon inline";
+                drugNameEl.parentNode.appendChild(icon);
+            }
+        }
+    });
+    feather.replace();
+}
+
 function resetDDIStatus() {
     const statusDiv = document.getElementById('ddi-status-area');
     if(statusDiv) statusDiv.classList.add('hidden');
+    
+    const listItems = document.getElementById('prescriptionList').children;
+    Array.from(listItems).forEach(item => {
+        item.classList.remove('bg-red-50');
+        const icon = item.querySelector('.ddi-warning-icon');
+        if(icon) icon.remove();
+    });
 }
 
 // ... (Rest of Helpers & Queue Logic Same as Before) ...
@@ -492,10 +538,9 @@ async function submitConsultation() {
         if(!res.ok) throw new Error("Error");
         
         const responseData = await res.json();
-        // Updated Alert for Rich Data
+        // Check for warnings in response (server-side check on submit)
         if (responseData.interactions && responseData.interactions.length > 0) {
-            const msg = responseData.interactions.map(i => `- ${i.pair[0]} + ${i.pair[1]} (${i.severity})`).join("\n");
-            alert("Consultation Saved with Interactions:\n" + msg);
+            alert("Consultation Saved with DDI Warnings:\n" + responseData.interactions.map(i => i.pair.join(' + ')).join("\n"));
         } else {
             alert("Consultation Saved Successfully!");
         }
