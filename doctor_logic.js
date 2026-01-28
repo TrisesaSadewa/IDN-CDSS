@@ -77,11 +77,11 @@ async function initEMRPage() {
 }
 
 function setupEMRInteractions() {
-    // 1. DDI Buttons
+    // 1. DDI Check Button
     const checkDDIBtn = document.getElementById('btnCheckDDI');
     if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
 
-    // View Toggles
+    // 2. View Toggles
     window.switchView = function(viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
             const el = document.getElementById(id);
@@ -99,7 +99,7 @@ function setupEMRInteractions() {
         if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
     };
 
-    // Right Panel
+    // 3. Right Panel Toggles
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
         if(!rightPanel) return;
@@ -133,6 +133,7 @@ function setupEMRInteractions() {
     const closeBtn = document.getElementById('closeRightPanel');
     if(closeBtn) closeBtn.onclick = () => rightPanel.classList.add('translate-x-full');
 
+    // 4. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
         const codeInput = document.getElementById('primaryICDInput');
         const diagInput = document.getElementById('primaryDiagnosisInput');
@@ -162,6 +163,7 @@ function setupEMRInteractions() {
         };
     }
 
+    // 5. Prescriptions
     const addRxBtn = document.getElementById('addPrescription');
     if(addRxBtn) {
         addRxBtn.onclick = () => {
@@ -176,15 +178,12 @@ function setupEMRInteractions() {
             renderPrescriptions();
             nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
             
-            // Auto-check logic or reset
-            // For now we just hide results until re-checked to ensure accuracy
-            const ddiArea = document.getElementById('ddi-results-container');
-            const countBtn = document.getElementById('btnToggleDDI');
-            if(ddiArea) ddiArea.classList.add('hidden');
-            if(countBtn) countBtn.remove();
+            // Hide DDI if list changed to force re-check
+            resetDDIStatus();
         };
     }
 
+    // 6. Bulk Insert
     const parseBtn = document.getElementById('parseBulkBtn');
     if (parseBtn) {
         parseBtn.onclick = async () => {
@@ -194,6 +193,7 @@ function setupEMRInteractions() {
             
             parseBtn.disabled = true;
             parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
+            
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
                     method: 'POST',
@@ -227,12 +227,7 @@ function setupEMRInteractions() {
                 
                 renderPrescriptions();
                 input.value = "";
-                
-                const ddiArea = document.getElementById('ddi-results-container');
-                const countBtn = document.getElementById('btnToggleDDI');
-                if(ddiArea) ddiArea.classList.add('hidden');
-                if(countBtn) countBtn.remove();
-
+                resetDDIStatus();
             } catch(e) {
                 alert("Parsing error");
             } finally {
@@ -247,7 +242,7 @@ function setupEMRInteractions() {
     if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// --- DDI LOGIC (ACTIONABLE UI) ---
+// --- DDI LOGIC (TOGGLEABLE) ---
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const container = document.getElementById('ddi-results-container');
@@ -281,29 +276,34 @@ async function runDDICheck() {
         
         renderDDIResults(interactions, data.safe);
         
-        // Add Toggle Button Next to Check Button if not exists
+        // Handle Toggle Button
         let toggleBtn = document.getElementById('btnToggleDDI');
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'btnToggleDDI';
-            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border transition-colors ml-2 flex items-center";
+            // Styling based on result count logic below
             btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
+            
+            toggleBtn.onclick = () => {
+                if (container.classList.contains('hidden')) {
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            };
         }
         
-        // Update Toggle Button Style based on count
-        if (interactions.length > 0) {
-            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center";
-            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${interactions.length})`;
+        // Update Toggle Button Text & Style
+        const count = interactions.length;
+        if (count > 0) {
+            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center transition-colors";
+            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count})`;
         } else {
-            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center";
-            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> (0)`;
+            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center transition-colors";
+            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> OK`;
         }
 
-        toggleBtn.onclick = () => {
-            container.classList.toggle('hidden');
-        };
-        
-        // Auto-show results on check
+        // Show results immediately
         container.classList.remove('hidden');
 
     } catch (e) {
@@ -331,17 +331,16 @@ function renderDDIResults(interactions, isSafe) {
         const list = document.createElement('div');
         list.className = "mt-4 space-y-3 animate-fade-in";
         
-        // Header with close button (optional since toggle exists, but good UX)
+        // Header
         const header = document.createElement('div');
         header.className = "flex justify-between items-center mb-2 pb-2 border-b border-gray-100";
         header.innerHTML = `
             <h4 class="text-sm font-bold text-gray-700 flex items-center"><i data-feather="alert-triangle" class="w-4 h-4 mr-2 text-orange-500"></i> Interaction Report</h4>
-            <button onclick="document.getElementById('ddi-results-container').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i data-feather="x" class="w-4 h-4"></i></button>
         `;
         list.appendChild(header);
 
         interactions.forEach(item => {
-            let colorClass = "bg-gray-50 border-gray-200";
+            let colorClass = "bg-gray-100 border-gray-200";
             let badgeClass = "bg-gray-200 text-gray-600";
             let icon = "info";
 
@@ -357,6 +356,10 @@ function renderDDIResults(interactions, isSafe) {
                 colorClass = "bg-blue-50 border-blue-200";
                 badgeClass = "bg-blue-500 text-white";
                 icon = "info";
+            } else if (item.severity === "Info") {
+                colorClass = "bg-gray-50 border-gray-200";
+                badgeClass = "bg-gray-500 text-white";
+                icon = "thumbs-up";
             }
 
             const card = document.createElement('div');
@@ -373,7 +376,7 @@ function renderDDIResults(interactions, isSafe) {
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div>
-                        <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Mechanism / Risk</p>
+                        <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
                         <p class="text-gray-800 leading-relaxed">${item.description}</p>
                     </div>
                     <div class="bg-white/80 p-3 rounded-lg border border-gray-200/60">
@@ -389,6 +392,7 @@ function renderDDIResults(interactions, isSafe) {
             
             // Highlight list items
             highlightInteractingDrugs(item.pair);
+            
             list.appendChild(card);
         });
         container.appendChild(list);
@@ -407,7 +411,6 @@ function highlightInteractingDrugs(pair) {
         
         if (isMatch) {
             item.classList.add('bg-red-50');
-            // Remove old icon first
             const oldIcon = item.querySelector('.ddi-warning-icon');
             if(oldIcon) oldIcon.remove();
             
@@ -418,6 +421,26 @@ function highlightInteractingDrugs(pair) {
         }
     });
     feather.replace();
+}
+
+function resetDDIStatus() {
+    const container = document.getElementById('ddi-results-container');
+    if(container) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+    }
+    
+    // Also remove the toggle button
+    const toggleBtn = document.getElementById('btnToggleDDI');
+    if(toggleBtn) toggleBtn.remove();
+    
+    // Clear highlights
+    const listItems = document.getElementById('prescriptionList').children;
+    Array.from(listItems).forEach(item => {
+        item.classList.remove('bg-red-50');
+        const icon = item.querySelector('.ddi-warning-icon');
+        if(icon) icon.remove();
+    });
 }
 
 // ... (Rest of Helpers & Queue Logic Same as Before) ...
@@ -496,10 +519,10 @@ function renderPrescriptions() {
         `;
         list.appendChild(div);
     });
-    if(window.feather) feather.replace();
+    feather.replace();
 }
 
-window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); }
+window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); resetDDIStatus(); }
 
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
@@ -567,10 +590,8 @@ async function submitConsultation() {
         if(!res.ok) throw new Error("Error");
         
         const responseData = await res.json();
-        // Check for warnings in response (server-side check on submit)
         if (responseData.interactions && responseData.interactions.length > 0) {
-            const msg = responseData.interactions.map(i => `- ${i.pair[0]} + ${i.pair[1]} (${i.severity})`).join("\n");
-            alert("Consultation Saved with DDI Warnings:\n" + msg);
+            alert("Consultation Saved with DDI Warnings:\n" + responseData.interactions.map(i => i.pair.join(' + ')).join("\n"));
         } else {
             alert("Consultation Saved Successfully!");
         }
@@ -590,50 +611,37 @@ async function initAppointmentsPage() {
     try {
         const res = await fetch(`${API_BASE}/doctor/queue?doctor_id=${DOCTOR_ID}`);
         const appointments = await res.json();
-        
         safeSetText('stat-total', appointments.length);
         safeSetText('stat-waiting', Math.max(0, appointments.length - 1));
-        
         container.innerHTML = ''; 
-
         if (appointments.length === 0) {
             if(heroCard) heroCard.classList.add('hidden');
             if(emptyState) emptyState.classList.remove('hidden');
             safeSetText('stat-now-serving', "--");
             return;
         }
-
         if(emptyState) emptyState.classList.add('hidden');
-
         if (heroCard) {
             const activeAppt = appointments[0];
             let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
             let activeT = (activeAppt.triage_notes && activeAppt.triage_notes.length > 0) ? activeAppt.triage_notes[0] : {};
-
             heroCard.classList.remove('hidden');
             safeSetText('stat-now-serving', `A-${activeAppt.queue_number}`);
             safeSetText('active-queue-no', `A-${activeAppt.queue_number}`);
             safeSetText('active-name', activeP.full_name);
             safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
             safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
-            
             const heroBtn = document.getElementById('open-active-emr-btn');
             if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
         }
-
-        const waitingList = appointments.slice(1);
-        if (waitingList.length === 0) {
-            container.innerHTML = `<div class="text-center text-sm text-gray-400 py-4">No other patients waiting.</div>`;
-        } else {
-            waitingList.forEach(appt => {
-                let p = appt.patients || {full_name: 'Unknown'};
-                const div = document.createElement('div');
-                div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
-                div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
-                div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
-                container.appendChild(div);
-            });
-        }
+        appointments.slice(1).forEach(appt => {
+            let p = appt.patients || {full_name: 'Unknown'};
+            const div = document.createElement('div');
+            div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
+            div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
+            div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
+            container.appendChild(div);
+        });
     } catch(e) {}
 }
 
