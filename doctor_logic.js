@@ -8,6 +8,7 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
+let lastDDIResults = []; // Store results for toggling
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -52,7 +53,6 @@ async function initEMRPage() {
         const t = (data.triage_notes && data.triage_notes.length) ? data.triage_notes[0] : {};
         
         currentPatientId = p.id;
-
         safeSetText('pt-name', p.full_name || 'Unknown');
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
@@ -63,43 +63,25 @@ async function initEMRPage() {
         safeSetValue('diastolic', t.diastolic);
         safeSetValue('temperature', t.temperature);
         calculateBMI(); 
-
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
-        safeSetText('pain-score', t.pain_score || '--');
-        safeSetText('pain-location', t.pain_location || '--');
-        
         loadHistoryPanel(p.id);
 
-    } catch (err) {
-        console.error(err);
-        alert("Failed to load patient data.");
-    }
+    } catch (err) { console.error(err); alert("Failed to load patient data."); }
 }
 
 function setupEMRInteractions() {
-    // 1. DDI Check Button
     const checkDDIBtn = document.getElementById('btnCheckDDI');
     if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
 
-    // 2. View Toggles
     window.switchView = function(viewName) {
-        ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.classList.add('hidden-view');
-        });
+        ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
         document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
-        
-        const target = document.getElementById(viewName + 'View');
-        if(target) target.classList.remove('hidden-view');
-        
+        document.getElementById(viewName + 'View').classList.remove('hidden-view');
         if(viewName === 'summary') updateSummary();
-        
         const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
-        const buttons = document.querySelectorAll('.view-toggle-btn');
-        if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
+        document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
     };
 
-    // 3. Right Panel Toggles
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
         if(!rightPanel) return;
@@ -108,133 +90,66 @@ function setupEMRInteractions() {
         else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
         
         rightPanel.dataset.type = type;
-        const labContent = document.getElementById('labContent');
-        const historyContent = document.getElementById('historyContent');
+        const lab = document.getElementById('labContent');
+        const hist = document.getElementById('historyContent');
         const title = document.getElementById('rightPanelTitle');
-
-        if(labContent) labContent.classList.add('hidden');
-        if(historyContent) historyContent.classList.add('hidden');
-        
-        if(type === 'lab' && labContent) {
-            labContent.classList.remove('hidden');
-            if(title) title.textContent = "Recent Lab Results";
-        } else if (type === 'history' && historyContent) {
-            historyContent.classList.remove('hidden');
-            if(title) title.textContent = "Past Medical History";
-        }
+        if(lab) lab.classList.add('hidden');
+        if(hist) hist.classList.add('hidden');
+        if(type === 'lab' && lab) { lab.classList.remove('hidden'); if(title) title.textContent = "Recent Lab Results"; }
+        else if (type === 'history' && hist) { hist.classList.remove('hidden'); if(title) title.textContent = "Past Medical History"; }
     };
 
-    const labBtn = document.getElementById('sidebarLabBtn');
-    if(labBtn) labBtn.onclick = () => togglePanel('lab');
+    document.getElementById('sidebarLabBtn').onclick = () => togglePanel('lab');
+    document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
+    document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
 
-    const histBtn = document.getElementById('sidebarHistoryBtn');
-    if(histBtn) histBtn.onclick = () => togglePanel('history');
-
-    const closeBtn = document.getElementById('closeRightPanel');
-    if(closeBtn) closeBtn.onclick = () => rightPanel.classList.add('translate-x-full');
-
-    // 4. Search & Tags
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        const codeInput = document.getElementById('primaryICDInput');
-        const diagInput = document.getElementById('primaryDiagnosisInput');
-        if(codeInput) codeInput.value = item.code;
-        if(diagInput) diagInput.value = item.description;
+        document.getElementById('primaryICDInput').value = item.code;
+        document.getElementById('primaryDiagnosisInput').value = item.description;
     });
-
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
-        if (!secondaryDiagnoses.some(d => d.code === item.code)) {
-            secondaryDiagnoses.push(item);
-            renderComorbidities();
-        }
-        const input = document.getElementById('comorbidityInput');
-        if(input) input.value = '';
+        if (!secondaryDiagnoses.some(d => d.code === item.code)) { secondaryDiagnoses.push(item); renderComorbidities(); }
+        document.getElementById('comorbidityInput').value = '';
     });
+    document.getElementById('addComorbidityBtn').onclick = () => {
+        const val = document.getElementById('comorbidityInput').value.trim();
+        if(val) { secondaryDiagnoses.push({ code: 'DX', description: val }); renderComorbidities(); document.getElementById('comorbidityInput').value = ''; }
+    };
 
-    const addComorbBtn = document.getElementById('addComorbidityBtn');
-    if(addComorbBtn) {
-        addComorbBtn.onclick = () => {
-            const input = document.getElementById('comorbidityInput');
-            const val = input ? input.value.trim() : '';
-            if(val) {
-                secondaryDiagnoses.push({ code: 'DX', description: val });
-                renderComorbidities();
-                input.value = '';
-            }
-        };
-    }
+    document.getElementById('addPrescription').onclick = () => {
+        const nameEl = document.getElementById('drugName');
+        const doseEl = document.getElementById('dosage');
+        const freqEl = document.getElementById('schedule');
+        const name = nameEl.value; const dose = doseEl.value; const freq = freqEl.value;
+        if(!name) return;
+        currentDrugsList.push({ name, dosage: dose, frequency: freq });
+        renderPrescriptions();
+        nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
+        
+        // Reset/Hide DDI if list changed to force re-check
+        resetDDIStatus();
+    };
 
-    // 5. Prescriptions
-    const addRxBtn = document.getElementById('addPrescription');
-    if(addRxBtn) {
-        addRxBtn.onclick = () => {
-            const nameEl = document.getElementById('drugName');
-            const doseEl = document.getElementById('dosage');
-            const freqEl = document.getElementById('schedule');
-            const name = nameEl.value;
-            const dose = doseEl.value;
-            const freq = freqEl.value;
-            if(!name) return;
-            currentDrugsList.push({ name, dosage: dose, frequency: freq });
-            renderPrescriptions();
-            nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
-            
-            // Hide DDI if list changed to force re-check
-            resetDDIStatus();
-        };
-    }
-
-    // 6. Bulk Insert
     const parseBtn = document.getElementById('parseBulkBtn');
     if (parseBtn) {
         parseBtn.onclick = async () => {
             const input = document.getElementById('bulkDrugsInput');
-            const text = input ? input.value : '';
+            const text = input.value;
             if(!text) return;
-            
-            parseBtn.disabled = true;
-            parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
-            
+            parseBtn.disabled = true; parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ text: text })
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text })
                 });
-
                 if(!res.ok) throw new Error("Parsing Failed");
                 const data = await res.json();
-                
-                if(data.separate_drugs) {
-                    data.separate_drugs.forEach(d => {
-                        currentDrugsList.push({
-                            name: d.drugName, 
-                            dosage: d.dosage, 
-                            frequency: d.frequency
-                        });
-                    });
-                }
-                
-                if(data.racikan) {
-                    data.racikan.forEach(r => {
-                        currentDrugsList.push({
-                            name: "Compound (Racikan)",
-                            dosage: r.recipe_text,
-                            frequency: r.frequency,
-                            ingredients: r.ingredients 
-                        });
-                    });
-                }
-                
+                if(data.separate_drugs) data.separate_drugs.forEach(d => currentDrugsList.push({name: d.drugName, dosage: d.dosage, frequency: d.frequency}));
+                if(data.racikan) data.racikan.forEach(r => currentDrugsList.push({name: "Compound (Racikan)", dosage: r.recipe_text, frequency: r.frequency, ingredients: r.ingredients}));
                 renderPrescriptions();
                 input.value = "";
                 resetDDIStatus();
-            } catch(e) {
-                alert("Parsing error");
-            } finally {
-                parseBtn.disabled = false;
-                parseBtn.innerHTML = "Parse";
-                feather.replace();
-            }
+            } catch(e) { alert("Parsing error"); } 
+            finally { parseBtn.disabled = false; parseBtn.innerHTML = "Parse"; feather.replace(); }
         };
     }
 
@@ -242,7 +157,9 @@ function setupEMRInteractions() {
     if(submitBtn) submitBtn.onclick = submitConsultation;
 }
 
-// --- DDI LOGIC (TOGGLEABLE) ---
+// ==========================================
+// DDI LOGIC (TOGGLE + MODERN UI)
+// ==========================================
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
     const container = document.getElementById('ddi-results-container');
@@ -273,18 +190,20 @@ async function runDDICheck() {
         
         const data = await res.json();
         const interactions = data.interactions; 
+        lastDDIResults = interactions;
         
         renderDDIResults(interactions, data.safe);
         
-        // Handle Toggle Button
+        // --- TOGGLE BUTTON LOGIC ---
         let toggleBtn = document.getElementById('btnToggleDDI');
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'btnToggleDDI';
-            // Styling based on result count logic below
+            // Styling based on count logic below
             btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
             
-            toggleBtn.onclick = () => {
+            toggleBtn.onclick = (e) => {
+                e.preventDefault(); // Prevent form submit
                 if (container.classList.contains('hidden')) {
                     container.classList.remove('hidden');
                 } else {
@@ -294,14 +213,15 @@ async function runDDICheck() {
         }
         
         // Update Toggle Button Text & Style
-        const count = interactions.length;
+        const count = interactions.filter(i => i.severity !== 'Info').length; // Only count actual warnings
         if (count > 0) {
-            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center transition-colors";
-            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count})`;
+            toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center transition-colors shadow-sm";
+            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count} Issues)`;
         } else {
-            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center transition-colors";
-            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> OK`;
+            toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center transition-colors shadow-sm";
+            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> Safe`;
         }
+        feather.replace();
 
         // Show results immediately
         container.classList.remove('hidden');
@@ -390,9 +310,7 @@ function renderDDIResults(interactions, isSafe) {
                 </div>
             `;
             
-            // Highlight list items
             highlightInteractingDrugs(item.pair);
-            
             list.appendChild(card);
         });
         container.appendChild(list);
@@ -519,7 +437,7 @@ function renderPrescriptions() {
         `;
         list.appendChild(div);
     });
-    feather.replace();
+    if(window.feather) feather.replace();
 }
 
 window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); resetDDIStatus(); }
