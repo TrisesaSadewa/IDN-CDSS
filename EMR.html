@@ -24,6 +24,9 @@
         .view-toggle-btn.active { background-color: white; color: #2563eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
         .hidden-view { display: none !important; }
         .autocomplete-list { position: absolute; z-index: 20; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e5e7eb; width: 100%; }
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-hidden">
@@ -158,8 +161,8 @@
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- Container for DDI Results (Hidden by default) -->
+
+                            <!-- NEW DDI RESULTS CONTAINER -->
                             <div id="ddi-results-container" class="hidden mb-4"></div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
@@ -168,11 +171,14 @@
                                 <div class="md:col-span-3"><input type="text" id="schedule" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Freq (3x1)"></div>
                                 <div class="md:col-span-2"><button id="addPrescription" class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm">Add</button></div>
                             </div>
+                            
                             <!-- Bulk -->
                             <div class="mb-3 relative">
                                 <textarea id="bulkDrugsInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-lg h-16 text-sm bg-gray-50 font-mono" placeholder="Bulk: Paracetamol 500mg 3x1"></textarea>
                                 <button id="parseBulkBtn" class="absolute bottom-2 right-2 bg-white border border-gray-300 text-xs px-3 py-1 rounded shadow-sm hover:bg-gray-50">Parse</button>
                             </div>
+                            
+                            <!-- List -->
                             <div id="prescriptionList" class="mt-4 divide-y divide-gray-100"></div>
                         </div>
                     </section>
@@ -185,7 +191,27 @@
                 <!-- SUMMARY VIEW -->
                 <div id="summaryView" class="hidden-view space-y-6">
                     <section class="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
-                        <!-- ... summary fields ... -->
+                        <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Visit Summary</h2>
+                        <div class="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h3 class="text-xs font-bold text-blue-600 uppercase mb-2">Subjective</h3>
+                                <p class="text-sm text-gray-700" id="summaryCC">--</p>
+                                <p class="text-sm text-gray-700 mt-2" id="summaryHistory">--</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-green-600 uppercase mb-2">Objective</h3>
+                                <p class="text-sm text-gray-700">BP: <span id="summaryBP">--</span></p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-purple-600 uppercase mb-2">Diagnosis</h3>
+                            <p class="text-sm text-gray-700" id="summaryDiagnosis">--</p>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-xs font-bold text-gray-600 uppercase mb-2">Plan</h3>
+                            <p class="text-sm text-gray-700" id="summaryInstructions">--</p>
+                            <div class="text-sm text-gray-800 mt-1" id="summaryMeds">--</div>
+                        </div>
                         <div class="mt-8 flex justify-end">
                             <button id="submitSummaryView" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Finalize & Submit</button>
                         </div>
