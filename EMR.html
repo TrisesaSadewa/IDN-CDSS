@@ -70,7 +70,6 @@
                 
                 <!-- Patient Data -->
                 <section class="form-section bg-white rounded-lg p-6 w-full">
-                    <!-- ... (Patient Info & Vitals - Same as before) ... -->
                     <h2 class="text-xl font-semibold text-gray-800 mb-4">Patient Data</h2>
                     <div class="flex flex-col md:flex-row gap-6">
                         <div class="bg-blue-50 rounded-lg p-4 flex-1 border-l-4 border-blue-500">
@@ -126,13 +125,14 @@
 
                 <!-- DOCTOR VIEW -->
                 <div id="doctorView" class="space-y-6">
-                    <!-- Anamnesis & Analysis (Same as before) -->
+                    <!-- Anamnesis -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Anamnesis</h2>
                         <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief Complaint</label><textarea id="chiefComplaintInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-1">History</label><textarea id="historyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
                     </section>
 
+                    <!-- Analysis -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Analysis</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -152,11 +152,15 @@
                         <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                             <div class="flex justify-between items-center mb-3">
                                 <h4 class="font-semibold text-gray-800 text-sm">Add Drug</h4>
-                                <!-- NEW BUTTON FOR DDI -->
-                                <button id="btnCheckDDI" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center">
-                                    <i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions
-                                </button>
+                                <div class="flex items-center">
+                                    <button id="btnCheckDDI" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center">
+                                        <i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions
+                                    </button>
+                                </div>
                             </div>
+                            
+                            <!-- Container for DDI Results (Hidden by default) -->
+                            <div id="ddi-results-container" class="hidden mb-4"></div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
                                 <div class="md:col-span-4"><input type="text" id="drugName" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Drug Name"></div>
@@ -164,18 +168,12 @@
                                 <div class="md:col-span-3"><input type="text" id="schedule" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Freq (3x1)"></div>
                                 <div class="md:col-span-2"><button id="addPrescription" class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm">Add</button></div>
                             </div>
-                            
                             <!-- Bulk -->
                             <div class="mb-3 relative">
                                 <textarea id="bulkDrugsInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-lg h-16 text-sm bg-gray-50 font-mono" placeholder="Bulk: Paracetamol 500mg 3x1"></textarea>
                                 <button id="parseBulkBtn" class="absolute bottom-2 right-2 bg-white border border-gray-300 text-xs px-3 py-1 rounded shadow-sm hover:bg-gray-50">Parse</button>
                             </div>
-                            
-                            <!-- List -->
                             <div id="prescriptionList" class="mt-4 divide-y divide-gray-100"></div>
-
-                            <!-- NEW STATUS AREA FOR DDI -->
-                            <div id="ddi-status-area" class="hidden"></div>
                         </div>
                     </section>
                     
@@ -184,7 +182,7 @@
                     </div>
                 </div>
 
-                <!-- SUMMARY VIEW (Same as before) -->
+                <!-- SUMMARY VIEW -->
                 <div id="summaryView" class="hidden-view space-y-6">
                     <section class="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
                         <!-- ... summary fields ... -->
@@ -207,7 +205,11 @@
         </div>
     </div>
 
+    <!-- Logic -->
     <script src="doctor_logic.js"></script>
-    <script> AOS.init(); feather.replace(); </script>
+    <script>
+        AOS.init();
+        feather.replace();
+    </script>
 </body>
 </html>
