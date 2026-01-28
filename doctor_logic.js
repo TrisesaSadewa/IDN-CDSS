@@ -8,7 +8,6 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
-let lastDDIResults = null; // Store results to toggle view
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -78,7 +77,7 @@ async function initEMRPage() {
 }
 
 function setupEMRInteractions() {
-    // DDI Buttons
+    // 1. DDI Buttons
     const checkDDIBtn = document.getElementById('btnCheckDDI');
     if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
 
@@ -177,9 +176,12 @@ function setupEMRInteractions() {
             renderPrescriptions();
             nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
             
-            // Clear previous DDI results as list changed
+            // Auto-check logic or reset
+            // For now we just hide results until re-checked to ensure accuracy
             const ddiArea = document.getElementById('ddi-results-container');
-            if(ddiArea) ddiArea.innerHTML = '';
+            const countBtn = document.getElementById('btnToggleDDI');
+            if(ddiArea) ddiArea.classList.add('hidden');
+            if(countBtn) countBtn.remove();
         };
     }
 
@@ -192,7 +194,6 @@ function setupEMRInteractions() {
             
             parseBtn.disabled = true;
             parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
-            
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
                     method: 'POST',
@@ -226,9 +227,11 @@ function setupEMRInteractions() {
                 
                 renderPrescriptions();
                 input.value = "";
-                // Clear DDI on change
+                
                 const ddiArea = document.getElementById('ddi-results-container');
-                if(ddiArea) ddiArea.innerHTML = '';
+                const countBtn = document.getElementById('btnToggleDDI');
+                if(ddiArea) ddiArea.classList.add('hidden');
+                if(countBtn) countBtn.remove();
 
             } catch(e) {
                 alert("Parsing error");
@@ -275,7 +278,6 @@ async function runDDICheck() {
         
         const data = await res.json();
         const interactions = data.interactions; 
-        lastDDIResults = interactions;
         
         renderDDIResults(interactions, data.safe);
         
@@ -284,13 +286,25 @@ async function runDDICheck() {
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'btnToggleDDI';
-            toggleBtn.className = "text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors ml-2";
+            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border transition-colors ml-2 flex items-center";
             btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
-            toggleBtn.onclick = () => {
-                container.classList.toggle('hidden');
-            };
         }
-        toggleBtn.innerHTML = `Results (${interactions.length})`;
+        
+        // Update Toggle Button Style based on count
+        if (interactions.length > 0) {
+            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center";
+            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${interactions.length})`;
+        } else {
+            toggleBtn.className = "text-xs font-bold px-3 py-1 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center";
+            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> (0)`;
+        }
+
+        toggleBtn.onclick = () => {
+            container.classList.toggle('hidden');
+        };
+        
+        // Auto-show results on check
+        container.classList.remove('hidden');
 
     } catch (e) {
         console.error("DDI Error", e);
@@ -298,6 +312,7 @@ async function runDDICheck() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions`;
+        feather.replace();
     }
 }
 
@@ -305,15 +320,26 @@ function renderDDIResults(interactions, isSafe) {
     const container = document.getElementById('ddi-results-container');
     if(!container) return;
     
-    container.classList.remove('hidden');
     container.innerHTML = ''; 
 
     if (isSafe) {
         container.innerHTML = `
-            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm">
-                <i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No major interactions found.
+            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm animate-fade-in">
+                <i data-feather="check-circle" class="w-5 h-5 mr-3"></i> <div><strong>Safe:</strong> No major interactions found.</div>
             </div>`;
     } else {
+        const list = document.createElement('div');
+        list.className = "mt-4 space-y-3 animate-fade-in";
+        
+        // Header with close button (optional since toggle exists, but good UX)
+        const header = document.createElement('div');
+        header.className = "flex justify-between items-center mb-2 pb-2 border-b border-gray-100";
+        header.innerHTML = `
+            <h4 class="text-sm font-bold text-gray-700 flex items-center"><i data-feather="alert-triangle" class="w-4 h-4 mr-2 text-orange-500"></i> Interaction Report</h4>
+            <button onclick="document.getElementById('ddi-results-container').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i data-feather="x" class="w-4 h-4"></i></button>
+        `;
+        list.appendChild(header);
+
         interactions.forEach(item => {
             let colorClass = "bg-gray-50 border-gray-200";
             let badgeClass = "bg-gray-200 text-gray-600";
@@ -334,28 +360,67 @@ function renderDDIResults(interactions, isSafe) {
             }
 
             const card = document.createElement('div');
-            card.className = `p-3 rounded-lg border ${colorClass} mb-2 text-sm`;
+            card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
             card.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
+                <div class="flex justify-between items-start mb-3">
                     <div class="flex gap-2 items-center">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center ${badgeClass}">
                             <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
                         </span>
-                        <span class="font-bold text-gray-800">${item.pair[0]} + ${item.pair[1]}</span>
+                        <span class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</span>
                     </div>
                 </div>
-                <div class="space-y-1 pl-1">
-                    <p class="text-xs text-gray-700"><strong>Why:</strong> ${item.description}</p>
-                    <p class="text-xs text-gray-700"><strong>Advice:</strong> ${item.advice}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Mechanism / Risk</p>
+                        <p class="text-gray-800 leading-relaxed">${item.description}</p>
+                    </div>
+                    <div class="bg-white/80 p-3 rounded-lg border border-gray-200/60">
+                        <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
+                            <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
+                        </p>
+                        <p class="text-gray-900 font-medium leading-relaxed">
+                            ${item.advice}
+                        </p>
+                    </div>
                 </div>
             `;
-            container.appendChild(card);
+            
+            // Highlight list items
+            highlightInteractingDrugs(item.pair);
+            list.appendChild(card);
         });
+        container.appendChild(list);
     }
     feather.replace();
 }
 
-// ... (Helpers remain same) ...
+function highlightInteractingDrugs(pair) {
+    const listItems = document.getElementById('prescriptionList').children;
+    Array.from(listItems).forEach(item => {
+        const drugNameEl = item.querySelector('.font-bold');
+        if (!drugNameEl) return;
+        const drugName = drugNameEl.textContent.toLowerCase();
+        
+        const isMatch = pair.some(p => drugName.includes(p.toLowerCase()));
+        
+        if (isMatch) {
+            item.classList.add('bg-red-50');
+            // Remove old icon first
+            const oldIcon = item.querySelector('.ddi-warning-icon');
+            if(oldIcon) oldIcon.remove();
+            
+            const icon = document.createElement('i');
+            icon.setAttribute('data-feather', 'alert-circle');
+            icon.className = "w-4 h-4 text-red-500 ml-2 ddi-warning-icon inline";
+            drugNameEl.parentNode.appendChild(icon);
+        }
+    });
+    feather.replace();
+}
+
+// ... (Rest of Helpers & Queue Logic Same as Before) ...
 
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
@@ -502,8 +567,10 @@ async function submitConsultation() {
         if(!res.ok) throw new Error("Error");
         
         const responseData = await res.json();
+        // Check for warnings in response (server-side check on submit)
         if (responseData.interactions && responseData.interactions.length > 0) {
-            alert("Consultation Saved with DDI Warnings:\n" + responseData.interactions.map(i => i.pair.join(' + ')).join("\n"));
+            const msg = responseData.interactions.map(i => `- ${i.pair[0]} + ${i.pair[1]} (${i.severity})`).join("\n");
+            alert("Consultation Saved with DDI Warnings:\n" + msg);
         } else {
             alert("Consultation Saved Successfully!");
         }
@@ -523,37 +590,50 @@ async function initAppointmentsPage() {
     try {
         const res = await fetch(`${API_BASE}/doctor/queue?doctor_id=${DOCTOR_ID}`);
         const appointments = await res.json();
+        
         safeSetText('stat-total', appointments.length);
         safeSetText('stat-waiting', Math.max(0, appointments.length - 1));
+        
         container.innerHTML = ''; 
+
         if (appointments.length === 0) {
             if(heroCard) heroCard.classList.add('hidden');
             if(emptyState) emptyState.classList.remove('hidden');
             safeSetText('stat-now-serving', "--");
             return;
         }
+
         if(emptyState) emptyState.classList.add('hidden');
+
         if (heroCard) {
             const activeAppt = appointments[0];
             let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
             let activeT = (activeAppt.triage_notes && activeAppt.triage_notes.length > 0) ? activeAppt.triage_notes[0] : {};
+
             heroCard.classList.remove('hidden');
             safeSetText('stat-now-serving', `A-${activeAppt.queue_number}`);
             safeSetText('active-queue-no', `A-${activeAppt.queue_number}`);
             safeSetText('active-name', activeP.full_name);
             safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
             safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
+            
             const heroBtn = document.getElementById('open-active-emr-btn');
             if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
         }
-        appointments.slice(1).forEach(appt => {
-            let p = appt.patients || {full_name: 'Unknown'};
-            const div = document.createElement('div');
-            div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
-            div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
-            div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
-            container.appendChild(div);
-        });
+
+        const waitingList = appointments.slice(1);
+        if (waitingList.length === 0) {
+            container.innerHTML = `<div class="text-center text-sm text-gray-400 py-4">No other patients waiting.</div>`;
+        } else {
+            waitingList.forEach(appt => {
+                let p = appt.patients || {full_name: 'Unknown'};
+                const div = document.createElement('div');
+                div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
+                div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
+                div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
+                container.appendChild(div);
+            });
+        }
     } catch(e) {}
 }
 
