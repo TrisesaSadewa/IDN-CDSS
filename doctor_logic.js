@@ -8,6 +8,7 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
+let lastDDIResults = null; // Store results to toggle view
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -32,169 +33,9 @@ function startClock() {
     setInterval(update, 1000);
 }
 
-// ... (Init EMR & Setup Interactions functions remain same, omitting for brevity) ...
-// (Assume setupAutocomplete, loadHistory, etc. are here)
-// I will just implement the New DDI Logic & Modal Rendering
-
 // ==========================================
-// DDI LOGIC (MODAL UI)
+// EMR PAGE LOGIC
 // ==========================================
-async function runDDICheck() {
-    const btn = document.getElementById('btnCheckDDI');
-    
-    if (currentDrugsList.length < 2) {
-        alert("Need at least 2 drugs to check for interactions.");
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
-    feather.replace();
-
-    let checkList = [];
-    currentDrugsList.forEach(d => {
-        if (d.ingredients && Array.isArray(d.ingredients)) {
-            d.ingredients.forEach(i => checkList.push(i.name));
-        } else {
-            checkList.push(d.name);
-        }
-    });
-
-    try {
-        const res = await fetch(`${API_BASE}/api/check-ddi`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ drugs: checkList })
-        });
-        
-        const data = await res.json();
-        showDDIModal(data);
-
-    } catch (e) {
-        console.error("DDI Error", e);
-        alert("Could not check interactions.");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions`;
-        feather.replace();
-    }
-}
-
-function showDDIModal(data) {
-    // Remove existing modal if any
-    const existing = document.getElementById('ddiModal');
-    if (existing) existing.remove();
-
-    const interactions = data.interactions;
-    const isSafe = data.safe;
-    
-    let contentHtml = '';
-
-    if (isSafe) {
-        contentHtml = `
-            <div class="text-center py-8">
-                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-feather="check-circle" class="w-8 h-8"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800">No Interactions Found</h3>
-                <p class="text-gray-500 mt-2">The prescribed combination appears safe based on our database.</p>
-            </div>
-        `;
-    } else {
-        contentHtml = `<div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">`;
-        
-        interactions.forEach(item => {
-            let colorClass = "bg-gray-100 border-gray-200";
-            let icon = "info";
-            let severityColor = "text-gray-600";
-            let bgSeverity = "bg-gray-200";
-
-            if (item.severity === "Major") {
-                colorClass = "bg-red-50 border-red-200";
-                icon = "alert-octagon";
-                severityColor = "text-red-700";
-                bgSeverity = "bg-red-200";
-            } else if (item.severity === "Moderate") {
-                colorClass = "bg-orange-50 border-orange-200";
-                icon = "alert-triangle";
-                severityColor = "text-orange-700";
-                bgSeverity = "bg-orange-200";
-            } else if (item.severity === "Minor") {
-                colorClass = "bg-blue-50 border-blue-200";
-                icon = "info";
-                severityColor = "text-blue-700";
-                bgSeverity = "bg-blue-200";
-            }
-
-            contentHtml += `
-                <div class="p-4 rounded-xl border ${colorClass}">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="${bgSeverity} ${severityColor} text-xs font-bold px-2 py-1 rounded uppercase flex items-center">
-                                <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
-                            </span>
-                            <h4 class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</h4>
-                        </div>
-                    </div>
-                    
-                    <div class="text-sm space-y-2">
-                        <div>
-                            <span class="text-xs font-bold text-gray-500 uppercase">Reason / Mechanism</span>
-                            <p class="text-gray-800 leading-snug">${item.description || item.mechanism || "Interaction detected."}</p>
-                        </div>
-                        
-                        <div class="bg-white/60 p-3 rounded-lg border border-gray-200/50 mt-2">
-                            <span class="text-xs font-bold text-blue-600 uppercase flex items-center mb-1">
-                                <i data-feather="activity" class="w-3 h-3 mr-1"></i> Actionable Advice
-                            </span>
-                            <p class="text-gray-800 font-medium leading-snug">
-                                ${item.advice || "Review patient history for prior tolerance."}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        contentHtml += `</div>`;
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'ddiModal';
-    modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300";
-    modal.innerHTML = `
-        <div class="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[85vh]">
-            <div class="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-gray-800">Interaction Check</h3>
-                <button onclick="document.getElementById('ddiModal').remove()" class="text-gray-400 hover:text-gray-600">
-                    <i data-feather="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-5 overflow-hidden flex flex-col">
-                ${contentHtml}
-            </div>
-            <div class="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end">
-                <button onclick="document.getElementById('ddiModal').remove()" class="px-5 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold rounded-lg transition-colors">
-                    Close & Review
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    
-    // Animate In
-    requestAnimationFrame(() => {
-        modal.classList.remove('opacity-0');
-        const content = modal.querySelector('div');
-        content.classList.remove('scale-95');
-        content.classList.add('scale-100');
-    });
-    
-    feather.replace();
-}
-
-// ... (Helpers, Init functions, etc. - Included implicitly) ...
-// (I am including the full logic in the generation to preserve context)
 
 async function initEMRPage() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -237,6 +78,11 @@ async function initEMRPage() {
 }
 
 function setupEMRInteractions() {
+    // DDI Buttons
+    const checkDDIBtn = document.getElementById('btnCheckDDI');
+    if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
+
+    // View Toggles
     window.switchView = function(viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => {
             const el = document.getElementById(id);
@@ -254,6 +100,7 @@ function setupEMRInteractions() {
         if(buttons[btnMap[viewName]]) buttons[btnMap[viewName]].classList.add('active');
     };
 
+    // Right Panel
     const rightPanel = document.getElementById('rightPanel');
     const togglePanel = (type) => {
         if(!rightPanel) return;
@@ -329,10 +176,13 @@ function setupEMRInteractions() {
             currentDrugsList.push({ name, dosage: dose, frequency: freq });
             renderPrescriptions();
             nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
+            
+            // Clear previous DDI results as list changed
+            const ddiArea = document.getElementById('ddi-results-container');
+            if(ddiArea) ddiArea.innerHTML = '';
         };
     }
-    
-    // Bulk Insert Logic (NER)
+
     const parseBtn = document.getElementById('parseBulkBtn');
     if (parseBtn) {
         parseBtn.onclick = async () => {
@@ -342,38 +192,170 @@ function setupEMRInteractions() {
             
             parseBtn.disabled = true;
             parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
+            
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text: text })
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text: text })
                 });
+
                 if(!res.ok) throw new Error("Parsing Failed");
                 const data = await res.json();
                 
                 if(data.separate_drugs) {
-                    data.separate_drugs.forEach(d => currentDrugsList.push({name: d.drugName, dosage: d.dosage, frequency: d.frequency}));
+                    data.separate_drugs.forEach(d => {
+                        currentDrugsList.push({
+                            name: d.drugName, 
+                            dosage: d.dosage, 
+                            frequency: d.frequency
+                        });
+                    });
                 }
+                
                 if(data.racikan) {
-                    data.racikan.forEach(r => currentDrugsList.push({name: "Compound (Racikan)", dosage: r.recipe_text, frequency: r.frequency, ingredients: r.ingredients}));
+                    data.racikan.forEach(r => {
+                        currentDrugsList.push({
+                            name: "Compound (Racikan)",
+                            dosage: r.recipe_text,
+                            frequency: r.frequency,
+                            ingredients: r.ingredients 
+                        });
+                    });
                 }
+                
                 renderPrescriptions();
                 input.value = "";
-            } catch(e) { alert("Parsing error"); } 
-            finally { parseBtn.disabled = false; parseBtn.innerHTML = "Parse"; feather.replace(); }
+                // Clear DDI on change
+                const ddiArea = document.getElementById('ddi-results-container');
+                if(ddiArea) ddiArea.innerHTML = '';
+
+            } catch(e) {
+                alert("Parsing error");
+            } finally {
+                parseBtn.disabled = false;
+                parseBtn.innerHTML = "Parse";
+                feather.replace();
+            }
         };
     }
-    
-    // DDI Button
-    const checkDDIBtn = document.getElementById('btnCheckDDI');
-    if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
 
-    // Submit Buttons
-    const submitBtn1 = document.getElementById('submitDoctorView');
-    if(submitBtn1) submitBtn1.onclick = submitConsultation;
-    const submitBtn2 = document.getElementById('submitSummaryView');
-    if(submitBtn2) submitBtn2.onclick = submitConsultation;
-    const reviewBtn = document.getElementById('reviewBtn');
-    if(reviewBtn) reviewBtn.onclick = () => window.switchView('summary');
+    const submitBtn = document.getElementById('submitEMRBtn');
+    if(submitBtn) submitBtn.onclick = submitConsultation;
 }
+
+// --- DDI LOGIC (ACTIONABLE UI) ---
+async function runDDICheck() {
+    const btn = document.getElementById('btnCheckDDI');
+    const container = document.getElementById('ddi-results-container');
+    
+    if (currentDrugsList.length < 2) {
+        alert("Need at least 2 drugs to check for interactions.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
+    
+    let checkList = [];
+    currentDrugsList.forEach(d => {
+        if (d.ingredients && Array.isArray(d.ingredients)) {
+            d.ingredients.forEach(i => checkList.push(i.name));
+        } else {
+            checkList.push(d.name);
+        }
+    });
+
+    try {
+        const res = await fetch(`${API_BASE}/api/check-ddi`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ drugs: checkList })
+        });
+        
+        const data = await res.json();
+        const interactions = data.interactions; 
+        lastDDIResults = interactions;
+        
+        renderDDIResults(interactions, data.safe);
+        
+        // Add Toggle Button Next to Check Button if not exists
+        let toggleBtn = document.getElementById('btnToggleDDI');
+        if (!toggleBtn) {
+            toggleBtn = document.createElement('button');
+            toggleBtn.id = 'btnToggleDDI';
+            toggleBtn.className = "text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors ml-2";
+            btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
+            toggleBtn.onclick = () => {
+                container.classList.toggle('hidden');
+            };
+        }
+        toggleBtn.innerHTML = `Results (${interactions.length})`;
+
+    } catch (e) {
+        console.error("DDI Error", e);
+        alert("Could not check interactions.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions`;
+    }
+}
+
+function renderDDIResults(interactions, isSafe) {
+    const container = document.getElementById('ddi-results-container');
+    if(!container) return;
+    
+    container.classList.remove('hidden');
+    container.innerHTML = ''; 
+
+    if (isSafe) {
+        container.innerHTML = `
+            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm">
+                <i data-feather="check-circle" class="w-4 h-4 mr-2"></i> <strong>Safe:</strong> No major interactions found.
+            </div>`;
+    } else {
+        interactions.forEach(item => {
+            let colorClass = "bg-gray-50 border-gray-200";
+            let badgeClass = "bg-gray-200 text-gray-600";
+            let icon = "info";
+
+            if (item.severity === "Major") {
+                colorClass = "bg-red-50 border-red-200";
+                badgeClass = "bg-red-600 text-white";
+                icon = "alert-octagon";
+            } else if (item.severity === "Moderate") {
+                colorClass = "bg-orange-50 border-orange-200";
+                badgeClass = "bg-orange-500 text-white";
+                icon = "alert-triangle";
+            } else if (item.severity === "Minor") {
+                colorClass = "bg-blue-50 border-blue-200";
+                badgeClass = "bg-blue-500 text-white";
+                icon = "info";
+            }
+
+            const card = document.createElement('div');
+            card.className = `p-3 rounded-lg border ${colorClass} mb-2 text-sm`;
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex gap-2 items-center">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center ${badgeClass}">
+                            <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
+                        </span>
+                        <span class="font-bold text-gray-800">${item.pair[0]} + ${item.pair[1]}</span>
+                    </div>
+                </div>
+                <div class="space-y-1 pl-1">
+                    <p class="text-xs text-gray-700"><strong>Why:</strong> ${item.description}</p>
+                    <p class="text-xs text-gray-700"><strong>Advice:</strong> ${item.advice}</p>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+    feather.replace();
+}
+
+// ... (Helpers remain same) ...
 
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
@@ -443,10 +425,13 @@ function renderPrescriptions() {
             detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
         }
 
-        div.innerHTML = `<div><p class="font-bold text-gray-800 text-sm">${d.name}</p>${detailsHtml}</div><button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700 mt-1"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+        div.innerHTML = `
+            <div><p class="font-bold text-gray-800 text-sm">${d.name}</p>${detailsHtml}</div>
+            <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700 mt-1"><i data-feather="trash-2" class="w-4 h-4"></i></button>
+        `;
         list.appendChild(div);
     });
-    feather.replace();
+    if(window.feather) feather.replace();
 }
 
 window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); }
@@ -459,10 +444,13 @@ async function loadHistoryPanel(patientId) {
         const history = await res.json();
         container.innerHTML = '';
         if(history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
+        
         history.forEach(h => {
             const date = new Date(h.created_at).toLocaleDateString();
             let title = h.assessment;
-            if(h.assessment && h.assessment.includes("PRIMARY:")) title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
+            if(h.assessment && h.assessment.includes("PRIMARY:")) {
+                title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
+            }
             const div = document.createElement('div');
             div.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-all";
             div.innerHTML = `<div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span><span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span></div><h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>`;
@@ -481,7 +469,9 @@ function updateSummary() {
     if(summaryMeds) {
         if(currentDrugsList.length > 0) {
             summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
-        } else { summaryMeds.textContent = "No medications."; }
+        } else {
+            summaryMeds.textContent = "No medications.";
+        }
     }
 }
 
@@ -505,21 +495,22 @@ async function submitConsultation() {
 
     try {
         const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
         });
         if(!res.ok) throw new Error("Error");
-        const responseData = await res.json();
         
-        // --- Show DDI Modal on Submit if warnings exist ---
+        const responseData = await res.json();
         if (responseData.interactions && responseData.interactions.length > 0) {
-            showDDIModal(responseData); // Reuse the modal for post-submit warnings
+            alert("Consultation Saved with DDI Warnings:\n" + responseData.interactions.map(i => i.pair.join(' + ')).join("\n"));
         } else {
             alert("Consultation Saved Successfully!");
         }
         window.location.href = "APPOINTMENTS.html";
     } catch(e) {
         alert("Submit failed: " + e.message);
-        if(btn) { btn.textContent = "Finalize & Submit"; btn.disabled = false; }
+        if(btn) { btn.textContent = "Finalize & Submit EMR"; btn.disabled = false; }
     }
 }
 
