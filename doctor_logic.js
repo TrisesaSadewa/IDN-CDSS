@@ -148,7 +148,7 @@ function setupEMRInteractions() {
                 renderPrescriptions();
                 input.value = "";
                 resetDDIStatus();
-            } catch(e) { alert("Parsing error"); } 
+            } catch(e) { alert("Parsing error: " + e.message); } 
             finally { parseBtn.disabled = false; parseBtn.innerHTML = "Parse"; feather.replace(); }
         };
     }
@@ -260,6 +260,7 @@ function renderDDIResults(interactions, isSafe) {
         list.appendChild(header);
 
         interactions.forEach(item => {
+            // --- UPDATED COLORS PER REQUEST ---
             let colorClass = "bg-gray-100 border-gray-200";
             let badgeClass = "bg-gray-200 text-gray-600";
             let icon = "info";
@@ -268,17 +269,20 @@ function renderDDIResults(interactions, isSafe) {
                 colorClass = "bg-red-50 border-red-200";
                 badgeClass = "bg-red-600 text-white";
                 icon = "alert-octagon";
-            } else if (item.severity === "Moderate") {
+            } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
+                // ORANGE for Intermediate/Moderate
                 colorClass = "bg-orange-50 border-orange-200";
                 badgeClass = "bg-orange-500 text-white";
                 icon = "alert-triangle";
             } else if (item.severity === "Minor") {
-                colorClass = "bg-blue-50 border-blue-200";
-                badgeClass = "bg-blue-500 text-white";
-                icon = "info";
+                // YELLOW for Minor
+                colorClass = "bg-yellow-50 border-yellow-200";
+                badgeClass = "bg-yellow-500 text-yellow-900"; // Dark text for contrast on yellow
+                icon = "alert-circle";
             } else if (item.severity === "Info") {
-                colorClass = "bg-gray-50 border-gray-200";
-                badgeClass = "bg-gray-500 text-white";
+                // GREEN for Beneficial/Info
+                colorClass = "bg-emerald-50 border-emerald-200";
+                badgeClass = "bg-emerald-500 text-white";
                 icon = "thumbs-up";
             }
 
