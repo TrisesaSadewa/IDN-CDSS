@@ -6,17 +6,220 @@
     <title>Hospital EMR System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        .sidebar { transition: all 0.3s ease; position: relative; z-index: 40; }
+        .sidebar-tooltip {
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            background: #1f2937; color: white; padding: 4px 8px; border-radius: 4px;
+            font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+            white-space: nowrap; margin-left: 10px; z-index: 50;
+        }
+        .sidebar-item:hover .sidebar-tooltip { opacity: 1; }
+        #rightPanel { box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
+        .input-field:focus { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }
+        .view-toggle-btn.active { background-color: white; color: #2563eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
         .hidden-view { display: none !important; }
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .autocomplete-list { position: absolute; z-index: 20; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e5e7eb; width: 100%; }
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans overflow-hidden">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md z-50 relative">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <i data-feather="activity" class="w-6 h-6"></i>
+                <h1 class="text-xl font-bold">Hospital EMR System</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="hidden md:inline" id="doc-name-display">Dr. John Doe</span>
+                <div class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center">
+                    <i data-feather="user" class="w-4 h-4"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-64px)] relative" id="mainContent">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-gray-800 text-white w-16 flex flex-col flex-shrink-0 z-40 shadow-lg">
+            <div class="p-4 border-b border-gray-700 flex justify-center">
+                <a href="APPOINTMENTS.html" class="sidebar-item relative p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
+                    <i data-feather="arrow-left" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Back to Appointments</span>
+                </a>
+            </div>
+            <div class="flex-grow flex flex-col items-center py-6 space-y-6">
+                <button id="sidebarHistoryBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
+                    <i data-feather="clock" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Past EMR History</span>
+                </button>
+                <button id="sidebarLabBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
+                    <i data-feather="activity" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Lab Results</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow overflow-auto p-6 bg-gray-50 relative">
+            <div class="container mx-auto px-0 space-y-6 max-w-5xl">
+                
+                <!-- Patient Data -->
+                <section class="form-section bg-white rounded-lg p-6 w-full">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Patient Data</h2>
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="bg-blue-50 rounded-lg p-4 flex-1 border-l-4 border-blue-500">
+                             <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <i data-feather="user" class="text-blue-500 w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-800" id="pt-name">Loading...</h3>
+                                    <p class="text-sm text-gray-600" id="pt-details">--</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between border-b border-blue-100 pb-2"><span class="text-sm font-medium text-gray-600">MRN</span><span class="text-sm font-semibold text-gray-800" id="pt-id">--</span></div>
+                                <div class="flex justify-between border-b border-blue-100 pb-2"><span class="text-sm font-medium text-gray-600">BMI</span><span class="text-sm font-semibold text-gray-800" id="bmi">N/A</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-white border rounded-lg p-4 flex-1 shadow-sm">
+                            <h3 class="font-semibold text-gray-700 mb-3 text-xs uppercase tracking-wide">Vital Signs</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Weight</label><input type="text" id="weight" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
+                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Height</label><input type="text" id="height" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
+                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">BP</label><div class="flex gap-1"><input type="text" id="systolic" class="w-10 bg-transparent font-bold text-gray-800 outline-none" value="--"><span>/</span><input type="text" id="diastolic" class="w-10 bg-transparent font-bold text-gray-800 outline-none" value="--"></div></div>
+                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Temp</label><input type="text" id="temperature" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW TOGGLE -->
+                <div class="flex justify-center w-full my-4">
+                    <div class="bg-gray-200 p-1 rounded-lg inline-flex shadow-inner">
+                        <button class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="switchView('nurse')">Nurse Notes</button>
+                        <button class="view-toggle-btn active px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="switchView('doctor')">Doctor Consultation</button>
+                        <button id="summaryToggleBtn" class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center focus:outline-none" onclick="switchView('summary')">Visit Summary</button>
+                    </div>
+                </div>
+
+                <!-- NURSE VIEW -->
+                <div id="nurseView" class="hidden-view space-y-6">
+                    <section class="form-section bg-gray-50 rounded-lg p-6 border border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Nurse Triage Assessment</h2>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Nurse Notes</label>
+                            <p class="text-sm text-gray-700 leading-relaxed" id="nurse-notes-text">Loading...</p>
+                            <div class="mt-2 flex gap-4 text-xs text-gray-500">
+                                <span>Pain Score: <b id="pain-score">--</b></span>
+                                <span>Location: <b id="pain-location">--</b></span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- DOCTOR VIEW -->
+                <div id="doctorView" class="space-y-6">
+                    <!-- Anamnesis -->
+                    <section class="form-section bg-white rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Anamnesis</h2>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief Complaint</label><textarea id="chiefComplaintInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">History</label><textarea id="historyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
+                    </section>
+
+                    <!-- Analysis -->
+                    <section class="form-section bg-white rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Analysis</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2"><label class="block text-xs font-medium text-gray-500 mb-1">Primary Diagnosis</label><input type="text" id="primaryDiagnosisInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md"></div>
+                            <div class="relative"><label class="block text-xs font-medium text-gray-500 mb-1">ICD-10 Code</label><input type="text" id="primaryICDInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-blue-700"><div id="primaryICDSuggestions" class="autocomplete-list hidden"></div></div>
+                        </div>
+                        <div class="mt-4"><label class="block text-xs font-medium text-gray-500 mb-1">Secondary Diagnoses</label><div class="flex gap-2 mb-2"><div class="relative flex-grow"><input type="text" id="comorbidityInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Add diagnosis..."><div id="comorbiditySuggestions" class="autocomplete-list hidden"></div></div><button id="addComorbidityBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm border border-gray-300">Add</button></div><div id="comorbidityList" class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50 rounded-lg border border-dashed border-gray-300"></div></div>
+                        <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Clinical Notes</label><textarea id="analysisNotesInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
+                    </section>
+
+                    <!-- Treatment -->
+                    <section class="form-section bg-white rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Treatment</h2>
+                        <textarea id="therapyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24" placeholder="Therapy instructions..."></textarea>
+                        
+                        <!-- Prescription Widget -->
+                        <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-semibold text-gray-800 text-sm">Add Drug</h4>
+                                <div class="flex items-center">
+                                    <button id="btnCheckDDI" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center">
+                                        <i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- NEW DDI RESULTS CONTAINER -->
+                            <div id="ddi-results-container" class="hidden mb-4"></div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
+                                <div class="md:col-span-4"><input type="text" id="drugName" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Drug Name"></div>
+                                <div class="md:col-span-3"><input type="text" id="dosage" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Dose (500mg)"></div>
+                                <div class="md:col-span-3"><input type="text" id="schedule" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Freq (3x1)"></div>
+                                <div class="md:col-span-2"><button id="addPrescription" class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm">Add</button></div>
+                            </div>
+                            
+                            <!-- Bulk -->
+                            <div class="mb-3 relative">
+                                <textarea id="bulkDrugsInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-lg h-16 text-sm bg-gray-50 font-mono" placeholder="Bulk: Paracetamol 500mg 3x1"></textarea>
+                                <button id="parseBulkBtn" class="absolute bottom-2 right-2 bg-white border border-gray-300 text-xs px-3 py-1 rounded shadow-sm hover:bg-gray-50">Parse</button>
+                            </div>
+                            
+                            <!-- List -->
+                            <div id="prescriptionList" class="mt-4 divide-y divide-gray-100"></div>
+                        </div>
+                    </section>
+                    
+                    <div class="flex justify-end pt-6 pb-12">
+                        <button id="submitDoctorView" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg">Finalize & Submit</button>
+                    </div>
+                </div>
+
+                <!-- SUMMARY VIEW -->
+                <div id="summaryView" class="hidden-view space-y-6">
+                    <section class="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
+                        <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Visit Summary</h2>
+                        <div class="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h3 class="text-xs font-bold text-blue-600 uppercase mb-2">Subjective</h3>
+                                <p class="text-sm text-gray-700" id="summaryCC">--</p>
+                                <p class="text-sm text-gray-700 mt-2" id="summaryHistory">--</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-green-600 uppercase mb-2">Objective</h3>
+                                <p class="text-sm text-gray-700">BP: <span id="summaryBP">--</span></p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-purple-600 uppercase mb-2">Diagnosis</h3>
+                            <p class="text-sm text-gray-700" id="summaryDiagnosis">--</p>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-xs font-bold text-gray-600 uppercase mb-2">Plan</h3>
+                            <p class="text-sm text-gray-700" id="summaryInstructions">--</p>
+                            <div class="text-sm text-gray-800 mt-1" id="summaryMeds">--</div>
+                        </div>
+                        <div class="mt-8 flex justify-end">
+                            <button id="submitSummaryView" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Finalize & Submit</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
         <!-- Right Panel -->
         <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 w-[30%] min-w-[350px] border-l border-gray-200 flex flex-col">
             <div class="p-4 bg-gray-100 border-b flex justify-between items-center">
@@ -25,359 +228,14 @@
             </div>
             <div class="flex-grow overflow-y-auto p-4 hidden" id="labContent"></div>
             <div class="flex-grow overflow-y-auto p-4 hidden" id="historyContent"></div>
-            <div class="flex-grow overflow-y-auto p-4 hidden" id="ddiContent"></div>
         </div>
-        <nav class="flex-1 py-6 flex flex-col gap-2">
-            <a href="APPOINTMENTS.html" class="flex items-center px-6 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-                <i data-feather="users" class="w-5 h-5"></i>
-                <span class="hidden md:inline ml-3 font-medium text-sm">Queue</span>
-            </a>
-            <a href="#" class="flex items-center px-6 py-3 text-white bg-blue-600/20 border-r-4 border-blue-500 transition-colors">
-                <i data-feather="file-text" class="w-5 h-5 text-blue-400"></i>
-                <span class="hidden md:inline ml-3 font-medium text-sm text-blue-100">Active EMR</span>
-            </a>
-        </nav>
-        <div class="p-4 border-t border-slate-800 text-center md:text-left">
-            <div class="hidden md:block text-xs text-slate-500 mb-1">Logged in as</div>
-            <div id="doc-name-display" class="font-semibold text-sm truncate">Dr. Unknown</div>
-        </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main id="mainContent" class="flex-1 flex flex-col relative overflow-hidden h-full">
-        
-        <!-- Top Header -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm z-30">
-            <div class="flex items-center gap-4">
-                <h1 class="text-xl font-bold text-slate-800">Consultation</h1>
-                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold border border-blue-100 uppercase tracking-wide">In Progress</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <div id="current-time" class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">--:--</div>
-                
-                <!-- Right Panel Toggles -->
-                <div class="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
-                    <button id="sidebarHistoryBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:shadow-sm hover:text-blue-600 rounded transition-all flex items-center">
-                        <i data-feather="clock" class="w-3.5 h-3.5 mr-1.5"></i> Pt History
-                    </button>
-                    <button id="sidebarLabBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:shadow-sm hover:text-blue-600 rounded transition-all flex items-center">
-                        <i data-feather="thermometer" class="w-3.5 h-3.5 mr-1.5"></i> Labs
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-6 scroll-smooth">
-            <div class="max-w-5xl mx-auto space-y-6 pb-20">
-                
-                <!-- Patient Context Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border border-blue-200">
-                            <i data-feather="user" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h2 id="pt-name" class="text-xl font-bold text-slate-800">Loading Patient...</h2>
-                            <div class="flex gap-3 text-sm text-slate-500 mt-1">
-                                <span class="flex items-center"><i data-feather="hash" class="w-3.5 h-3.5 mr-1"></i> <span id="pt-id">--</span></span>
-                                <span class="flex items-center"><i data-feather="info" class="w-3.5 h-3.5 mr-1"></i> <span id="pt-details">--</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Workflow Tabs -->
-                <div class="flex space-x-1 bg-slate-200/60 p-1 rounded-lg w-fit border border-slate-300/50">
-                    <button onclick="switchView('nurse')" class="view-toggle-btn active px-5 py-2 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm border border-slate-200">
-                        1. Triage & Vitals
-                    </button>
-                    <button onclick="switchView('doctor')" class="view-toggle-btn px-5 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
-                        2. Clinical Assessment
-                    </button>
-                    <button onclick="switchView('summary')" class="view-toggle-btn px-5 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
-                        3. Review & Submit
-                    </button>
-                </div>
-
-                <!-- ========================================== -->
-                <!-- VIEW 1: NURSE / TRIAGE                     -->
-                <!-- ========================================== -->
-                <div id="nurseView" class="space-y-6 animate-fade-in">
-                    
-                    <!-- Vitals -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                            <h3 class="font-semibold text-slate-700 flex items-center"><i data-feather="activity" class="w-4 h-4 mr-2 text-rose-500"></i> Vital Signs</h3>
-                        </div>
-                        <div class="p-5 grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Weight (kg)</label>
-                                <input type="number" id="weight" oninput="calculateBMI()" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-shadow">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Height (cm)</label>
-                                <input type="number" id="height" oninput="calculateBMI()" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-shadow">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Blood Pressure</label>
-                                <div class="flex items-center">
-                                    <input type="number" id="systolic" placeholder="Sys" class="w-full p-2 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm border-r-0 text-center">
-                                    <span class="px-2 bg-slate-100 border-y border-slate-300 text-slate-500 text-sm">/</span>
-                                    <input type="number" id="diastolic" placeholder="Dia" class="w-full p-2 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm border-l-0 text-center">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Temp (°C)</label>
-                                <input type="number" id="temperature" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow">
-                            </div>
-                            <div class="bg-blue-50 rounded-lg p-2 border border-blue-100 flex flex-col justify-center items-center">
-                                <label class="block text-[10px] font-bold text-blue-600 uppercase mb-0.5">BMI</label>
-                                <span id="bmi" class="text-xl font-bold text-blue-800">--</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Anamnesis -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                            <h3 class="font-semibold text-slate-700 flex items-center"><i data-feather="message-square" class="w-4 h-4 mr-2 text-indigo-500"></i> Subjective / Anamnesis</h3>
-                        </div>
-                        <div class="p-5 space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Chief Complaint</label>
-                                <textarea id="chiefComplaintInput" rows="2" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-shadow resize-none" placeholder="Primary reason for visit..."></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">History of Present Illness (HPI)</label>
-                                <textarea id="historyInput" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-shadow resize-none" placeholder="Details of symptoms, onset, duration..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end">
-                        <button onclick="switchView('doctor')" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium transition-colors flex items-center">
-                            Proceed to Assessment <i data-feather="arrow-right" class="w-4 h-4 ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ========================================== -->
-                <!-- VIEW 2: DOCTOR / ASSESSMENT                -->
-                <!-- ========================================== -->
-                <div id="doctorView" class="space-y-6 hidden-view animate-fade-in">
-                    
-                    <!-- Diagnosis -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                            <h3 class="font-semibold text-slate-700 flex items-center"><i data-feather="target" class="w-4 h-4 mr-2 text-emerald-600"></i> Diagnosis</h3>
-                        </div>
-                        <div class="p-5 space-y-5">
-                            <div class="relative">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Primary Diagnosis (ICD-10)</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="primaryICDInput" placeholder="Code (e.g. I10)" class="w-24 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium uppercase text-center">
-                                    <input type="text" id="primaryDiagnosisInput" placeholder="Diagnosis description..." class="flex-1 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
-                                </div>
-                                <div id="primaryICDSuggestions" class="absolute z-10 w-full bg-white border border-slate-200 rounded-lg shadow-xl mt-1 hidden max-h-48 overflow-y-auto"></div>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Secondary Diagnoses / Comorbidities</label>
-                                <div class="relative flex gap-2 mb-2">
-                                    <input type="text" id="comorbidityInput" placeholder="Search ICD-10 or description..." class="flex-1 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
-                                    <button id="addComorbidityBtn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-sm font-medium transition-colors">Add</button>
-                                    <div id="comorbiditySuggestions" class="absolute z-10 w-[calc(100%-80px)] bg-white border border-slate-200 rounded-lg shadow-xl top-full mt-1 hidden max-h-48 overflow-y-auto"></div>
-                                </div>
-                                <div id="comorbidityList" class="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg min-h-[44px]">
-                                    <span class="text-xs text-slate-400 self-center italic px-2">No secondary diagnoses added.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Clinical Notes & Plan -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
-                            <h3 class="font-semibold text-slate-700 flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-2 text-amber-500"></i> Clinical Notes & Plan</h3>
-                        </div>
-                        <div class="p-5 space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Objective / Assessment Notes</label>
-                                <textarea id="analysisNotesInput" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Non-Pharmacological Therapy / Instructions</label>
-                                <textarea id="therapyInput" rows="2" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none" placeholder="Diet, rest, follow-up instructions..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Prescription Engine (The Core Feature) -->
-                    <div class="bg-white rounded-xl shadow-sm border border-blue-300 overflow-hidden ring-1 ring-blue-100">
-                        <div class="bg-blue-50 px-5 py-3 border-b border-blue-200 flex justify-between items-center">
-                            <h3 class="font-bold text-blue-900 flex items-center"><i data-feather="pill" class="w-4 h-4 mr-2"></i> Pharmacy & Prescription</h3>
-                        </div>
-                        
-                        <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            
-                            <!-- Left: Input Area -->
-                            <div class="space-y-5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-5 lg:pb-0 lg:pr-6">
-                                <!-- Manual Add -->
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Manual Entry</label>
-                                    <div class="space-y-2">
-                                        <input type="text" id="drugName" placeholder="Drug Name (e.g. Amlodipine)" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        <div class="flex gap-2">
-                                            <input type="text" id="dosage" placeholder="Dose (10mg)" class="w-1/2 p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <input type="text" id="schedule" placeholder="Freq (1x1)" class="w-1/2 p-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        </div>
-                                        <button id="addPrescription" class="w-full py-2 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-md text-sm font-semibold transition-colors">Add Drug</button>
-                                    </div>
-                                </div>
-                                
-                                <div class="relative flex items-center py-2">
-                                    <div class="flex-grow border-t border-slate-200"></div>
-                                    <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase">OR</span>
-                                    <div class="flex-grow border-t border-slate-200"></div>
-                                </div>
-
-                                <!-- AI Bulk Parse -->
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Smart Prescription Parse</label>
-                                    <textarea id="bulkDrugsInput" rows="4" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono bg-slate-50" placeholder="Paste full prescription text here..."></textarea>
-                                    <button id="parseBulkBtn" class="mt-2 w-full py-2.5 bg-slate-800 text-white hover:bg-slate-900 rounded-md text-sm font-semibold transition-colors flex items-center justify-center">
-                                        <i data-feather="cpu" class="w-4 h-4 mr-2"></i> Extract Drugs
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Right: Current Rx List & DDI -->
-                            <div class="flex flex-col h-full">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Current Prescription</label>
-                                <div id="prescriptionList" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg overflow-y-auto max-h-[300px] min-h-[150px]">
-                                    <div class="px-4 py-3 text-slate-400 text-sm italic">No drugs added yet.</div>
-                                </div>
-                                
-                                <!-- DDI Action Bar -->
-                                <div class="mt-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-                                    <div class="text-xs text-blue-800 font-medium w-1/2 leading-tight">
-                                        Run safety analysis before submitting prescription.
-                                    </div>
-                                    <div class="flex items-center justify-end w-1/2" id="ddi-action-container">
-                                        <button id="btnCheckDDI" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm transition-colors flex items-center whitespace-nowrap">
-                                            <i data-feather="shield" class="w-4 h-4 mr-1.5"></i> Check Interactions
-                                        </button>
-                                        <!-- toggleBtn injected here by JS -->
-                                    </div>
-                                </div>
-                            </div>
-                            
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between pt-4">
-                        <button onclick="switchView('nurse')" class="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors">Back</button>
-                        <button onclick="switchView('summary')" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium transition-colors flex items-center">
-                            Review & Submit <i data-feather="arrow-right" class="w-4 h-4 ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ========================================== -->
-                <!-- VIEW 3: SUMMARY & SUBMIT                   -->
-                <!-- ========================================== -->
-                <div id="summaryView" class="space-y-6 hidden-view animate-fade-in">
-                    
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center">
-                            <i data-feather="file-text" class="w-5 h-5 mr-2 text-slate-500"></i> Consultation Summary
-                        </h2>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="space-y-5">
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Chief Complaint</h4>
-                                    <p id="summaryCC" class="text-sm font-medium text-slate-800">--</p>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">History of Illness</h4>
-                                    <p id="summaryHistory" class="text-sm text-slate-700">--</p>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vitals</h4>
-                                    <p class="text-sm text-slate-700">BP: <span id="summaryBP" class="font-medium text-slate-900">--/--</span> mmHg</p>
-                                </div>
-                            </div>
-                            
-                            <div class="space-y-5 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Primary Diagnosis</h4>
-                                    <p id="summaryDiagnosis" class="text-sm font-bold text-emerald-700">--</p>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Prescription Items</h4>
-                                    <div id="summaryMeds" class="text-sm text-slate-800 font-medium">--</div>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Instructions</h4>
-                                    <p id="summaryInstructions" class="text-sm text-slate-700 italic">--</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-8 flex justify-between border-t border-slate-100 pt-5">
-                            <button onclick="switchView('doctor')" class="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors">Edit Details</button>
-                            <button id="submitEMRBtn" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition-colors flex items-center">
-                                <i data-feather="check" class="w-4 h-4 mr-2"></i> Finalize & Send to Pharmacy
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </main>
-
-    <!-- ========================================== -->
-    <!-- RIGHT SIDEBAR PANEL (LABS, HISTORY, DDI)   -->
-    <!-- ========================================== -->
-    <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-[0_0_40px_rgba(0,0,0,0.15)] z-50 transform translate-x-full transition-transform duration-300 w-full sm:w-[400px] border-l border-slate-200 flex flex-col">
-        
-        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center shadow-sm">
-            <h3 id="rightPanelTitle" class="font-bold text-slate-800 text-lg flex items-center">
-                <i data-feather="info" class="w-5 h-5 mr-2 text-slate-500"></i> Panel
-            </h3>
-            <button id="closeRightPanel" class="text-slate-400 hover:text-rose-500 bg-white hover:bg-rose-50 p-1.5 rounded-md border border-slate-200 transition-colors">
-                <i data-feather="x" class="w-5 h-5"></i>
-            </button>
-        </div>
-
-        <!-- Labs Content -->
-        <div class="flex-grow overflow-y-auto p-5 hidden bg-white" id="labContent">
-            <div class="flex flex-col items-center justify-center h-full text-slate-400">
-                <i data-feather="flask-conical" class="w-12 h-12 mb-3 opacity-50"></i>
-                <p class="text-sm font-medium">No recent lab results found.</p>
-            </div>
-        </div>
-
-        <!-- History Content -->
-        <div class="flex-grow overflow-y-auto p-5 hidden bg-slate-50/50" id="historyContent">
-            <!-- Populated by JS loadHistoryPanel() -->
-        </div>
-        
-        <!-- Interaction Report Content -->
-        <div class="flex-grow overflow-y-auto p-5 hidden bg-slate-50/50" id="ddiContent">
-            <!-- Populated by JS renderDDIResults() -->
-        </div>
-
     </div>
 
-    <!-- Initialize Icons -->
+    <!-- Logic -->
+    <script src="doctor_logic.js"></script>
     <script>
+        AOS.init();
         feather.replace();
     </script>
-    <!-- Application Logic -->
-    <script src="doctor_logic.js"></script>
 </body>
 </html>
