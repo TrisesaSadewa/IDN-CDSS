@@ -259,6 +259,30 @@ function renderDDIResults(interactions, isSafe) {
         `;
         list.appendChild(header);
 
+        // Helper function to extract class badge for the DDI view
+        const getDrugClassBadge = (drugName) => {
+            let foundClass = null;
+            currentDrugsList.forEach(d => {
+                if (d.name && d.name.toLowerCase() === drugName.toLowerCase() && d.class && d.class !== 'unknown') {
+                    foundClass = d.class;
+                }
+                // Check within ingredients for racikans
+                if (d.ingredients) {
+                    d.ingredients.forEach(i => {
+                        if (i.name && i.name.toLowerCase() === drugName.toLowerCase() && i.class && i.class !== 'unknown') {
+                            foundClass = i.class;
+                        }
+                    });
+                }
+            });
+
+            if (foundClass) {
+                // Neutral styled badge so it doesn't clash with severity colors
+                return `<span class="mx-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-white text-slate-500 border border-slate-300 uppercase tracking-wider shadow-sm opacity-90">${foundClass.replace(/_/g, ' ')}</span>`;
+            }
+            return '';
+        };
+
         interactions.forEach(item => {
             // --- UPDATED COLORS PER REQUEST ---
             let colorClass = "bg-gray-100 border-gray-200";
@@ -290,11 +314,15 @@ function renderDDIResults(interactions, isSafe) {
             card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
-                    <div class="flex gap-2 items-center">
+                    <div class="flex flex-wrap gap-2 items-center">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center ${badgeClass}">
                             <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
                         </span>
-                        <span class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</span>
+                        <span class="font-bold text-gray-800 text-sm flex flex-wrap items-center">
+                            ${item.pair[0]} ${getDrugClassBadge(item.pair[0])} 
+                            <span class="mx-1 text-slate-400 font-normal">+</span> 
+                            ${item.pair[1]} ${getDrugClassBadge(item.pair[1])}
+                        </span>
                     </div>
                 </div>
                 
@@ -565,32 +593,4 @@ async function initAppointmentsPage() {
             safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
             safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
             const heroBtn = document.getElementById('open-active-emr-btn');
-            if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
-        }
-        appointments.slice(1).forEach(appt => {
-            let p = appt.patients || {full_name: 'Unknown'};
-            const div = document.createElement('div');
-            div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
-            div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
-            div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
-            container.appendChild(div);
-        });
-    } catch(e) {}
-}
-
-function safeSetText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val || '--'; }
-function safeSetValue(id, val) { const el = document.getElementById(id); if(el && val) el.value = val; }
-function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-function calculateBMI() {
-    const wEl = document.getElementById('weight');
-    const hEl = document.getElementById('height');
-    if(wEl && hEl) {
-        const w = parseFloat(wEl.value);
-        const h = parseFloat(hEl.value) / 100;
-        if(w && h) {
-            const bmiEl = document.getElementById('bmi');
-            if(bmiEl) bmiEl.textContent = (w/(h*h)).toFixed(1);
-        }
-    }
-}
-function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
+            if(heroBtn) heroBtn.onclick = ()
