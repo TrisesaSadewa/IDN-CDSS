@@ -8,7 +8,7 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
-let lastDDIResults = []; // Store results for toggling
+let lastDDIResults = []; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -69,6 +69,37 @@ async function initEMRPage() {
     } catch (err) { console.error(err); alert("Failed to load patient data."); }
 }
 
+// --- GLOBAL SIDEBAR TOGGLE ---
+window.togglePanel = (type) => {
+    const rightPanel = document.getElementById('rightPanel');
+    if(!rightPanel) return;
+    
+    const isClosed = rightPanel.classList.contains('translate-x-full');
+    if(isClosed) rightPanel.classList.remove('translate-x-full');
+    else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
+    
+    rightPanel.dataset.type = type;
+    const lab = document.getElementById('labContent');
+    const hist = document.getElementById('historyContent');
+    const ddi = document.getElementById('ddiContent'); // DDI Container inside sidebar
+    const title = document.getElementById('rightPanelTitle');
+    
+    if(lab) lab.classList.add('hidden');
+    if(hist) hist.classList.add('hidden');
+    if(ddi) ddi.classList.add('hidden');
+    
+    if(type === 'lab' && lab) { 
+        lab.classList.remove('hidden'); 
+        if(title) title.textContent = "Recent Lab Results"; 
+    } else if (type === 'history' && hist) { 
+        hist.classList.remove('hidden'); 
+        if(title) title.textContent = "Past Medical History"; 
+    } else if (type === 'ddi' && ddi) { 
+        ddi.classList.remove('hidden'); 
+        if(title) title.textContent = "Interaction Report"; 
+    }
+};
+
 function setupEMRInteractions() {
     const checkDDIBtn = document.getElementById('btnCheckDDI');
     if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
@@ -82,26 +113,13 @@ function setupEMRInteractions() {
         document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
     };
 
-    const rightPanel = document.getElementById('rightPanel');
-    const togglePanel = (type) => {
-        if(!rightPanel) return;
-        const isClosed = rightPanel.classList.contains('translate-x-full');
-        if(isClosed) rightPanel.classList.remove('translate-x-full');
-        else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
-        
-        rightPanel.dataset.type = type;
-        const lab = document.getElementById('labContent');
-        const hist = document.getElementById('historyContent');
-        const title = document.getElementById('rightPanelTitle');
-        if(lab) lab.classList.add('hidden');
-        if(hist) hist.classList.add('hidden');
-        if(type === 'lab' && lab) { lab.classList.remove('hidden'); if(title) title.textContent = "Recent Lab Results"; }
-        else if (type === 'history' && hist) { hist.classList.remove('hidden'); if(title) title.textContent = "Past Medical History"; }
-    };
-
-    document.getElementById('sidebarLabBtn').onclick = () => togglePanel('lab');
-    document.getElementById('sidebarHistoryBtn').onclick = () => togglePanel('history');
-    document.getElementById('closeRightPanel').onclick = () => rightPanel.classList.add('translate-x-full');
+    const rightPanelBtnLab = document.getElementById('sidebarLabBtn');
+    const rightPanelBtnHist = document.getElementById('sidebarHistoryBtn');
+    if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => window.togglePanel('lab');
+    if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => window.togglePanel('history');
+    
+    const closeBtn = document.getElementById('closeRightPanel');
+    if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
 
     setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
         document.getElementById('primaryICDInput').value = item.code;
@@ -125,8 +143,6 @@ function setupEMRInteractions() {
         currentDrugsList.push({ name, dosage: dose, frequency: freq });
         renderPrescriptions();
         nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
-        
-        // Reset/Hide DDI if list changed to force re-check
         resetDDIStatus();
     };
 
@@ -158,11 +174,10 @@ function setupEMRInteractions() {
 }
 
 // ==========================================
-// DDI LOGIC (TOGGLE + MODERN UI)
+// DDI LOGIC (SIDEBAR INTEGRATION)
 // ==========================================
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
-    const container = document.getElementById('ddi-results-container');
     
     if (currentDrugsList.length < 2) {
         alert("Need at least 2 drugs to check for interactions.");
@@ -194,37 +209,31 @@ async function runDDICheck() {
         
         renderDDIResults(interactions, data.safe);
         
-        // --- TOGGLE BUTTON LOGIC ---
+        // Create/Update inline toggle button
         let toggleBtn = document.getElementById('btnToggleDDI');
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'btnToggleDDI';
-            // Styling based on count logic below
             btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
             
             toggleBtn.onclick = (e) => {
-                e.preventDefault(); // Prevent form submit
-                if (container.classList.contains('hidden')) {
-                    container.classList.remove('hidden');
-                } else {
-                    container.classList.add('hidden');
-                }
+                e.preventDefault(); 
+                window.togglePanel('ddi'); // OPENS THE SIDEBAR
             };
         }
         
-        // Update Toggle Button Text & Style
-        const count = interactions.filter(i => i.severity !== 'Info').length; // Only count actual warnings
+        const count = interactions.filter(i => i.severity !== 'Info').length;
         if (count > 0) {
             toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center transition-colors shadow-sm";
-            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count} Issues)`;
+            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count} Issues) - View Report`;
         } else {
             toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center transition-colors shadow-sm";
             toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> Safe`;
         }
         feather.replace();
 
-        // Show results immediately
-        container.classList.remove('hidden');
+        // Automatically open the sidebar to show results
+        window.togglePanel('ddi');
 
     } catch (e) {
         console.error("DDI Error", e);
@@ -237,32 +246,28 @@ async function runDDICheck() {
 }
 
 function renderDDIResults(interactions, isSafe) {
-    const container = document.getElementById('ddi-results-container');
+    // Target the sidebar container, fallback to old container if HTML isn't updated yet
+    let container = document.getElementById('ddiContent') || document.getElementById('ddi-results-container');
     if(!container) return;
     
     container.innerHTML = ''; 
 
     if (isSafe) {
         container.innerHTML = `
-            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm animate-fade-in">
-                <i data-feather="check-circle" class="w-5 h-5 mr-3"></i> <div><strong>Safe:</strong> No major interactions found.</div>
+            <div class="mt-3 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start text-green-800 text-sm animate-fade-in shadow-sm">
+                <i data-feather="check-circle" class="w-6 h-6 mr-3 mt-0.5 text-green-600"></i> 
+                <div>
+                    <h4 class="font-bold text-base mb-1">Prescription Safe</h4>
+                    <p>No major interactions found in the current drug combination.</p>
+                </div>
             </div>`;
     } else {
         const list = document.createElement('div');
-        list.className = "mt-4 space-y-3 animate-fade-in";
+        list.className = "space-y-4 animate-fade-in pb-8"; // Added pb-8 for scroll clearance
         
-        // Header
-        const header = document.createElement('div');
-        header.className = "flex justify-between items-center mb-2 pb-2 border-b border-gray-100";
-        header.innerHTML = `
-            <h4 class="text-sm font-bold text-gray-700 flex items-center"><i data-feather="alert-triangle" class="w-4 h-4 mr-2 text-orange-500"></i> Interaction Report</h4>
-        `;
-        list.appendChild(header);
-
         interactions.forEach(item => {
-            // --- UPDATED COLORS PER REQUEST ---
-            let colorClass = "bg-gray-100 border-gray-200";
-            let badgeClass = "bg-gray-200 text-gray-600";
+            let colorClass = "bg-gray-50 border-gray-200";
+            let badgeClass = "bg-gray-200 text-gray-700";
             let icon = "info";
 
             if (item.severity === "Major") {
@@ -270,17 +275,14 @@ function renderDDIResults(interactions, isSafe) {
                 badgeClass = "bg-red-600 text-white";
                 icon = "alert-octagon";
             } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
-                // ORANGE for Intermediate/Moderate
                 colorClass = "bg-orange-50 border-orange-200";
                 badgeClass = "bg-orange-500 text-white";
                 icon = "alert-triangle";
             } else if (item.severity === "Minor") {
-                // YELLOW for Minor
                 colorClass = "bg-yellow-50 border-yellow-200";
-                badgeClass = "bg-yellow-500 text-yellow-900"; // Dark text for contrast on yellow
+                badgeClass = "bg-yellow-500 text-yellow-900"; 
                 icon = "alert-circle";
             } else if (item.severity === "Info") {
-                // GREEN for Beneficial/Info
                 colorClass = "bg-emerald-50 border-emerald-200";
                 badgeClass = "bg-emerald-500 text-white";
                 icon = "thumbs-up";
@@ -289,21 +291,22 @@ function renderDDIResults(interactions, isSafe) {
             const card = document.createElement('div');
             card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
             card.innerHTML = `
-                <div class="flex justify-between items-start mb-3">
+                <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200/50">
                     <div class="flex gap-2 items-center">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center ${badgeClass}">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center shadow-sm ${badgeClass}">
                             <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
                         </span>
-                        <span class="font-bold text-gray-800 text-sm">${item.pair[0]} + ${item.pair[1]}</span>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <h4 class="font-bold text-gray-800 text-sm mb-3 leading-tight">${item.pair[0]} <span class="text-gray-400 mx-1">+</span> ${item.pair[1]}</h4>
+                
+                <div class="space-y-3 text-xs">
                     <div>
                         <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
-                        <p class="text-gray-800 leading-relaxed">${item.description}</p>
+                        <p class="text-gray-700 leading-relaxed">${item.description}</p>
                     </div>
-                    <div class="bg-white/80 p-3 rounded-lg border border-gray-200/60">
+                    <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm">
                         <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
                             <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
                         </p>
@@ -319,7 +322,7 @@ function renderDDIResults(interactions, isSafe) {
         });
         container.appendChild(list);
     }
-    feather.replace();
+    if(window.feather) feather.replace();
 }
 
 function highlightInteractingDrugs(pair) {
@@ -342,21 +345,22 @@ function highlightInteractingDrugs(pair) {
             drugNameEl.parentNode.appendChild(icon);
         }
     });
-    feather.replace();
+    if(window.feather) feather.replace();
 }
 
 function resetDDIStatus() {
-    const container = document.getElementById('ddi-results-container');
-    if(container) {
-        container.classList.add('hidden');
-        container.innerHTML = '';
+    const container = document.getElementById('ddiContent') || document.getElementById('ddi-results-container');
+    if(container) container.innerHTML = '';
+    
+    // Close sidebar if it's currently showing DDI
+    const rightPanel = document.getElementById('rightPanel');
+    if (rightPanel && rightPanel.dataset.type === 'ddi') {
+        rightPanel.classList.add('translate-x-full');
     }
     
-    // Also remove the toggle button
     const toggleBtn = document.getElementById('btnToggleDDI');
     if(toggleBtn) toggleBtn.remove();
     
-    // Clear highlights
     const listItems = document.getElementById('prescriptionList').children;
     Array.from(listItems).forEach(item => {
         item.classList.remove('bg-red-50');
@@ -365,8 +369,7 @@ function resetDDIStatus() {
     });
 }
 
-// ... (Rest of Helpers & Queue Logic Same as Before) ...
-
+// ... Rest of the helpers (Autocomplete, Comorbidities, Summary, Queue etc) stay exactly the same ...
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
@@ -410,7 +413,7 @@ function renderComorbidities() {
         tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600 ml-1" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
         list.appendChild(tag);
     });
-    feather.replace();
+    if(window.feather) feather.replace();
 }
 
 window.removeComorbidity = (idx) => { secondaryDiagnoses.splice(idx, 1); renderComorbidities(); }
@@ -425,7 +428,7 @@ function renderPrescriptions() {
     }
     currentDrugsList.forEach((d, idx) => {
         const div = document.createElement('div');
-        div.className = 'px-4 py-3 flex justify-between items-start border-b border-gray-100 last:border-0';
+        div.className = 'px-4 py-3 flex justify-between items-start border-b border-gray-100 last:border-0 transition-colors duration-200';
         
         let detailsHtml = '';
         if (d.ingredients && d.ingredients.length > 0) {
@@ -435,7 +438,6 @@ function renderPrescriptions() {
             detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
         }
 
-        // Generate Drug Class Badge
         let classBadge = '';
         if (d.class && d.class !== 'unknown') {
             classBadge = `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider">${d.class.replace(/_/g, ' ')}</span>`;
