@@ -143,7 +143,7 @@ function setupEMRInteractions() {
                 });
                 if(!res.ok) throw new Error("Parsing Failed");
                 const data = await res.json();
-                if(data.separate_drugs) data.separate_drugs.forEach(d => currentDrugsList.push({name: d.drugName, dosage: d.dosage, frequency: d.frequency}));
+                if(data.separate_drugs) data.separate_drugs.forEach(d => currentDrugsList.push({name: d.drugName, class: d.drugClass, dosage: d.dosage, frequency: d.frequency}));
                 if(data.racikan) data.racikan.forEach(r => currentDrugsList.push({name: "Compound (Racikan)", dosage: r.recipe_text, frequency: r.frequency, ingredients: r.ingredients}));
                 renderPrescriptions();
                 input.value = "";
@@ -435,8 +435,19 @@ function renderPrescriptions() {
             detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
         }
 
+        // Generate Drug Class Badge
+        let classBadge = '';
+        if (d.class && d.class !== 'unknown') {
+            classBadge = `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider">${d.class.replace(/_/g, ' ')}</span>`;
+        } else if (d.class === 'unknown') {
+            classBadge = `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 uppercase tracking-wider">Unknown Class</span>`;
+        }
+
         div.innerHTML = `
-            <div><p class="font-bold text-gray-800 text-sm">${d.name}</p>${detailsHtml}</div>
+            <div>
+                <p class="font-bold text-gray-800 text-sm flex items-center flex-wrap gap-y-1">${d.name} ${classBadge}</p>
+                ${detailsHtml}
+            </div>
             <button onclick="removeDrug(${idx})" class="text-red-500 hover:text-red-700 mt-1"><i data-feather="trash-2" class="w-4 h-4"></i></button>
         `;
         list.appendChild(div);
