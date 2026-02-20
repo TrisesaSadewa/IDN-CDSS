@@ -31,7 +31,7 @@
         
         /* DDI Flashing Animation for Major Warnings */
         @keyframes flashMajor {
-            0%, 100% { background-color: #374151; color: #d1d5db; box-shadow: none; } /* Normal Sidebar Dark Gray */
+            0%, 100% { background-color: #374151; color: #d1d5db; box-shadow: none; }
             50% { background-color: #ef4444; color: #ffffff; box-shadow: 0 0 18px rgba(239, 68, 68, 0.9); }
         }
         .flash-major {
@@ -76,7 +76,6 @@
                     <i data-feather="activity" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Lab Results</span>
                 </button>
-                <!-- NEW: Interaction Report Button -->
                 <button id="sidebarDDIBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all border border-transparent">
                     <i data-feather="shield" id="ddiSidebarIcon" class="w-5 h-5 transition-colors"></i>
                     <span class="sidebar-tooltip">Interaction Report</span>
@@ -148,8 +147,15 @@
                     <!-- Anamnesis -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Anamnesis</h2>
-                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief Complaint</label><textarea id="chiefComplaintInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">History</label><textarea id="historyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-32"></textarea></div>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief Complaint</label><textarea id="chiefComplaintInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">History of Illness</label><textarea id="historyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
+                        <!-- NEW: Special Conditions -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1 text-purple-700 flex items-center">
+                                <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i> Special Conditions (Pregnancy, Allergies, CKD, etc.)
+                            </label>
+                            <input type="text" id="specialConditionsInput" class="input-field w-full px-3 py-2 border border-purple-200 bg-purple-50 rounded-md placeholder-purple-300" placeholder="e.g., 2nd Trimester Pregnancy, Penicillin Allergy">
+                        </div>
                     </section>
 
                     <!-- Analysis -->
@@ -169,14 +175,31 @@
                         <textarea id="therapyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24" placeholder="Therapy instructions..."></textarea>
                         
                         <!-- Prescription Widget -->
-                        <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm relative">
                             <div class="flex justify-between items-center mb-3">
                                 <h4 class="font-semibold text-gray-800 text-sm">Add Drug</h4>
-                                <div class="flex items-center">
-                                    <button id="btnCheckDDI" class="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
+                                <div class="flex items-center gap-2">
+                                    <!-- OPENFDA Suggest Button -->
+                                    <button id="btnAlgorithmicSuggestRx" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
+                                        <i data-feather="database" class="w-3.5 h-3.5 mr-1.5"></i> FDA Indication Search
+                                    </button>
+                                    <button id="btnCheckDDI" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-200 transition-colors flex items-center shadow-sm">
                                         <i data-feather="shield" class="w-3.5 h-3.5 mr-1.5"></i> Check Interactions
                                     </button>
                                 </div>
+                            </div>
+
+                            <!-- OpenFDA Recommendation Box (Hidden by default) -->
+                            <div id="algorithmicSuggestionBox" class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-900 shadow-inner whitespace-pre-wrap relative">
+                                <button onclick="document.getElementById('algorithmicSuggestionBox').classList.add('hidden')" class="absolute top-2 right-2 text-indigo-400 hover:text-indigo-700"><i data-feather="x" class="w-4 h-4"></i></button>
+                                <div id="algorithmicSuggestionText"></div>
+                            </div>
+                            </div>
+
+                            <!-- AI Recommendation Box (Hidden by default) -->
+                            <div id="aiGeneralSuggestionBox" class="hidden mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900 shadow-inner whitespace-pre-wrap relative">
+                                <button onclick="document.getElementById('aiGeneralSuggestionBox').classList.add('hidden')" class="absolute top-2 right-2 text-purple-400 hover:text-purple-700"><i data-feather="x" class="w-4 h-4"></i></button>
+                                <div id="aiGeneralSuggestionText"></div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
@@ -244,9 +267,7 @@
             <div class="flex-grow overflow-y-auto p-4 hidden" id="labContent"></div>
             <div class="flex-grow overflow-y-auto p-4 hidden" id="historyContent"></div>
             
-            <!-- ADDED: The Interaction Report Container -->
             <div class="flex-grow overflow-y-auto p-4 hidden bg-gray-50" id="ddiContent">
-                <!-- Initial Placeholder State -->
                 <div class="flex flex-col items-center justify-center h-full text-gray-400">
                     <i data-feather="shield" class="w-12 h-12 mb-3 opacity-50"></i>
                     <p class="text-sm font-medium">Click 'Check Interactions' to run safety analysis.</p>
