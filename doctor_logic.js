@@ -8,7 +8,7 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
-let lastDDIResults = []; // Store results for toggling
+let lastDDIResults = []; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -31,6 +31,98 @@ function startClock() {
     }
     update();
     setInterval(update, 1000);
+}
+
+// ==========================================
+// ALGORITHMIC / DATA-DRIVEN SUGGESTIONS
+// ==========================================
+
+// 1. OpenFDA Indication Search
+async function handleAlgorithmicSuggestGeneral() {
+    const btn = document.getElementById('btnAlgorithmicSuggestRx');
+    const box = document.getElementById('algorithmicSuggestionBox');
+    const textEl = document.getElementById('algorithmicSuggestionText');
+    
+    // Use the primary diagnosis text (e.g. "hypertension")
+    const diagnosis = getVal('primaryDiagnosisInput').trim();
+    if(!diagnosis) {
+        alert("Please enter a Primary Diagnosis to search the FDA database.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Searching FDA...`;
+    if(window.feather) feather.replace();
+
+    try {
+        const query = encodeURIComponent(diagnosis);
+        // Hits the official US OpenFDA database for drug indications
+        const res = await fetch(`https://api.fda.gov/drug/label.json?search=indications_and_usage:"${query}"&limit=5`);
+        if(!res.ok) throw new Error("No specific indications found in FDA database for this term.");
+        
+        const data = await res.json();
+        let suggestions = [];
+        
+        data.results.forEach(item => {
+            if(item.openfda && item.openfda.generic_name) {
+                suggestions.push(item.openfda.generic_name[0]);
+            }
+        });
+
+        suggestions = [...new Set(suggestions)]; // Deduplicate generic names
+
+        if(suggestions.length > 0) {
+            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="database" class="inline w-4 h-4 mr-1"></i> OpenFDA Approvals for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-1">` + 
+                suggestions.map(s => `<li class="capitalize font-medium">${s.toLowerCase()}</li>`).join('') + 
+                `</ul><p class="text-[10px] text-indigo-500 mt-3 italic">*Data sourced directly from US FDA Indications and Usage labels.</p>`;
+        } else {
+            textEl.innerHTML = `No standard generics found in FDA database for "${diagnosis}". Try a broader term.`;
+        }
+        box.classList.remove('hidden');
+    } catch(e) {
+        alert(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-feather="database" class="w-3.5 h-3.5 mr-1.5"></i> FDA Indication Search`;
+        if(window.feather) feather.replace();
+    }
+}
+
+// 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
+window.askAlgorithmForAlternative = async function(drugA, drugB, btnElement) {
+    const container = btnElement.nextElementSibling; 
+    
+    btnElement.disabled = true;
+    btnElement.innerHTML = `<i data-feather="loader" class="w-3 h-3 mr-1 animate-spin"></i> Running Algorithm...`;
+    if(window.feather) feather.replace();
+
+    try {
+        const res = await fetch(`${API_BASE}/api/suggest-alternative`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ drug_to_replace: drugA, interacting_with: drugB })
+        });
+        
+        const data = await res.json();
+        
+        if(data.alternatives && data.alternatives.length > 0) {
+            let html = `<strong class="block mb-2 text-blue-700 border-b border-blue-200 pb-1">Algorithmic Alternatives for ${drugA}:</strong><ul class="list-disc pl-4 space-y-2">`;
+            data.alternatives.forEach(alt => {
+                html += `<li><b class="text-gray-800">${alt.generic_name}</b> <span class="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-1">${alt.class}</span></li>`;
+            });
+            html += `</ul><p class="text-[10px] mt-3 italic text-gray-500 bg-white p-2 rounded border border-gray-100"><i data-feather="check-circle" class="inline w-3 h-3 text-green-500 mr-1"></i> These classes have been cross-checked to ensure they do not trigger a known interaction rule with ${drugB}.</p>`;
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<span class="text-red-600 font-medium text-xs"><i data-feather="alert-circle" class="inline w-3 h-3 mr-1"></i> No algorithmic alternative class mapped in the local database for ${drugA}.</span>`;
+        }
+        container.classList.remove('hidden');
+        btnElement.classList.add('hidden');
+    } catch(e) {
+        alert("Failed to run algorithm: " + e.message);
+        btnElement.disabled = false;
+        btnElement.innerHTML = `<i data-feather="database" class="w-3 h-3 mr-1"></i> Suggest Alternative`;
+    }
+    if(window.feather) feather.replace();
 }
 
 // ==========================================
@@ -69,14 +161,12 @@ async function initEMRPage() {
     } catch (err) { console.error(err); alert("Failed to load patient data."); }
 }
 
-// --- GLOBAL SIDEBAR TOGGLE ---
 window.togglePanel = (type) => {
     const rightPanel = document.getElementById('rightPanel');
     if(!rightPanel) return;
     
     const isClosed = rightPanel.classList.contains('translate-x-full');
     
-    // Toggle logic: open if closed, or close if clicking the same button
     if(isClosed) rightPanel.classList.remove('translate-x-full');
     else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
     
@@ -105,6 +195,9 @@ window.togglePanel = (type) => {
 function setupEMRInteractions() {
     const checkDDIBtn = document.getElementById('btnCheckDDI');
     if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
+    
+    const suggestBtn = document.getElementById('btnAlgorithmicSuggestRx');
+    if(suggestBtn) suggestBtn.onclick = handleAlgorithmicSuggestGeneral;
 
     window.switchView = function(viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
@@ -121,10 +214,7 @@ function setupEMRInteractions() {
     
     if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => window.togglePanel('lab');
     if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => window.togglePanel('history');
-    if (rightPanelBtnDDI) rightPanelBtnDDI.onclick = () => {
-        // If sidebar is clicked but DDI hasn't been run yet, open it anyway so user sees placeholder.
-        window.togglePanel('ddi');
-    };
+    if (rightPanelBtnDDI) rightPanelBtnDDI.onclick = () => window.togglePanel('ddi');
     
     const closeBtn = document.getElementById('closeRightPanel');
     if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
@@ -218,10 +308,8 @@ async function runDDICheck() {
         const interactions = data.interactions; 
         lastDDIResults = interactions;
         
-        // This physically constructs the HTML in the sidebar
         renderDDIResults(interactions, data.safe);
         
-        // Ensure sidebar pops open instantly
         const rightPanel = document.getElementById('rightPanel');
         if (rightPanel.classList.contains('translate-x-full') || rightPanel.dataset.type !== 'ddi') {
             window.togglePanel('ddi');
@@ -243,12 +331,10 @@ function renderDDIResults(interactions, isSafe) {
     
     container.innerHTML = ''; 
 
-    // Update the visual appearance of the left sidebar button
     const ddiSidebarBtn = document.getElementById('sidebarDDIBtn');
     const ddiSidebarIcon = document.getElementById('ddiSidebarIcon');
 
     if (ddiSidebarBtn) {
-        // Reset classes
         ddiSidebarBtn.classList.remove('flash-major', 'text-gray-300', 'text-green-400', 'text-orange-400', 'text-red-400', 'bg-gray-700');
         
         if (isSafe) {
@@ -299,10 +385,6 @@ function renderDDIResults(interactions, isSafe) {
                     colorClass = "bg-yellow-50 border-yellow-200";
                     badgeClass = "bg-yellow-500 text-yellow-900"; 
                     icon = "alert-circle";
-                } else if (item.severity === "Info") {
-                    colorClass = "bg-emerald-50 border-emerald-200";
-                    badgeClass = "bg-emerald-500 text-white";
-                    icon = "thumbs-up";
                 }
 
                 const card = document.createElement('div');
@@ -323,11 +405,19 @@ function renderDDIResults(interactions, isSafe) {
                             <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
                             <p class="text-gray-700 leading-relaxed">${item.description}</p>
                         </div>
-                        <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm mb-2">
                             <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
                                 <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
                             </p>
                             <p class="text-gray-900 font-medium leading-relaxed">${item.advice}</p>
+                        </div>
+                        
+                        <!-- Algorithmic Suggest Alternative Button -->
+                        <div class="mt-3 pt-3 border-t border-gray-200/50 flex flex-col">
+                            <button onclick="askAlgorithmForAlternative('${item.pair[0]}', '${item.pair[1]}', this)" class="self-start text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded hover:bg-blue-100 transition-colors flex items-center shadow-sm">
+                                <i data-feather="database" class="w-3 h-3 mr-1.5"></i> Find Safe Alternative
+                            </button>
+                            <div class="ai-response-box hidden mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200 text-xs text-blue-900 whitespace-pre-wrap leading-relaxed shadow-inner"></div>
                         </div>
                     </div>
                 `;
@@ -351,9 +441,7 @@ function highlightInteractingDrugs(pair) {
         const drugNameEl = item.querySelector('.font-bold');
         if (!drugNameEl) return;
         
-        // Strip class badge text out to strictly match names
         const rawText = drugNameEl.innerText.split('\n')[0].toLowerCase();
-        
         const isMatch = pair.some(p => rawText.includes(p.toLowerCase()));
         
         if (isMatch) {
@@ -380,7 +468,6 @@ function resetDDIStatus() {
         `;
     }
     
-    // Reset left sidebar button appearance
     const ddiBtn = document.getElementById('sidebarDDIBtn');
     const ddiIcon = document.getElementById('ddiSidebarIcon');
     if (ddiBtn) {
@@ -389,13 +476,11 @@ function resetDDIStatus() {
         if (ddiIcon) ddiIcon.setAttribute('data-feather', 'shield');
     }
 
-    // Close sidebar if it's currently showing DDI
     const rightPanel = document.getElementById('rightPanel');
     if (rightPanel && rightPanel.dataset.type === 'ddi') {
         rightPanel.classList.add('translate-x-full');
     }
     
-    // Remove warning highlights from script view
     const listItems = document.getElementById('prescriptionList').children;
     Array.from(listItems).forEach(item => {
         item.classList.remove('bg-red-50');
@@ -405,7 +490,6 @@ function resetDDIStatus() {
     if(window.feather) feather.replace();
 }
 
-// ... Rest of the helpers (Autocomplete, Comorbidities, Summary, Queue etc)
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
@@ -632,6 +716,3 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
-
-
-
