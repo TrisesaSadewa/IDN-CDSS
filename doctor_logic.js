@@ -223,6 +223,13 @@ function setupEMRInteractions() {
         document.getElementById('primaryICDInput').value = item.code;
         document.getElementById('primaryDiagnosisInput').value = item.description;
     });
+    
+    // ADDED: Allow searching by typing directly into the Diagnosis Description field
+    setupAutocomplete('primaryDiagnosisInput', 'primaryICDSuggestions', (item) => {
+        document.getElementById('primaryICDInput').value = item.code;
+        document.getElementById('primaryDiagnosisInput').value = item.description;
+    });
+
     setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
         if (!secondaryDiagnoses.some(d => d.code === item.code)) { secondaryDiagnoses.push(item); renderComorbidities(); }
         document.getElementById('comorbidityInput').value = '';
@@ -716,3 +723,4 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
+
