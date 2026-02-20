@@ -8,7 +8,7 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
-let lastDDIResults = []; 
+let lastDDIResults = []; // Store results for toggling
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -75,13 +75,15 @@ window.togglePanel = (type) => {
     if(!rightPanel) return;
     
     const isClosed = rightPanel.classList.contains('translate-x-full');
+    
+    // Toggle logic: open if closed, or close if clicking the same button
     if(isClosed) rightPanel.classList.remove('translate-x-full');
     else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
     
     rightPanel.dataset.type = type;
     const lab = document.getElementById('labContent');
     const hist = document.getElementById('historyContent');
-    const ddi = document.getElementById('ddiContent'); // DDI Container inside sidebar
+    const ddi = document.getElementById('ddiContent');
     const title = document.getElementById('rightPanelTitle');
     
     if(lab) lab.classList.add('hidden');
@@ -115,8 +117,14 @@ function setupEMRInteractions() {
 
     const rightPanelBtnLab = document.getElementById('sidebarLabBtn');
     const rightPanelBtnHist = document.getElementById('sidebarHistoryBtn');
+    const rightPanelBtnDDI = document.getElementById('sidebarDDIBtn');
+    
     if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => window.togglePanel('lab');
     if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => window.togglePanel('history');
+    if (rightPanelBtnDDI) rightPanelBtnDDI.onclick = () => {
+        // If sidebar is clicked but DDI hasn't been run yet, open it anyway so user sees placeholder.
+        window.togglePanel('ddi');
+    };
     
     const closeBtn = document.getElementById('closeRightPanel');
     if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
@@ -169,8 +177,11 @@ function setupEMRInteractions() {
         };
     }
 
-    const submitBtn = document.getElementById('submitEMRBtn');
-    if(submitBtn) submitBtn.onclick = submitConsultation;
+    const submitBtn = document.getElementById('submitDoctorView');
+    if(submitBtn) submitBtn.onclick = () => switchView('summary');
+    
+    const finalSubmitBtn = document.getElementById('submitSummaryView');
+    if(finalSubmitBtn) finalSubmitBtn.onclick = submitConsultation;
 }
 
 // ==========================================
@@ -185,7 +196,7 @@ async function runDDICheck() {
     }
 
     btn.disabled = true;
-    btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> Checking...`;
+    btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Checking...`;
     
     let checkList = [];
     currentDrugsList.forEach(d => {
@@ -207,121 +218,130 @@ async function runDDICheck() {
         const interactions = data.interactions; 
         lastDDIResults = interactions;
         
+        // This physically constructs the HTML in the sidebar
         renderDDIResults(interactions, data.safe);
         
-        // Create/Update inline toggle button
-        let toggleBtn = document.getElementById('btnToggleDDI');
-        if (!toggleBtn) {
-            toggleBtn = document.createElement('button');
-            toggleBtn.id = 'btnToggleDDI';
-            btn.parentNode.insertBefore(toggleBtn, btn.nextSibling);
-            
-            toggleBtn.onclick = (e) => {
-                e.preventDefault(); 
-                window.togglePanel('ddi'); // OPENS THE SIDEBAR
-            };
+        // Ensure sidebar pops open instantly
+        const rightPanel = document.getElementById('rightPanel');
+        if (rightPanel.classList.contains('translate-x-full') || rightPanel.dataset.type !== 'ddi') {
+            window.togglePanel('ddi');
         }
-        
-        const count = interactions.filter(i => i.severity !== 'Info').length;
-        if (count > 0) {
-            toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 ml-2 flex items-center transition-colors shadow-sm";
-            toggleBtn.innerHTML = `<i data-feather="alert-circle" class="w-3 h-3 mr-1"></i> (${count} Issues) - View Report`;
-        } else {
-            toggleBtn.className = "text-xs font-bold px-3 py-1.5 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 ml-2 flex items-center transition-colors shadow-sm";
-            toggleBtn.innerHTML = `<i data-feather="check" class="w-3 h-3 mr-1"></i> Safe`;
-        }
-        feather.replace();
-
-        // Automatically open the sidebar to show results
-        window.togglePanel('ddi');
 
     } catch (e) {
         console.error("DDI Error", e);
         alert("Could not check interactions.");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i data-feather="shield" class="w-3 h-3 mr-1"></i> Check Interactions`;
-        feather.replace();
+        btn.innerHTML = `<i data-feather="shield" class="w-3.5 h-3.5 mr-1.5"></i> Check Interactions`;
+        if(window.feather) feather.replace();
     }
 }
 
 function renderDDIResults(interactions, isSafe) {
-    // Target the sidebar container, fallback to old container if HTML isn't updated yet
-    let container = document.getElementById('ddiContent') || document.getElementById('ddi-results-container');
+    const container = document.getElementById('ddiContent');
     if(!container) return;
     
     container.innerHTML = ''; 
 
-    if (isSafe) {
-        container.innerHTML = `
-            <div class="mt-3 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start text-green-800 text-sm animate-fade-in shadow-sm">
-                <i data-feather="check-circle" class="w-6 h-6 mr-3 mt-0.5 text-green-600"></i> 
-                <div>
-                    <h4 class="font-bold text-base mb-1">Prescription Safe</h4>
-                    <p>No major interactions found in the current drug combination.</p>
-                </div>
-            </div>`;
-    } else {
-        const list = document.createElement('div');
-        list.className = "space-y-4 animate-fade-in pb-8"; // Added pb-8 for scroll clearance
+    // Update the visual appearance of the left sidebar button
+    const ddiSidebarBtn = document.getElementById('sidebarDDIBtn');
+    const ddiSidebarIcon = document.getElementById('ddiSidebarIcon');
+
+    if (ddiSidebarBtn) {
+        // Reset classes
+        ddiSidebarBtn.classList.remove('flash-major', 'text-gray-300', 'text-green-400', 'text-orange-400', 'text-red-400', 'bg-gray-700');
         
-        interactions.forEach(item => {
-            let colorClass = "bg-gray-50 border-gray-200";
-            let badgeClass = "bg-gray-200 text-gray-700";
-            let icon = "info";
-
-            if (item.severity === "Major") {
-                colorClass = "bg-red-50 border-red-200";
-                badgeClass = "bg-red-600 text-white";
-                icon = "alert-octagon";
-            } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
-                colorClass = "bg-orange-50 border-orange-200";
-                badgeClass = "bg-orange-500 text-white";
-                icon = "alert-triangle";
-            } else if (item.severity === "Minor") {
-                colorClass = "bg-yellow-50 border-yellow-200";
-                badgeClass = "bg-yellow-500 text-yellow-900"; 
-                icon = "alert-circle";
-            } else if (item.severity === "Info") {
-                colorClass = "bg-emerald-50 border-emerald-200";
-                badgeClass = "bg-emerald-500 text-white";
-                icon = "thumbs-up";
+        if (isSafe) {
+            ddiSidebarBtn.classList.add('text-green-400');
+            if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'shield');
+        } else {
+            const hasMajor = interactions.some(i => i.severity === 'Major');
+            if (hasMajor) {
+                ddiSidebarBtn.classList.add('flash-major'); 
+                if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'shield-alert');
+            } else {
+                ddiSidebarBtn.classList.add('text-orange-400');
+                if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'alert-triangle');
             }
-
-            const card = document.createElement('div');
-            card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
-            card.innerHTML = `
-                <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200/50">
-                    <div class="flex gap-2 items-center">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center shadow-sm ${badgeClass}">
-                            <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
-                        </span>
-                    </div>
-                </div>
-                
-                <h4 class="font-bold text-gray-800 text-sm mb-3 leading-tight">${item.pair[0]} <span class="text-gray-400 mx-1">+</span> ${item.pair[1]}</h4>
-                
-                <div class="space-y-3 text-xs">
-                    <div>
-                        <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
-                        <p class="text-gray-700 leading-relaxed">${item.description}</p>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm">
-                        <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
-                            <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
-                        </p>
-                        <p class="text-gray-900 font-medium leading-relaxed">
-                            ${item.advice}
-                        </p>
-                    </div>
-                </div>
-            `;
-            
-            highlightInteractingDrugs(item.pair);
-            list.appendChild(card);
-        });
-        container.appendChild(list);
+        }
     }
+
+    try {
+        if (isSafe) {
+            container.innerHTML = `
+                <div class="mt-2 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start text-green-800 text-sm animate-fade-in shadow-sm">
+                    <i data-feather="check-circle" class="w-6 h-6 mr-3 mt-0.5 text-green-600"></i> 
+                    <div>
+                        <h4 class="font-bold text-base mb-1">Prescription Safe</h4>
+                        <p>No major interactions found in the current drug combination.</p>
+                    </div>
+                </div>`;
+        } else {
+            const list = document.createElement('div');
+            list.className = "space-y-4 animate-fade-in pb-8"; 
+            
+            interactions.forEach(item => {
+                if (!item || !item.pair) return;
+
+                let colorClass = "bg-white border-gray-200";
+                let badgeClass = "bg-gray-200 text-gray-700";
+                let icon = "info";
+
+                if (item.severity === "Major") {
+                    colorClass = "bg-red-50 border-red-200";
+                    badgeClass = "bg-red-600 text-white";
+                    icon = "alert-octagon";
+                } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
+                    colorClass = "bg-orange-50 border-orange-200";
+                    badgeClass = "bg-orange-500 text-white";
+                    icon = "alert-triangle";
+                } else if (item.severity === "Minor") {
+                    colorClass = "bg-yellow-50 border-yellow-200";
+                    badgeClass = "bg-yellow-500 text-yellow-900"; 
+                    icon = "alert-circle";
+                } else if (item.severity === "Info") {
+                    colorClass = "bg-emerald-50 border-emerald-200";
+                    badgeClass = "bg-emerald-500 text-white";
+                    icon = "thumbs-up";
+                }
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200/50">
+                        <div class="flex gap-2 items-center">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center shadow-sm ${badgeClass}">
+                                <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <h4 class="font-bold text-gray-800 text-sm mb-3 leading-tight">${item.pair[0]} <span class="text-gray-400 mx-1">+</span> ${item.pair[1]}</h4>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
+                            <p class="text-gray-700 leading-relaxed">${item.description}</p>
+                        </div>
+                        <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm">
+                            <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
+                                <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
+                            </p>
+                            <p class="text-gray-900 font-medium leading-relaxed">${item.advice}</p>
+                        </div>
+                    </div>
+                `;
+                
+                highlightInteractingDrugs(item.pair);
+                list.appendChild(card);
+            });
+            container.appendChild(list);
+        }
+    } catch (renderError) {
+        console.error("Failed building DDI DOM", renderError);
+        container.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded border border-red-200">Error rendering report UI. Check console.</div>`;
+    }
+
     if(window.feather) feather.replace();
 }
 
@@ -330,9 +350,11 @@ function highlightInteractingDrugs(pair) {
     Array.from(listItems).forEach(item => {
         const drugNameEl = item.querySelector('.font-bold');
         if (!drugNameEl) return;
-        const drugName = drugNameEl.textContent.toLowerCase();
         
-        const isMatch = pair.some(p => drugName.includes(p.toLowerCase()));
+        // Strip class badge text out to strictly match names
+        const rawText = drugNameEl.innerText.split('\n')[0].toLowerCase();
+        
+        const isMatch = pair.some(p => rawText.includes(p.toLowerCase()));
         
         if (isMatch) {
             item.classList.add('bg-red-50');
@@ -342,34 +364,48 @@ function highlightInteractingDrugs(pair) {
             const icon = document.createElement('i');
             icon.setAttribute('data-feather', 'alert-circle');
             icon.className = "w-4 h-4 text-red-500 ml-2 ddi-warning-icon inline";
-            drugNameEl.parentNode.appendChild(icon);
+            drugNameEl.appendChild(icon);
         }
     });
-    if(window.feather) feather.replace();
 }
 
 function resetDDIStatus() {
-    const container = document.getElementById('ddiContent') || document.getElementById('ddi-results-container');
-    if(container) container.innerHTML = '';
+    const container = document.getElementById('ddiContent');
+    if(container) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                <i data-feather="shield" class="w-12 h-12 mb-3 opacity-50"></i>
+                <p class="text-sm font-medium">Click 'Check Interactions' to run safety analysis.</p>
+            </div>
+        `;
+    }
     
+    // Reset left sidebar button appearance
+    const ddiBtn = document.getElementById('sidebarDDIBtn');
+    const ddiIcon = document.getElementById('ddiSidebarIcon');
+    if (ddiBtn) {
+        ddiBtn.classList.remove('flash-major', 'text-red-400', 'text-green-400', 'text-orange-400');
+        ddiBtn.classList.add('text-gray-300');
+        if (ddiIcon) ddiIcon.setAttribute('data-feather', 'shield');
+    }
+
     // Close sidebar if it's currently showing DDI
     const rightPanel = document.getElementById('rightPanel');
     if (rightPanel && rightPanel.dataset.type === 'ddi') {
         rightPanel.classList.add('translate-x-full');
     }
     
-    const toggleBtn = document.getElementById('btnToggleDDI');
-    if(toggleBtn) toggleBtn.remove();
-    
+    // Remove warning highlights from script view
     const listItems = document.getElementById('prescriptionList').children;
     Array.from(listItems).forEach(item => {
         item.classList.remove('bg-red-50');
         const icon = item.querySelector('.ddi-warning-icon');
         if(icon) icon.remove();
     });
+    if(window.feather) feather.replace();
 }
 
-// ... Rest of the helpers (Autocomplete, Comorbidities, Summary, Queue etc) stay exactly the same ...
+// ... Rest of the helpers (Autocomplete, Comorbidities, Summary, Queue etc)
 function setupAutocomplete(inputId, suggestionsId, onSelect) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
@@ -500,7 +536,7 @@ function updateSummary() {
 
 async function submitConsultation() {
     if(!confirm("Finalize EMR?")) return;
-    const btn = document.getElementById('submitEMRBtn');
+    const btn = document.getElementById('submitSummaryView');
     if(btn) { btn.textContent = "Processing..."; btn.disabled = true; }
 
     const payload = {
@@ -596,3 +632,6 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
+
+
+
