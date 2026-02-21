@@ -405,7 +405,10 @@
                 <button class="w-full py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100">
                     View Full Records
                 </button>
-            </div>
+            <div class="mt-8 flex justify-end pb-12">
+            <button onclick="submitTriage()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center">
+                <i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor
+            </button>
         </div>
     </div>
 
@@ -484,6 +487,111 @@
             if(confirm("Are you sure you want to submit this triage assessment to the doctor?")) {
                 alert("Triage Submitted Successfully!");
                 window.location.href = 'APPOINTMENTS.html';
+            }
+        }
+        
+    <script>
+        AOS.init();
+        feather.replace();
+
+        // --- NEW DYNAMIC LOGIC ---
+        const API_BASE = "https://smart-his-backend.onrender.com"; 
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentApptId = urlParams.get('id');
+
+        // Fetch Patient info on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(!currentApptId) return; // Run in demo mode if no ID is passed
+
+            try {
+                const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    const p = data.patients || {};
+                    
+                    document.getElementById('pt-name').textContent = p.full_name || 'Unknown Patient';
+                    document.getElementById('pt-id').textContent = p.mrn || 'N/A';
+                    
+                    const age = p.dob ? Math.floor((new Date() - new Date(p.dob))/31557600000) : '--';
+                    document.getElementById('pt-details').textContent = `${age} yrs | ${p.gender || 'Unknown'}`;
+                }
+            } catch (e) {
+                console.error("Failed to load patient header", e);
+            }
+        });
+
+        // Toggle Sidebar Logic
+        window.onload = () => {
+            const sidebarHistoryBtn = document.getElementById('sidebarHistoryBtn');
+            const closeRightPanelBtn = document.getElementById('closeRightPanel');
+            const rightPanel = document.getElementById('rightPanel');
+
+            function toggleRightPanel(show) {
+                if (show) {
+                    rightPanel.classList.remove('translate-x-full');
+                    sidebarHistoryBtn.classList.add('bg-gray-700', 'text-white');
+                    sidebarHistoryBtn.classList.remove('text-gray-300');
+                } else {
+                    rightPanel.classList.add('translate-x-full');
+                    sidebarHistoryBtn.classList.remove('bg-gray-700', 'text-white');
+                    sidebarHistoryBtn.classList.add('text-gray-300');
+                }
+            }
+
+            sidebarHistoryBtn.addEventListener('click', () => {
+                const isHidden = rightPanel.classList.contains('translate-x-full');
+                toggleRightPanel(isHidden);
+            });
+
+            closeRightPanelBtn.addEventListener('click', () => {
+                toggleRightPanel(false);
+            });
+        };
+
+        // Submit Action
+        async function submitTriage() {
+            if(!confirm("Are you sure you want to submit this triage assessment to the doctor?")) return;
+            
+            if(!currentApptId) {
+                alert("Demo Mode: Triage Captured! (No appointment ID attached)");
+                window.location.href = 'APPOINTMENTS.html';
+                return;
+            }
+
+            const payload = {
+                appointment_id: currentApptId,
+                weight_kg: parseFloat(document.getElementById('weight').value) || null,
+                height_cm: parseFloat(document.getElementById('height').value) || null,
+                systolic: parseInt(document.getElementById('systolic').value) || null,
+                diastolic: parseInt(document.getElementById('diastolic').value) || null,
+                temperature: parseFloat(document.getElementById('temperature').value) || null,
+                heart_rate: parseInt(document.getElementById('heart-rate').value) || null,
+                respiratory_rate: parseInt(document.getElementById('resp-rate').value) || null,
+                spo2: parseInt(document.getElementById('spo2').value) || null,
+                pain_score: parseInt(document.getElementById('pain-score').value) || null,
+                pain_location: document.getElementById('pain-location').value || null,
+                chief_complaint: document.getElementById('nurse-notes').value || null
+            };
+
+            try {
+                const submitBtn = document.querySelector('button[onclick="submitTriage()"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = "Submitting...";
+
+                const res = await fetch(`${API_BASE}/nurse/submit-triage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    alert("Triage Submitted Successfully!");
+                    window.location.href = 'APPOINTMENTS.html';
+                } else {
+                    alert("Error submitting triage assessment.");
+                }
+            } catch(e) {
+                alert("Failed to submit: " + e.message);
             }
         }
     </script>
