@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nurse Queue - Hospital EMR</title>
+    <title>Triage Station - Hospital EMR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
@@ -12,86 +12,227 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .sidebar { transition: all 0.3s ease; position: relative; z-index: 40; }
-        .sidebar-tooltip {
-            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
-            background: #1f2937; color: white; padding: 4px 8px; border-radius: 4px;
-            font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-            white-space: nowrap; margin-left: 10px; z-index: 50;
+        
+        .sidebar {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
         }
-        .sidebar-item:hover .sidebar-tooltip { opacity: 1; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        .sidebar-tooltip {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+            margin-left: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-item:hover .sidebar-tooltip {
+            opacity: 1;
+            margin-left: 16px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
-<body class="bg-slate-50 font-sans overflow-hidden flex flex-col h-screen">
+<body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
 
-    <!-- Header -->
-    <header class="bg-emerald-600 text-white shadow-md z-50 relative flex-shrink-0">
-        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <i data-feather="activity" class="w-6 h-6"></i>
-                <h1 class="text-xl font-bold tracking-wide">Smart HIS <span class="font-normal opacity-80">| Triage Station</span></h1>
+    <!-- Sidebar -->
+    <aside class="sidebar w-20 lg:w-64 bg-[#0a192f] text-slate-300 flex flex-col shadow-2xl flex-shrink-0 border-r border-slate-800">
+        <!-- Brand -->
+        <div class="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-800/50 bg-[#061121]">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400">
+                <i data-feather="activity" class="w-5 h-5"></i>
             </div>
-            <div class="flex items-center space-x-4">
-                <div id="current-time" class="text-sm font-medium bg-emerald-700/50 px-3 py-1.5 rounded-lg mr-2">--:--</div>
-                <span class="hidden md:inline font-medium text-sm">Nursing Staff</span>
-                <div class="w-8 h-8 rounded-full bg-emerald-400 flex items-center justify-center">
-                    <i data-feather="user" class="w-4 h-4"></i>
+            <span class="hidden lg:block ml-3 font-bold text-lg text-white tracking-wide">Smart HIS</span>
+        </div>
+
+        <!-- Nav Links -->
+        <nav class="flex-1 py-6 flex flex-col gap-2 px-3">
+            <a href="#" class="sidebar-item relative flex items-center px-3 py-3 rounded-xl bg-emerald-500/10 text-emerald-400 font-medium transition-all border border-emerald-500/20 shadow-inner">
+                <i data-feather="clipboard" class="w-5 h-5"></i>
+                <span class="hidden lg:block ml-3 text-sm">Triage Queue</span>
+                <span class="sidebar-tooltip lg:hidden">Triage Queue</span>
+            </a>
+        </nav>
+
+        <!-- User Profile Profile -->
+        <div class="p-4 border-t border-slate-800/50 bg-[#061121]">
+            <div class="flex items-center justify-center lg:justify-start">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5">
+                    <div class="w-full h-full rounded-full bg-[#0a192f] flex items-center justify-center border-2 border-[#0a192f]">
+                        <i data-feather="user" class="w-4 h-4 text-white"></i>
+                    </div>
+                </div>
+                <div class="hidden lg:block ml-3 overflow-hidden">
+                    <p class="text-xs font-medium text-white truncate" id="doc-name-display">Nursing Staff</p>
+                    <p class="text-[10px] text-emerald-400 mt-0.5 font-medium uppercase tracking-wider">Triage Unit</p>
                 </div>
             </div>
         </div>
-    </header>
+    </aside>
 
-    <div class="flex flex-1 relative overflow-hidden" id="mainContent">
-        <!-- Sidebar -->
-        <aside class="sidebar bg-slate-900 text-white w-16 md:w-64 flex flex-col flex-shrink-0 z-40 shadow-xl">
-            <nav class="flex-1 py-6 flex flex-col gap-2">
-                <a href="#" class="flex items-center px-6 py-3 text-white bg-emerald-600/20 border-r-4 border-emerald-500 transition-colors">
-                    <i data-feather="users" class="w-5 h-5 text-emerald-400"></i>
-                    <span class="hidden md:inline ml-3 font-medium text-sm text-emerald-100">Triage Queue</span>
-                </a>
-            </nav>
-        </aside>
+    <!-- Main Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-full relative">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 flex-shrink-0 z-30 transition-all">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-slate-800">Triage Station</h1>
+                <span class="hidden md:inline-flex items-center px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-xs font-bold border border-emerald-100">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span> Receiving Patients
+                </span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+                    <i data-feather="clock" class="w-4 h-4 text-slate-400 mr-2"></i>
+                    <span id="current-time" class="text-sm font-semibold text-slate-700">--:--</span>
+                </div>
+                <button class="relative p-2 text-slate-400 hover:text-emerald-600 transition-colors rounded-full hover:bg-slate-50">
+                    <i data-feather="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+            </div>
+        </header>
 
-        <!-- Main Content Area -->
-        <main class="flex-grow overflow-auto p-6 lg:p-10 bg-slate-50 relative">
-            <div class="max-w-5xl mx-auto">
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto bg-[#f8fafc] p-4 lg:p-8 scroll-smooth">
+            <div class="max-w-7xl mx-auto">
                 
-                <div class="flex justify-between items-end mb-8">
+                <!-- Welcome & Stats Row -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4" data-aos="fade-up">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-800">Waiting for Triage</h2>
-                        <p class="text-sm text-slate-500 mt-1">Patients requiring vital signs and initial assessment.</p>
-                    </div>
-                    <div class="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
-                        <span class="text-sm font-medium text-slate-500">Total Waiting:</span>
-                        <span id="queue-count" class="text-xl font-bold text-emerald-600">0</span>
+                        <h2 class="text-2xl font-bold text-slate-800">Awaiting Triage</h2>
+                        <p class="text-slate-500 text-sm mt-1">Please record vitals and anamnesis for the following patients.</p>
                     </div>
                 </div>
 
-                <!-- Empty State (Hidden by default) -->
-                <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-slate-200 border-dashed">
-                    <div class="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
-                        <i data-feather="check-circle" class="w-8 h-8"></i>
+                <!-- Grid Layout (Same as Doctor's Page) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                    
+                    <!-- Left Column (Active Patient & Queue) -->
+                    <div class="lg:col-span-2 space-y-6 lg:space-y-8">
+                        
+                        <!-- Hero Card: Next Patient -->
+                        <div id="active-patient-card" class="hidden relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 shadow-xl shadow-emerald-900/20 text-white" data-aos="fade-up" data-aos-delay="100">
+                            <!-- Background Decoration -->
+                            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5 blur-3xl"></div>
+                            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-black opacity-10 blur-2xl"></div>
+                            
+                            <div class="relative p-6 lg:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div class="flex items-start gap-6">
+                                    <div class="glass-panel w-20 h-20 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 shadow-lg">
+                                        <span class="text-xs font-medium text-emerald-100 uppercase tracking-wider mb-0.5">Queue</span>
+                                        <span class="text-3xl font-black text-white" id="active-queue-no">--</span>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-3 mb-1">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white">Up Next</span>
+                                            <span class="text-xs font-medium text-emerald-100 flex items-center" id="active-triage">
+                                                <i data-feather="clock" class="w-3 h-3 mr-1"></i> Waiting
+                                            </span>
+                                        </div>
+                                        <h3 class="text-2xl lg:text-3xl font-bold mb-2 tracking-tight" id="active-name">Loading...</h3>
+                                        <p class="text-emerald-100 text-sm font-medium flex items-center" id="active-details">
+                                            <i data-feather="hash" class="w-3.5 h-3.5 mr-1.5 opacity-70"></i> -- 
+                                        </p>
+                                    </div>
+                                </div>
+                                <button id="open-active-triage-btn" class="w-full md:w-auto px-8 py-3.5 bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold shadow-[0_4px_14px_rgba(255,255,255,0.25)] transition-all hover:scale-105 flex items-center justify-center">
+                                    Start Triage <i data-feather="arrow-right" class="w-5 h-5 ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed shadow-sm">
+                            <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-4">
+                                <i data-feather="check-circle" class="w-10 h-10"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-700">Queue is Clear</h3>
+                            <p class="text-slate-500 mt-2 text-center max-w-sm">There are currently no patients waiting for triage.</p>
+                        </div>
+
+                        <!-- Remaining Queue -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Waiting List</h3>
+                            </div>
+                            <div id="queue-container" class="space-y-3">
+                                <!-- Queue cards injected by JS -->
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-700">Queue is Clear</h3>
-                    <p class="text-sm text-slate-500 mt-1">All scheduled patients have been triaged.</p>
-                </div>
 
-                <!-- Queue List -->
-                <div id="queue-container" class="space-y-4">
-                    <!-- Cards injected here via JS -->
-                </div>
+                    <!-- Right Column (Stats) -->
+                    <div class="space-y-6 lg:space-y-8" data-aos="fade-up" data-aos-delay="200">
+                        
+                        <!-- Mini Stats Panel -->
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                <h3 class="font-bold text-slate-700">Shift Overview</h3>
+                                <i data-feather="bar-chart-2" class="w-4 h-4 text-slate-400"></i>
+                            </div>
+                            <div class="p-5 grid grid-cols-2 gap-4">
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Total Wait</p>
+                                    <p class="text-2xl font-black text-slate-800" id="stat-waiting">0</p>
+                                </div>
+                                <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">Now Serving</p>
+                                    <p class="text-xl font-black text-emerald-700 mt-1" id="stat-now-serving">--</p>
+                                </div>
+                            </div>
+                            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-3xl">
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500 mb-2">Triage Efficiency</p>
+                                    <div class="w-full bg-slate-200 rounded-full h-2 mb-1">
+                                        <div class="bg-emerald-500 h-2 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                    <p class="text-[10px] font-bold text-emerald-600 uppercase">Ready for Doctors</p>
+                                </div>
+                            </div>
+                        </div>
 
+                    </div>
+
+                </div>
             </div>
         </main>
     </div>
 
+    <!-- Logic Script -->
     <script>
-        feather.replace();
-        const API_BASE = "https://smart-his-backend.onrender.com";
+        const API_BASE = "https://smart-his-backend.onrender.com"; 
 
-        // Real-time Clock
+        document.addEventListener('DOMContentLoaded', () => {
+            startClock();
+            loadNurseQueue();
+            // Auto-refresh every 15 seconds
+            setInterval(loadNurseQueue, 15000);
+        });
+
         function startClock() {
             const timeEl = document.getElementById('current-time');
             if(!timeEl) return;
@@ -102,16 +243,21 @@
             update();
             setInterval(update, 1000);
         }
-        
+
         function calculateAge(dob) { 
             if(!dob) return '--'; 
             return Math.floor((new Date() - new Date(dob))/31557600000); 
         }
 
+        function safeSetText(id, val) { 
+            const el = document.getElementById(id); 
+            if(el) el.textContent = val || '--'; 
+        }
+
         async function loadNurseQueue() {
             const container = document.getElementById('queue-container');
+            const heroCard = document.getElementById('active-patient-card');
             const emptyState = document.getElementById('empty-state');
-            const countEl = document.getElementById('queue-count');
 
             try {
                 // Fetch the specific queue for nurses
@@ -120,45 +266,62 @@
                 
                 const appointments = await res.json();
                 
+                safeSetText('stat-waiting', appointments.length);
                 container.innerHTML = '';
-                countEl.textContent = appointments.length;
 
+                // Handle Empty State
                 if (appointments.length === 0) {
+                    heroCard.classList.add('hidden');
                     emptyState.classList.remove('hidden');
+                    safeSetText('stat-now-serving', "--");
                     return;
                 } else {
                     emptyState.classList.add('hidden');
                 }
 
-                appointments.forEach((appt, index) => {
+                // Handle First Patient (Hero Card)
+                const activeAppt = appointments[0];
+                let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
+                
+                heroCard.classList.remove('hidden');
+                safeSetText('stat-now-serving', `A-${activeAppt.queue_number}`);
+                safeSetText('active-queue-no', `A-${activeAppt.queue_number}`);
+                safeSetText('active-name', activeP.full_name);
+                safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
+                
+                const heroBtn = document.getElementById('open-active-triage-btn');
+                if(heroBtn) {
+                    heroBtn.onclick = () => window.location.href = `nurse.html?id=${activeAppt.id}`;
+                }
+
+                // Handle Remaining Queue (Cards)
+                appointments.slice(1).forEach((appt, index) => {
                     const p = appt.patients || {};
                     const age = calculateAge(p.dob);
                     
                     const card = document.createElement('div');
-                    card.className = "bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between sm:items-center animate-fade-in cursor-pointer group";
+                    card.className = "bg-white p-4 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:shadow-lg transition-all cursor-pointer group flex flex-col sm:flex-row justify-between sm:items-center gap-4 animate-fade-in";
                     card.style.animationDelay = `${index * 0.05}s`;
                     
-                    card.onclick = () => {
-                        window.location.href = `nurse.html?id=${appt.id}`;
-                    };
+                    card.onclick = () => { window.location.href = `nurse.html?id=${appt.id}`; };
 
                     card.innerHTML = `
-                        <div class="flex items-center gap-5">
-                            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 border border-slate-200 text-lg">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-slate-500 border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors text-lg shadow-sm">
                                 ${appt.queue_number}
                             </div>
                             <div>
-                                <h4 class="font-bold text-base text-slate-800 group-hover:text-emerald-600 transition-colors">${p.full_name || 'Unknown Patient'}</h4>
-                                <div class="flex gap-3 text-sm text-slate-500 mt-1 font-medium">
-                                    <span class="flex items-center"><i data-feather="hash" class="w-3.5 h-3.5 mr-1"></i> MRN: ${p.mrn || '--'}</span>
-                                    <span class="flex items-center"><i data-feather="user" class="w-3.5 h-3.5 mr-1"></i> ${age} yrs • ${p.gender || '--'}</span>
+                                <h4 class="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">${p.full_name || 'Unknown'}</h4>
+                                <div class="flex gap-3 text-xs text-slate-500 mt-1 font-medium">
+                                    <span class="flex items-center"><i data-feather="user" class="w-3 h-3 mr-1"></i> ${age} yrs • ${p.gender || '--'}</span>
+                                    <span class="flex items-center"><i data-feather="hash" class="w-3 h-3 mr-1"></i> ${p.mrn || '--'}</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-4 sm:mt-0">
-                            <button class="w-full sm:w-auto px-5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-lg font-bold transition-colors flex items-center justify-center">
-                                Start Triage <i data-feather="arrow-right" class="w-4 h-4 ml-2"></i>
-                            </button>
+                        <div class="flex items-center">
+                             <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex items-center">
+                                Triage <i data-feather="chevron-right" class="w-3 h-3 ml-1"></i>
+                             </span>
                         </div>
                     `;
                     
@@ -169,16 +332,13 @@
 
             } catch (err) {
                 console.error(err);
-                container.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded border border-red-200">Error loading queue. Is the server running?</div>`;
+                container.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded border border-red-200 text-sm font-medium">Error loading queue. Is the server running?</div>`;
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            startClock();
-            loadNurseQueue();
-            // Refresh queue every 30 seconds automatically
-            setInterval(loadNurseQueue, 30000); 
-        });
+    </script>
+    <script>
+        AOS.init();
+        feather.replace();
     </script>
 </body>
 </html>
