@@ -3,560 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nurse Triage - Hospital EMR System</title>
+    <title>Nurse Triage - Hospital EMR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .sidebar {
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 40;
-        }
-        /* Sidebar Tooltip text */
-        .sidebar-tooltip {
-            position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #1f2937;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            white-space: nowrap;
-            margin-left: 10px;
-            z-index: 50;
-        }
-        .sidebar-item:hover .sidebar-tooltip {
-            opacity: 1;
-        }
-
-        /* Right Floating Panel */
-        #rightPanel {
-            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-        }
-        
-        .form-section {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: opacity 0.3s ease;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
         .input-field {
-            transition: all 0.2s ease;
-        }
-        .input-field:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-        }
-        
-        /* Range Slider Styling */
-        input[type=range] {
-            -webkit-appearance: none; 
-            appearance: none; /* Standard property for compatibility */
-            background: transparent; 
-            height: 8px; /* Ensure height matches tailwind class h-2 */
-        }
-        
-        /* Chrome/Safari/Edge Thumb */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            border: 1px solid #d1d5db;
-            margin-top: -6px; /* Centers thumb on the track */
-        }
-        
-        /* Chrome/Safari/Edge Track */
-        input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: transparent; /* Background handled by pain-gradient class */
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
             border-radius: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.2s;
         }
-
-        /* Firefox Thumb */
-        input[type=range]::-moz-range-thumb {
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            border: 1px solid #d1d5db;
-        }
-
-        /* Firefox Track */
-        input[type=range]::-moz-range-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: transparent;
-            border-radius: 0.5rem;
-        }
-
-        input[type=range]:focus {
-            outline: none; 
-        }
-        
-        /* Pain Scale Gradient */
-        .pain-gradient {
-            background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
-        }
+        .input-field:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
     </style>
 </head>
-<body class="bg-gray-50 font-sans overflow-hidden">
-    <!-- Header -->
-    <header class="bg-blue-600 text-white shadow-md z-50 relative">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <i data-feather="activity" class="w-6 h-6"></i>
-                <h1 class="text-xl font-bold">Hospital EMR - Nurse Triage</h1>
+<body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-20 lg:w-64 bg-[#0a192f] text-slate-300 flex flex-col shadow-2xl flex-shrink-0 border-r border-slate-800">
+        <!-- Brand -->
+        <div class="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-800/50 bg-[#061121]">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400">
+                <i data-feather="activity" class="w-5 h-5"></i>
             </div>
-            <div class="flex items-center space-x-4">
-                <span class="hidden md:inline">Nurse Sarah Jenkins</span>
-                <div class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center">
-                    <i data-feather="user" class="w-4 h-4"></i>
-                </div>
-            </div>
+            <span class="hidden lg:block ml-3 font-bold text-lg text-white tracking-wide">Smart HIS</span>
         </div>
-    </header>
 
-    <div class="flex h-[calc(100vh-64px)] relative">
-        <!-- Sidebar -->
-        <aside class="sidebar bg-gray-800 text-white w-16 flex flex-col flex-shrink-0 z-40 shadow-lg">
-            <!-- Back Button -->
-            <div class="p-4 border-b border-gray-700 flex justify-center">
-                <a href="NURSE_APPOINTMENTS.html" class="sidebar-item relative p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
-                    <i data-feather="arrow-left" class="w-5 h-5"></i>
-                    <span class="sidebar-tooltip">Back to Queue</span>
-                </a>
+        <!-- Nav Links -->
+        <nav class="flex-1 py-6 flex flex-col gap-2 px-3">
+            <a href="NURSE_APPOINTMENTS.html" class="flex items-center px-3 py-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
+                <i data-feather="arrow-left" class="w-5 h-5"></i>
+                <span class="hidden lg:block ml-3 text-sm font-medium">Back to Queue</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-full relative">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 flex-shrink-0 z-30">
+            <h1 class="text-xl font-bold text-slate-800">Clinical Triage Assessment</h1>
+            <div class="flex items-center gap-4">
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs font-bold uppercase tracking-wider">Triage Phase</span>
             </div>
+        </header>
 
-            <!-- Primary Actions -->
-            <div class="flex-grow flex flex-col items-center py-6 space-y-6">
-                <!-- Triage Form (Active) -->
-                <button class="sidebar-item relative p-3 rounded-xl bg-blue-600 text-white shadow-md cursor-default">
-                    <i data-feather="clipboard" class="w-5 h-5"></i>
-                    <span class="sidebar-tooltip">Triage Form</span>
-                </button>
-
-                <!-- Past History Toggle -->
-                <button id="sidebarHistoryBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all transform hover:scale-105">
-                    <i data-feather="clock" class="w-5 h-5"></i>
-                    <span class="sidebar-tooltip">Patient History</span>
-                </button>
-            </div>
-
-            <!-- Settings -->
-            <div class="p-4 border-t border-gray-700 mt-auto flex justify-center">
-                <button class="sidebar-item relative p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
-                    <i data-feather="settings" class="w-5 h-5"></i>
-                    <span class="sidebar-tooltip">Settings</span>
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="flex-grow overflow-auto p-6 bg-gray-50 relative" id="mainContent">
-            <div class="container mx-auto px-0 space-y-6 max-w-6xl">
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-6 lg:p-8 scroll-smooth">
+            <div class="max-w-4xl mx-auto space-y-6">
                 
-                <!-- Patient Header Card -->
-                <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="flex items-center">
-                        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mr-4 text-blue-600">
-                            <i data-feather="user" class="w-8 h-8"></i>
+                <!-- Dynamic Patient Info Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 flex items-center justify-between" data-aos="fade-down">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-200">
+                            <i data-feather="user" class="w-7 h-7"></i>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Jane Doe</h2>
-                            <div class="flex items-center text-sm text-gray-500 mt-1 space-x-4">
-                                <span>32 yrs • Female</span>
-                                <span>ID: PT-123456</span>
-                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">Fall Risk</span>
+                            <h2 id="pt-name" class="text-2xl font-bold text-slate-800">Loading Patient...</h2>
+                            <div class="flex gap-4 text-sm text-slate-500 mt-1 font-medium">
+                                <span class="flex items-center"><i data-feather="hash" class="w-4 h-4 mr-1.5 opacity-70"></i> <span id="pt-mrn">--</span></span>
+                                <span class="flex items-center"><i data-feather="info" class="w-4 h-4 mr-1.5 opacity-70"></i> <span id="pt-age-gender">--</span></span>
                             </div>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="text-right">
-                            <p class="text-xs text-gray-500 uppercase">Allergies</p>
-                            <span class="text-red-600 font-bold flex items-center justify-end">
-                                <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i> Penicillin
-                            </span>
-                        </div>
-                        <div class="text-right border-l pl-4">
-                            <p class="text-xs text-gray-500 uppercase">Queue No.</p>
-                            <span class="text-blue-800 font-bold text-xl">A-15</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <!-- Left Column: Vitals Entry -->
-                    <div class="lg:col-span-1 space-y-6">
-                        <section class="form-section bg-white rounded-lg p-6">
-                            <h3 class="font-semibold text-gray-800 mb-4 flex items-center">
-                                <i data-feather="activity" class="w-4 h-4 mr-2 text-blue-500"></i>
-                                Vitals Entry
-                            </h3>
-                            
-                            <div class="space-y-4">
-                                <!-- Temperature -->
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Temperature (°C)</label>
-                                    <div class="relative">
-                                        <input type="number" step="0.1" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="36.5">
-                                        <div class="absolute right-3 top-2.5 text-gray-400 text-xs">°C</div>
-                                    </div>
-                                </div>
-
-                                <!-- BP -->
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Blood Pressure</label>
-                                    <div class="flex space-x-2">
-                                        <input type="number" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="120">
-                                        <span class="self-center text-gray-400">/</span>
-                                        <input type="number" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="80">
-                                    </div>
-                                </div>
-
-                                <!-- HR & RR -->
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Heart Rate</label>
-                                        <div class="relative">
-                                            <input type="number" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="72">
-                                            <div class="absolute right-2 top-2.5 text-gray-400 text-xs">bpm</div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Resp. Rate</label>
-                                        <div class="relative">
-                                            <input type="number" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="16">
-                                            <div class="absolute right-2 top-2.5 text-gray-400 text-xs">bpm</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SpO2 -->
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">SpO2 (%)</label>
-                                    <div class="relative">
-                                        <input type="number" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="98">
-                                        <div class="absolute right-3 top-2.5 text-gray-400 text-xs">%</div>
-                                    </div>
-                                </div>
-
-                                <!-- Weight & Height -->
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Weight (kg)</label>
-                                        <input type="number" id="weight" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="kg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Height (cm)</label>
-                                        <input type="number" id="height" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="cm">
-                                    </div>
-                                </div>
-
-                                <!-- BMI Calculator -->
-                                <div class="bg-gray-100 p-3 rounded-md text-center">
-                                    <span class="text-xs text-gray-500 block">Calculated BMI</span>
-                                    <span id="bmiDisplay" class="text-lg font-bold text-gray-700">--</span>
-                                </div>
-                            </div>
-                        </section>
+                <!-- Vital Signs Form -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center">
+                        <i data-feather="activity" class="w-5 h-5 mr-2 text-rose-500"></i>
+                        <h3 class="font-bold text-slate-800 text-lg">Vital Signs</h3>
                     </div>
-
-                    <!-- Right Column: Screening & Triage -->
-                    <div class="lg:col-span-2 space-y-6">
-                        
-                        <!-- Chief Complaint -->
-                        <section class="form-section bg-white rounded-lg p-6">
-                            <h3 class="font-semibold text-gray-800 mb-4">Chief Complaint & History</h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Visit</label>
-                                    <textarea class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-20" placeholder="e.g. Severe sore throat starting 2 days ago..."></textarea>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- Pain Scale -->
-                                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <label class="block text-sm font-bold text-gray-700 mb-3 flex justify-between">
-                                            Pain Level
-                                            <span id="painValue" class="text-blue-600 text-lg">0/10</span>
-                                        </label>
-                                        <input type="range" min="0" max="10" value="0" id="painRange" class="w-full h-2 rounded-lg appearance-none cursor-pointer pain-gradient">
-                                        <div class="flex justify-between text-xs text-gray-500 mt-2">
-                                            <span>No Pain</span>
-                                            <span>Moderate</span>
-                                            <span>Worst Possible</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Screening Checklist -->
-                                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <h4 class="text-sm font-bold text-gray-700 mb-3">Screening Checklist</h4>
-                                        <div class="space-y-2">
-                                            <label class="flex items-center space-x-2">
-                                                <input type="checkbox" class="h-4 w-4 text-blue-600 rounded border-gray-300">
-                                                <span class="text-sm text-gray-700">Recent Travel (< 14 days)</span>
-                                            </label>
-                                            <label class="flex items-center space-x-2">
-                                                <input type="checkbox" class="h-4 w-4 text-blue-600 rounded border-gray-300">
-                                                <span class="text-sm text-gray-700">Contact with Sick Persons</span>
-                                            </label>
-                                            <label class="flex items-center space-x-2">
-                                                <input type="checkbox" class="h-4 w-4 text-blue-600 rounded border-gray-300">
-                                                <span class="text-sm text-gray-700">Falls in last 3 months</span>
-                                            </label>
-                                            <label class="flex items-center space-x-2">
-                                                <input type="checkbox" class="h-4 w-4 text-blue-600 rounded border-gray-300">
-                                                <span class="text-sm text-gray-700">Smoker</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Weight (kg)</label>
+                            <input type="number" step="0.1" id="weight" class="input-field" placeholder="e.g. 65">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Height (cm)</label>
+                            <input type="number" id="height" class="input-field" placeholder="e.g. 170">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Temp (°C)</label>
+                            <input type="number" step="0.1" id="temperature" class="input-field" placeholder="e.g. 36.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">SpO2 (%)</label>
+                            <input type="number" id="spo2" class="input-field" placeholder="e.g. 98">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Blood Pressure (mmHg)</label>
+                            <div class="flex items-center">
+                                <input type="number" id="systolic" class="input-field rounded-r-none border-r-0 text-center" placeholder="Sys">
+                                <span class="px-3 py-3 bg-slate-100 border-y border-slate-300 text-slate-500 font-bold">/</span>
+                                <input type="number" id="diastolic" class="input-field rounded-l-none border-l-0 text-center" placeholder="Dia">
                             </div>
-                        </section>
-
-                        <!-- Nurse Notes -->
-                        <section class="form-section bg-white rounded-lg p-6">
-                            <h3 class="font-semibold text-gray-800 mb-4">Nurse Notes</h3>
-                            <textarea class="input-field w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-32" placeholder="Patient alert and oriented x3. Ambulatory. Skin warm and dry..."></textarea>
-                        </section>
-
-                        <!-- Action Buttons -->
-                        <div class="flex justify-end space-x-4 pt-2">
-                            <button class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 bg-white">
-                                Save Draft
-                            </button>
-                            <button onclick="submitTriage()" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center shadow-lg transform transition hover:-translate-y-0.5">
-                                <i data-feather="check-circle" class="w-4 h-4 mr-2"></i>
-                                Submit to Doctor
-                            </button>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Heart Rate (bpm)</label>
+                            <input type="number" id="hr" class="input-field" placeholder="e.g. 80">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Resp. Rate</label>
+                            <input type="number" id="rr" class="input-field" placeholder="e.g. 18">
                         </div>
                     </div>
                 </div>
+
+                <!-- Pain Assessment & Notes -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-aos="fade-up" data-aos-delay="200">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center">
+                        <i data-feather="file-text" class="w-5 h-5 mr-2 text-indigo-500"></i>
+                        <h3 class="font-bold text-slate-800 text-lg">Nursing Assessment</h3>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Score (0-10)</label>
+                                <input type="number" min="0" max="10" id="pain-score" class="input-field" placeholder="0 = No Pain, 10 = Worst">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Location</label>
+                                <input type="text" id="pain-location" class="input-field" placeholder="e.g. Lower Back, Headache">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Chief Complaint / Initial Notes</label>
+                            <textarea id="nurse-notes" rows="4" class="input-field resize-none" placeholder="Briefly describe the patient's primary symptoms and reason for visit..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end pt-4 pb-12" data-aos="fade-in" data-aos-delay="300">
+                    <button id="submitBtn" onclick="submitTriage()" class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center text-lg">
+                        <i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor
+                    </button>
+                </div>
+
             </div>
         </main>
-
-        <!-- Right Floating Side Window (Past History) -->
-        <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 w-[30%] min-w-[350px] border-l border-gray-200 flex flex-col">
-            <div class="p-4 bg-gray-100 border-b flex justify-between items-center">
-                <div class="flex items-center">
-                    <i data-feather="clock" class="w-5 h-5 text-blue-600 mr-2"></i>
-                    <h3 class="font-bold text-gray-700">Past Medical History</h3>
-                </div>
-                <button id="closeRightPanel" class="text-gray-500 hover:text-red-500 transition-colors focus:outline-none">
-                    <i data-feather="minimize-2" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div class="flex-grow overflow-y-auto p-4 space-y-4">
-                <!-- Reused History Content -->
-                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-sm font-bold text-blue-700">12 Jan 2023</span>
-                        <span class="text-xs text-gray-500">General Practice</span>
-                    </div>
-                    <h4 class="font-semibold text-gray-800 text-sm mb-1">Acute Bronchitis</h4>
-                    <p class="text-xs text-gray-600 mb-2">Patient reported persistent cough and low-grade fever.</p>
-                    <div class="flex items-center text-xs text-gray-500">
-                        <i data-feather="user" class="w-3 h-3 mr-1"></i> Dr. Sarah Smith
-                    </div>
-                </div>
-
-                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-sm font-bold text-blue-700">05 Nov 2022</span>
-                        <span class="text-xs text-gray-500">Internal Medicine</span>
-                    </div>
-                    <h4 class="font-semibold text-gray-800 text-sm mb-1">Hypertension Follow-up</h4>
-                    <p class="text-xs text-gray-600 mb-2">BP controlled on medication. Advised lifestyle changes.</p>
-                    <div class="flex items-center text-xs text-gray-500">
-                        <i data-feather="user" class="w-3 h-3 mr-1"></i> Dr. John Doe
-                    </div>
-                </div>
-
-                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-sm font-bold text-blue-700">15 Aug 2022</span>
-                        <span class="text-xs text-gray-500">Dermatology</span>
-                    </div>
-                    <h4 class="font-semibold text-gray-800 text-sm mb-1">Allergic Dermatitis</h4>
-                    <p class="text-xs text-gray-600 mb-2">Rash on forearm. Prescribed topical corticosteroids.</p>
-                    <div class="flex items-center text-xs text-gray-500">
-                        <i data-feather="user" class="w-3 h-3 mr-1"></i> Dr. Emily White
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-4 border-t bg-gray-50">
-                <button class="w-full py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    View Full Records
-                </button>
-            <div class="mt-8 flex justify-end pb-12">
-            <button onclick="submitTriage()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center">
-                <i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor
-            </button>
-        </div>
     </div>
 
+    <!-- Logic Script -->
     <script>
-        // Initialize
-        window.onload = function() {
-            AOS.init();
-            feather.replace();
-
-            // === BMI Calculator ===
-            const weightInput = document.getElementById('weight');
-            const heightInput = document.getElementById('height');
-            const bmiDisplay = document.getElementById('bmiDisplay');
-
-            function calculateBMI() {
-                const w = parseFloat(weightInput.value);
-                const h = parseFloat(heightInput.value) / 100; // cm to m
-                if (w && h) {
-                    const bmi = (w / (h * h)).toFixed(1);
-                    bmiDisplay.innerText = bmi;
-                    
-                    // Optional styling based on range
-                    if(bmi < 18.5) bmiDisplay.className = "text-lg font-bold text-blue-500";
-                    else if(bmi >= 25) bmiDisplay.className = "text-lg font-bold text-orange-500";
-                    else bmiDisplay.className = "text-lg font-bold text-green-600";
-                } else {
-                    bmiDisplay.innerText = "--";
-                    bmiDisplay.className = "text-lg font-bold text-gray-700";
-                }
-            }
-
-            weightInput.addEventListener('input', calculateBMI);
-            heightInput.addEventListener('input', calculateBMI);
-
-            // === Pain Slider Logic ===
-            const painRange = document.getElementById('painRange');
-            const painValue = document.getElementById('painValue');
-
-            painRange.addEventListener('input', (e) => {
-                painValue.innerText = `${e.target.value}/10`;
-                // Color change based on pain level
-                if(e.target.value > 7) painValue.className = "text-red-600 text-lg font-bold";
-                else if(e.target.value > 4) painValue.className = "text-yellow-600 text-lg font-bold";
-                else painValue.className = "text-blue-600 text-lg font-bold";
-            });
-
-            // === Sidebar & Right Panel Logic ===
-            const sidebarHistoryBtn = document.getElementById('sidebarHistoryBtn');
-            const closeRightPanelBtn = document.getElementById('closeRightPanel');
-            const rightPanel = document.getElementById('rightPanel');
-
-            function toggleRightPanel(show) {
-                if (show) {
-                    rightPanel.classList.remove('translate-x-full');
-                    sidebarHistoryBtn.classList.add('bg-gray-700', 'text-white');
-                    sidebarHistoryBtn.classList.remove('text-gray-300');
-                } else {
-                    rightPanel.classList.add('translate-x-full');
-                    sidebarHistoryBtn.classList.remove('bg-gray-700', 'text-white');
-                    sidebarHistoryBtn.classList.add('text-gray-300');
-                }
-            }
-
-            sidebarHistoryBtn.addEventListener('click', () => {
-                const isHidden = rightPanel.classList.contains('translate-x-full');
-                toggleRightPanel(isHidden);
-            });
-
-            closeRightPanelBtn.addEventListener('click', () => {
-                toggleRightPanel(false);
-            });
-        };
-
-        // Submit Action
-        function submitTriage() {
-            if(confirm("Are you sure you want to submit this triage assessment to the doctor?")) {
-                alert("Triage Submitted Successfully!");
-                window.location.href = 'NURSE_APPOINTMENTS.html';
-            }
-        }
-        
-    <script>
-        AOS.init();
-        feather.replace();
-
-        // --- NEW DYNAMIC LOGIC ---
         const API_BASE = "https://smart-his-backend.onrender.com"; 
         const urlParams = new URLSearchParams(window.location.search);
         const currentApptId = urlParams.get('id');
 
-        // Fetch Patient info on load
         document.addEventListener('DOMContentLoaded', async () => {
-            if(!currentApptId) return; // Run in demo mode if no ID is passed
+            AOS.init();
+            feather.replace();
 
-            try {
-                const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
-                if(res.ok) {
-                    const data = await res.json();
-                    const p = data.patients || {};
-                    
-                    document.getElementById('pt-name').textContent = p.full_name || 'Unknown Patient';
-                    document.getElementById('pt-id').textContent = p.mrn || 'N/A';
-                    
-                    const age = p.dob ? Math.floor((new Date() - new Date(p.dob))/31557600000) : '--';
-                    document.getElementById('pt-details').textContent = `${age} yrs | ${p.gender || 'Unknown'}`;
-                }
-            } catch (e) {
-                console.error("Failed to load patient header", e);
-            }
-        });
-
-        // Toggle Sidebar Logic
-        window.onload = () => {
-            const sidebarHistoryBtn = document.getElementById('sidebarHistoryBtn');
-            const closeRightPanelBtn = document.getElementById('closeRightPanel');
-            const rightPanel = document.getElementById('rightPanel');
-
-            function toggleRightPanel(show) {
-                if (show) {
-                    rightPanel.classList.remove('translate-x-full');
-                    sidebarHistoryBtn.classList.add('bg-gray-700', 'text-white');
-                    sidebarHistoryBtn.classList.remove('text-gray-300');
-                } else {
-                    rightPanel.classList.add('translate-x-full');
-                    sidebarHistoryBtn.classList.remove('bg-gray-700', 'text-white');
-                    sidebarHistoryBtn.classList.add('text-gray-300');
-                }
-            }
-
-            sidebarHistoryBtn.addEventListener('click', () => {
-                const isHidden = rightPanel.classList.contains('translate-x-full');
-                toggleRightPanel(isHidden);
-            });
-
-            closeRightPanelBtn.addEventListener('click', () => {
-                toggleRightPanel(false);
-            });
-        };
-
-        // Submit Action
-        async function submitTriage() {
-            if(!confirm("Are you sure you want to submit this triage assessment to the doctor?")) return;
-            
             if(!currentApptId) {
-                alert("Demo Mode: Triage Captured! (No appointment ID attached)");
+                alert("No appointment selected! Redirecting to queue.");
                 window.location.href = 'NURSE_APPOINTMENTS.html';
                 return;
             }
+
+            // Dynamically Fetch Patient Information
+            try {
+                const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
+                if (!res.ok) throw new Error("Failed to load patient");
+                
+                const data = await res.json();
+                const p = data.patients || {};
+                
+                document.getElementById('pt-name').textContent = p.full_name || 'Unknown Patient';
+                document.getElementById('pt-mrn').textContent = p.mrn || 'N/A';
+                
+                const age = p.dob ? Math.floor((new Date() - new Date(p.dob))/31557600000) : '--';
+                document.getElementById('pt-age-gender').textContent = `${age} yrs | ${p.gender || 'Unknown'}`;
+                
+            } catch (e) {
+                console.error("Error fetching patient header:", e);
+                document.getElementById('pt-name').textContent = "Error Loading Data";
+            }
+        });
+
+        // Submit Triage Data to Backend
+        async function submitTriage() {
+            if(!confirm("Submit this triage assessment to the doctor's queue?")) return;
+            
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 mr-2 animate-spin"></i> Submitting...`;
+            feather.replace();
 
             const payload = {
                 appointment_id: currentApptId,
@@ -565,8 +206,8 @@
                 systolic: parseInt(document.getElementById('systolic').value) || null,
                 diastolic: parseInt(document.getElementById('diastolic').value) || null,
                 temperature: parseFloat(document.getElementById('temperature').value) || null,
-                heart_rate: parseInt(document.getElementById('heart-rate').value) || null,
-                respiratory_rate: parseInt(document.getElementById('resp-rate').value) || null,
+                heart_rate: parseInt(document.getElementById('hr').value) || null,
+                respiratory_rate: parseInt(document.getElementById('rr').value) || null,
                 spo2: parseInt(document.getElementById('spo2').value) || null,
                 pain_score: parseInt(document.getElementById('pain-score').value) || null,
                 pain_location: document.getElementById('pain-location').value || null,
@@ -574,10 +215,6 @@
             };
 
             try {
-                const submitBtn = document.querySelector('button[onclick="submitTriage()"]');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = "Submitting...";
-
                 const res = await fetch(`${API_BASE}/nurse/submit-triage`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -585,16 +222,18 @@
                 });
 
                 if(res.ok) {
-                    alert("Triage Submitted Successfully!");
+                    alert("Triage Submitted Successfully! Patient is ready for the doctor.");
                     window.location.href = 'NURSE_APPOINTMENTS.html';
                 } else {
-                    alert("Error submitting triage assessment.");
+                    throw new Error("Server returned an error");
                 }
             } catch(e) {
                 alert("Failed to submit: " + e.message);
+                btn.disabled = false;
+                btn.innerHTML = `<i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor`;
+                feather.replace();
             }
         }
     </script>
 </body>
 </html>
-
