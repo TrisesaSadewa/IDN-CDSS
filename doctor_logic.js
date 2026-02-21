@@ -142,23 +142,43 @@ async function initEMRPage() {
         
         const data = await res.json();
         const p = data.patients || {};
-        const t = (data.triage_notes && data.triage_notes.length) ? data.triage_notes[0] : {};
+        
+        // Grab the most recent triage note attached to this appointment
+        const t = (data.triage_notes && data.triage_notes.length > 0) 
+                  ? data.triage_notes[data.triage_notes.length - 1] 
+                  : {};
         
         currentPatientId = p.id;
         safeSetText('pt-name', p.full_name || 'Unknown');
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
         
+        const allergies = p.allergies || "None Known"; 
+        safeSetText('pt-allergies', allergies);
+        if(allergies === "None Known") {
+            const alEl = document.getElementById('pt-allergies');
+            if(alEl) alEl.className = "text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded text-right";
+        }
+        
+        // Populate Vitals from Nurse Triage
         safeSetValue('weight', t.weight_kg);
         safeSetValue('height', t.height_cm);
         safeSetValue('systolic', t.systolic);
         safeSetValue('diastolic', t.diastolic);
         safeSetValue('temperature', t.temperature);
         calculateBMI(); 
-        safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded.");
+        
+        // --- Populate the "Nurse Notes" UI from Nurse Triage ---
+        safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded by nurse.");
+        safeSetText('pain-score', t.pain_score !== null && t.pain_score !== undefined ? t.pain_score : '--');
+        safeSetText('pain-location', t.pain_location || '--');
+        
         loadHistoryPanel(p.id);
 
-    } catch (err) { console.error(err); alert("Failed to load patient data."); }
+    } catch (err) { 
+        console.error(err); 
+        alert("Failed to load patient data."); 
+    }
 }
 
 window.togglePanel = (type) => {
@@ -723,4 +743,8 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
+
+
+
+
 
