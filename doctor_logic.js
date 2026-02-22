@@ -585,13 +585,13 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                     description: d.who_full_desc
                 }));
             } else if (type === 'drug' && supabaseClient) {
-                // Optimized search for Drugs that exist in Inventory with Total Stock
+                // Search all drugs, showing stock from inventory if it exists
                 const { data } = await supabaseClient
                     .from('knowledge_map')
                     .select(`
                         id,
                         local_term,
-                        pharmacy_inventory!inner (
+                        pharmacy_inventory (
                             stock_level
                         )
                     `)
@@ -599,7 +599,14 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                     .limit(15);
 
                 results = (data || []).map(d => {
-                    const totalStock = (d.pharmacy_inventory || []).reduce((sum, item) => sum + (item.stock_level || 0), 0);
+                    // Robustly handle if pharmacy_inventory is array, object, or null
+                    let totalStock = 0;
+                    if (Array.isArray(d.pharmacy_inventory)) {
+                        totalStock = d.pharmacy_inventory.reduce((sum, inv) => sum + (inv.stock_level || 0), 0);
+                    } else if (d.pharmacy_inventory && typeof d.pharmacy_inventory === 'object') {
+                        totalStock = d.pharmacy_inventory.stock_level || 0;
+                    }
+
                     return {
                         id: d.id,
                         local_term: d.local_term || 'Unnamed Drug',
