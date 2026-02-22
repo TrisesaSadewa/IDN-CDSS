@@ -3,421 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nurse Triage - Hospital EMR</title>
+    <title>Pharmacy - Smart HIS</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .sidebar { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
-        .sidebar-tooltip {
-            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
-            background: #1f2937; color: white; padding: 4px 8px; border-radius: 4px;
-            font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-            white-space: nowrap; margin-left: 10px; z-index: 50;
-        }
-        .sidebar-item:hover .sidebar-tooltip { opacity: 1; }
-        .input-field {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            outline: none;
-            transition: all 0.2s;
-        }
-        .input-field:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        h1, h2, h3, .brand-font { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* Custom range slider styling */
-        input[type=range]::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #4f46e5;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
+        .sidebar-item { transition: all 0.2s; }
+        .sidebar-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .sidebar-item.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 flex h-[100dvh] overflow-hidden text-slate-800">
+<body class="h-screen flex overflow-hidden">
 
-    <!-- 1. Collapsed Primary Sidebar (Navigation & Tools) -->
-    <aside class="sidebar w-20 bg-[#0a192f] text-slate-300 flex flex-col shadow-2xl flex-shrink-0 border-r border-slate-800 relative z-40">
-        <!-- Brand -->
-        <div class="h-16 flex items-center justify-center border-b border-slate-800/50 bg-[#061121]">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400">
-                <i data-feather="activity" class="w-5 h-5"></i>
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col z-20 shadow-xl">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+            <div class="p-1.5 bg-emerald-500 rounded text-white mr-3">
+                <i data-feather="package" class="w-5 h-5"></i>
             </div>
+            <span class="text-lg font-bold text-white tracking-wide brand-font">Pharmacy</span>
         </div>
 
-        <!-- Nav Links -->
-        <nav class="flex-1 py-6 flex flex-col gap-4 px-3 items-center">
-            <a href="NURSE_APPOINTMENTS.html" class="sidebar-item relative flex items-center justify-center w-12 h-12 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
-                <i data-feather="arrow-left" class="w-5 h-5"></i>
-                <span class="sidebar-tooltip">Back to Queue</span>
-            </a>
+        <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Main</p>
             
-            <div class="w-10 border-b border-slate-700/50 my-2"></div>
-            
-            <!-- Panel Toggle Buttons -->
-            <button id="sidebarHistoryBtn" class="sidebar-item relative flex items-center justify-center w-12 h-12 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition-all">
-                <i data-feather="clock" class="w-5 h-5"></i>
-                <span class="sidebar-tooltip">Past Medical History</span>
+            <button onclick="switchTab('queue')" id="tab-queue" class="sidebar-item active w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="inbox" class="w-4 h-4 mr-3"></i>
+                Dispense Queue
+                <span id="queue-badge" class="ml-auto bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
             </button>
-            <button id="sidebarLabBtn" class="sidebar-item relative flex items-center justify-center w-12 h-12 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition-all">
-                <i data-feather="thermometer" class="w-5 h-5"></i>
-                <span class="sidebar-tooltip">Recent Lab Results</span>
+
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="database" class="w-4 h-4 mr-3"></i>
+                Inventory Management
             </button>
-        </nav>
+
+            <button onclick="switchTab('history')" id="tab-history" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="clock" class="w-4 h-4 mr-3"></i>
+                History Logs
+            </button>
+        </div>
+
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="window.location.href='PORTAL.html'" class="w-full flex items-center justify-center px-4 py-2 border border-slate-700 rounded-lg text-sm hover:bg-slate-800 hover:text-white transition-colors">
+                <i data-feather="arrow-left" class="w-4 h-4 mr-2"></i> Back to Portal
+            </button>
+        </div>
     </aside>
 
-    <!-- 2. Main Content Wrapper -->
-    <div class="flex-1 flex flex-col min-w-0 h-full relative z-20">
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
         
         <!-- Header -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 flex-shrink-0">
+        <header class="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm z-10">
+            <h2 id="page-title" class="text-xl font-bold text-slate-800 brand-font">Dispense Queue</h2>
             <div class="flex items-center gap-4">
-                <h1 class="text-xl font-bold text-slate-800">Clinical Triage</h1>
-                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs font-bold uppercase tracking-wider hidden sm:block">Triage Phase</span>
+                <div class="relative">
+                    <i data-feather="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input type="text" placeholder="Search orders..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
+                </div>
+                <div class="w-px h-6 bg-slate-200"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                        PH
+                    </div>
+                    <span class="text-sm font-medium text-slate-700">Pharmacist</span>
+                </div>
             </div>
         </header>
 
-        <!-- Scrollable Content -->
-        <main class="flex-1 overflow-y-auto p-6 lg:p-8 pb-32 scroll-smooth bg-white">
-            <div class="max-w-4xl mx-auto space-y-6">
-                
-                <!-- Dynamic Patient Info Card -->
-                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 flex items-center justify-between" data-aos="fade-down">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-200">
-                            <i data-feather="user" class="w-7 h-7"></i>
-                        </div>
-                        <div>
-                            <h2 id="pt-name" class="text-2xl font-bold text-slate-800">Loading Patient...</h2>
-                            <div class="flex gap-4 text-sm text-slate-500 mt-1 font-medium">
-                                <span class="flex items-center"><i data-feather="hash" class="w-4 h-4 mr-1.5 opacity-70"></i> <span id="pt-mrn">--</span></span>
-                                <span class="flex items-center"><i data-feather="info" class="w-4 h-4 mr-1.5 opacity-70"></i> <span id="pt-age-gender">--</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vital Signs Form -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-aos="fade-up" data-aos-delay="100">
-                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center">
-                        <i data-feather="activity" class="w-5 h-5 mr-2 text-rose-500"></i>
-                        <h3 class="font-bold text-slate-800 text-lg">Vital Signs</h3>
-                    </div>
-                    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Weight (kg)</label>
-                            <input type="number" step="0.1" id="weight" class="input-field" placeholder="e.g. 65">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Height (cm)</label>
-                            <input type="number" id="height" class="input-field" placeholder="e.g. 170">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Temp (°C)</label>
-                            <input type="number" step="0.1" id="temperature" class="input-field" placeholder="e.g. 36.5">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-rose-400">SpO2 (%)</label>
-                            <input type="number" id="spo2" class="input-field bg-slate-50" placeholder="e.g. 98" title="Note: Excluded from DB sync">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Blood Pressure (mmHg)</label>
-                            <div class="flex items-center">
-                                <input type="number" id="systolic" class="input-field rounded-r-none border-r-0 text-center" placeholder="Sys">
-                                <span class="px-3 py-3 bg-slate-100 border-y border-slate-300 text-slate-500 font-bold">/</span>
-                                <input type="number" id="diastolic" class="input-field rounded-l-none border-l-0 text-center" placeholder="Dia">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Heart Rate (bpm)</label>
-                            <input type="number" id="hr" class="input-field" placeholder="e.g. 80">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-rose-400">Resp. Rate</label>
-                            <input type="number" id="rr" class="input-field bg-slate-50" placeholder="e.g. 18" title="Note: Excluded from DB sync">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pain Assessment & Notes -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-aos="fade-up" data-aos-delay="200">
-                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center">
-                        <i data-feather="file-text" class="w-5 h-5 mr-2 text-indigo-500"></i>
-                        <h3 class="font-bold text-slate-800 text-lg">Nursing Assessment</h3>
-                    </div>
-                    <div class="p-6 space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Pain Slider -->
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Score (0-10)</label>
-                                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                    <input type="range" min="0" max="10" value="0" id="pain-score" 
-                                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" 
-                                        oninput="document.getElementById('pain-val').innerText = this.value">
-                                    <span id="pain-val" class="font-bold text-xl text-indigo-600 w-8 text-center">0</span>
-                                </div>
-                                <div class="flex justify-between text-xs text-slate-400 mt-1 font-medium px-1">
-                                    <span>0 - None</span>
-                                    <span>10 - Worst</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Location</label>
-                                <input type="text" id="pain-location" class="input-field" placeholder="e.g. Lower Back, Headache">
-                            </div>
-                        </div>
-
-                        <!-- FEMALE ONLY: PREGNANCY CHECK -->
-                        <div id="pregnancy-container" class="hidden bg-pink-50 p-4 rounded-xl border border-pink-200 mt-4 transition-all">
-                            <label class="flex items-center space-x-3 text-pink-700 font-bold text-sm mb-3 cursor-pointer w-fit">
-                                <input type="checkbox" id="is-pregnant" class="w-4 h-4 text-pink-600 border-pink-300 rounded focus:ring-pink-500" 
-                                       onchange="document.getElementById('preg-duration-container').classList.toggle('hidden', !this.checked)">
-                                <span>Patient is Pregnant</span>
-                            </label>
-                            <div id="preg-duration-container" class="hidden pl-7 animate-fade-in">
-                                <label class="block text-xs font-bold text-pink-600 uppercase mb-2">Gestational Age (Weeks/Months)</label>
-                                <input type="text" id="preg-duration" class="input-field border-pink-300 focus:border-pink-500 focus:ring-pink-200 bg-white" placeholder="e.g., 12 weeks">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Chief Complaint / Initial Notes</label>
-                            <textarea id="nurse-notes" rows="4" class="input-field resize-none" placeholder="Briefly describe the patient's primary symptoms and reason for visit..."></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit Button Container -->
-                <div class="flex justify-end pt-4 pb-12">
-                    <button id="submitBtn" onclick="submitTriage()" class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center text-lg">
-                        <i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor
-                    </button>
-                </div>
-
-            </div>
-        </main>
-        
-        <!-- Right Panel (Sliding Sidebar for History, Labs) -->
-        <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-[0_0_40px_rgba(0,0,0,0.15)] z-50 transform translate-x-full transition-transform duration-300 w-full sm:w-[400px] border-l border-slate-200 flex flex-col">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center shadow-sm">
-                <h3 id="rightPanelTitle" class="font-bold text-slate-800 text-lg flex items-center">
-                    <i data-feather="info" class="w-5 h-5 mr-2 text-slate-500"></i> Panel
-                </h3>
-                <button id="closeRightPanel" class="text-slate-400 hover:text-rose-500 bg-white hover:bg-rose-50 p-1.5 rounded-md border border-slate-200 transition-colors">
-                    <i data-feather="x" class="w-5 h-5"></i>
-                </button>
-            </div>
+        <!-- Content Views -->
+        <div class="flex-1 overflow-auto p-8 relative">
             
-            <div class="flex-grow overflow-y-auto p-5 hidden bg-white" id="labContent">
-                <div class="flex flex-col items-center justify-center h-full text-slate-400">
-                    <i data-feather="flask-conical" class="w-12 h-12 mb-3 opacity-50"></i>
-                    <p class="text-sm font-medium">No recent lab results found.</p>
+            <!-- VIEW: DISPENSE QUEUE -->
+            <div id="view-queue" class="fade-in space-y-6">
+                <!-- Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg mr-4"><i data-feather="clock"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Pending Orders</p><h3 class="text-2xl font-bold text-slate-800" id="stat-pending">--</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg mr-4"><i data-feather="check-circle"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Completed Today</p><h3 class="text-2xl font-bold text-slate-800" id="stat-completed">--</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-red-50 text-red-600 rounded-lg mr-4"><i data-feather="alert-triangle"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Stock Alerts</p><h3 class="text-2xl font-bold text-slate-800">2</h3></div>
+                    </div>
+                </div>
+
+                <!-- Queue List -->
+                <div id="queue-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Cards injected by JS -->
+                    <div class="flex justify-center items-center py-20 col-span-full">
+                        <div class="flex flex-col items-center text-slate-400">
+                            <i data-feather="loader" class="w-8 h-8 animate-spin mb-2"></i>
+                            <p class="text-sm">Loading prescriptions...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="flex-grow overflow-y-auto p-5 hidden bg-slate-50/50" id="historyContent">
-                <!-- Populated via JS -->
+
+            <!-- VIEW: INVENTORY -->
+            <div id="view-inventory" class="hidden fade-in space-y-6">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-700">Stock Levels</h3>
+                        <button class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center transition-colors">
+                            <i data-feather="plus" class="w-3 h-3 mr-1"></i> Add Stock
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Drug Name</th>
+                                    <th class="px-6 py-3 font-semibold">Category</th>
+                                    <th class="px-6 py-3 font-semibold">Stock</th>
+                                    <th class="px-6 py-3 font-semibold">Unit Price</th>
+                                    <th class="px-6 py-3 font-semibold">Status</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table" class="divide-y divide-slate-100">
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: HISTORY -->
+            <div id="view-history" class="hidden fade-in">
+                <div class="bg-white p-10 rounded-xl border border-slate-200 text-center text-slate-400">
+                    <i data-feather="archive" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                    <h3 class="text-lg font-medium text-slate-600">History Log</h3>
+                    <p>Feature coming soon in v2.0</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- CONFIRM DISPENSE MODAL -->
+    <div id="dispense-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform" id="modal-content">
+            <div class="p-6">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4 mx-auto">
+                    <i data-feather="check" class="w-6 h-6 text-emerald-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-center text-slate-800 mb-2">Confirm Dispense</h3>
+                <p class="text-slate-500 text-center text-sm mb-6">Are you sure you want to mark this order as complete and deduct stock?</p>
+                
+                <div class="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-100 text-sm">
+                    <p class="text-slate-500 text-xs uppercase font-bold mb-2">Order Summary</p>
+                    <ul id="modal-summary" class="space-y-1 text-slate-700">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
+                    <button id="confirm-dispense-btn" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Confirm</button>
+                </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Logic Script -->
+    <!-- LOGIC SCRIPT -->
+    <script src="pharmacy_logic.js"></script>
     <script>
-        const API_BASE = "https://smart-his-backend.onrender.com"; 
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentApptId = urlParams.get('id');
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            AOS.init({ once: true });
-            feather.replace();
-
-            setupRightPanel();
-
-            if(!currentApptId) {
-                alert("No appointment selected! Redirecting to queue.");
-                window.location.href = 'NURSE_APPOINTMENTS.html';
-                return;
-            }
-
-            // Fetch Patient Information & Load History
-            try {
-                const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
-                if (!res.ok) throw new Error("Failed to load patient");
-                
-                const data = await res.json();
-                const p = data.patients || {};
-                
-                document.getElementById('pt-name').textContent = p.full_name || 'Unknown Patient';
-                document.getElementById('pt-mrn').textContent = p.mrn || 'N/A';
-                
-                const age = p.dob ? Math.floor((new Date() - new Date(p.dob))/31557600000) : '--';
-                const gender = p.gender || 'Unknown';
-                document.getElementById('pt-age-gender').textContent = `${age} yrs | ${gender}`;
-
-                // Show Pregnancy Field if Patient is Female
-                if (gender.toLowerCase() === 'female') {
-                    document.getElementById('pregnancy-container').classList.remove('hidden');
-                }
-                
-                // Pre-load Medical History into the background
-                if(p.id) {
-                    loadHistoryPanel(p.id);
-                }
-                
-            } catch (e) {
-                console.error("Error fetching patient header:", e);
-                document.getElementById('pt-name').textContent = "Error Loading Data";
-            }
-        });
-
-        // --- Sliding Right Panel Logic ---
-        function setupRightPanel() {
-            const rightPanelBtnLab = document.getElementById('sidebarLabBtn');
-            const rightPanelBtnHist = document.getElementById('sidebarHistoryBtn');
-            const closeBtn = document.getElementById('closeRightPanel');
-
-            if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => togglePanel('lab');
-            if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => togglePanel('history');
-            if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
-        }
-
-        window.togglePanel = (type) => {
-            const rightPanel = document.getElementById('rightPanel');
-            if(!rightPanel) return;
-            
-            const isClosed = rightPanel.classList.contains('translate-x-full');
-            
-            if(isClosed) rightPanel.classList.remove('translate-x-full');
-            else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
-            
-            rightPanel.dataset.type = type;
-            const lab = document.getElementById('labContent');
-            const hist = document.getElementById('historyContent');
-            const title = document.getElementById('rightPanelTitle');
-            
-            if(lab) lab.classList.add('hidden');
-            if(hist) hist.classList.add('hidden');
-            
-            if(type === 'lab' && lab) { 
-                lab.classList.remove('hidden'); 
-                if(title) title.innerHTML = '<i data-feather="thermometer" class="w-5 h-5 mr-2 text-slate-500 inline"></i> Recent Lab Results'; 
-            } else if (type === 'history' && hist) { 
-                hist.classList.remove('hidden'); 
-                if(title) title.innerHTML = '<i data-feather="clock" class="w-5 h-5 mr-2 text-slate-500 inline"></i> Past Medical History'; 
-            }
-            if(window.feather) feather.replace();
-        };
-
-        async function loadHistoryPanel(patientId) {
-            const container = document.getElementById('historyContent');
-            if(!container) return;
-            try {
-                const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
-                const history = await res.json();
-                container.innerHTML = '';
-                
-                if(history.length === 0) { 
-                    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i data-feather="file-text" class="w-10 h-10 mb-3 opacity-30"></i><p class="text-sm font-medium">No history found.</p></div>'; 
-                    if(window.feather) feather.replace(); 
-                    return; 
-                }
-                
-                history.forEach(h => {
-                    const date = new Date(h.created_at).toLocaleDateString();
-                    let title = h.assessment;
-                    if(h.assessment && h.assessment.includes("PRIMARY:")) {
-                        title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
-                    }
-                    const div = document.createElement('div');
-                    div.className = "p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-emerald-300 transition-colors cursor-pointer relative overflow-hidden mb-3";
-                    div.innerHTML = `
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
-                        <div class="flex justify-between items-center mb-1.5 pl-2">
-                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">${date}</span>
-                            <span class="text-[10px] text-slate-500 font-medium truncate ml-2">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span>
-                        </div>
-                        <h4 class="font-bold text-slate-800 text-xs leading-snug mt-1 pl-2 line-clamp-2">${title || 'No Diagnosis'}</h4>
-                    `;
-                    container.appendChild(div);
-                });
-                if(window.feather) feather.replace();
-            } catch(e) {
-                console.error("Failed to load history", e);
-                container.innerHTML = '<div class="p-3 text-sm text-red-500 bg-red-50 rounded border border-red-100">Failed to load history.</div>';
-            }
-        }
-
-        // --- Submission Logic ---
-        async function submitTriage() {
-            if(!confirm("Submit this triage assessment to the doctor's queue?")) return;
-            
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 mr-2 animate-spin"></i> Submitting...`;
-            feather.replace();
-
-            let finalNotes = document.getElementById('nurse-notes').value || "";
-            const pregContainer = document.getElementById('pregnancy-container');
-            
-            if (!pregContainer.classList.contains('hidden')) {
-                const isPregnant = document.getElementById('is-pregnant').checked;
-                if (isPregnant) {
-                    const duration = document.getElementById('preg-duration').value || "Unknown duration";
-                    finalNotes = `[SPECIAL ALERT: Patient is pregnant - ${duration}]\n\n` + finalNotes;
-                }
-            }
-
-            const payload = {
-                appointment_id: currentApptId,
-                weight_kg: parseFloat(document.getElementById('weight').value) || null,
-                height_cm: parseFloat(document.getElementById('height').value) || null,
-                systolic: parseInt(document.getElementById('systolic').value) || null,
-                diastolic: parseInt(document.getElementById('diastolic').value) || null,
-                temperature: parseFloat(document.getElementById('temperature').value) || null,
-                heart_rate: parseInt(document.getElementById('hr').value) || null,
-                pain_score: parseInt(document.getElementById('pain-score').value) || 0,
-                pain_location: document.getElementById('pain-location').value || null,
-                chief_complaint: finalNotes || null
-            };
-
-            try {
-                const res = await fetch(`${API_BASE}/nurse/submit-triage`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-
-                if(res.ok) {
-                    alert("Triage Submitted Successfully! Patient is ready for the doctor.");
-                    window.location.href = 'NURSE_APPOINTMENTS.html';
-                } else {
-                    const errData = await res.json();
-                    throw new Error(errData.detail || "Server returned an error");
-                }
-            } catch(e) {
-                alert("Failed to submit: " + e.message);
-                btn.disabled = false;
-                btn.innerHTML = `<i data-feather="check" class="w-5 h-5 mr-2"></i> Submit to Doctor`;
-                feather.replace();
-            }
-        }
+        feather.replace();
     </script>
 </body>
 </html>
