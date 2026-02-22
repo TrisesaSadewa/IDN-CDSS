@@ -1,19 +1,23 @@
 // --- CONFIGURATION ---
-const API_BASE = "https://smart-his-backend.onrender.com"; 
+const API_BASE = "https://smart-his-backend.onrender.com";
 
 // GLOBAL STATE
+const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
 const DOCTOR_NAME = localStorage.getItem('smart_his_name');
 let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
-let lastDDIResults = []; 
+let lastDDIResults = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
     if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
-    if(document.getElementById('current-time')) startClock();
+    if (document.getElementById('current-time')) startClock();
 
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
@@ -24,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function startClock() {
     const timeEl = document.getElementById('current-time');
-    if(!timeEl) return;
+    if (!timeEl) return;
     function update() {
         const now = new Date();
         timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -42,70 +46,70 @@ async function handleAlgorithmicSuggestGeneral() {
     const btn = document.getElementById('btnAlgorithmicSuggestRx');
     const box = document.getElementById('algorithmicSuggestionBox');
     const textEl = document.getElementById('algorithmicSuggestionText');
-    
+
     // Use the primary diagnosis text (e.g. "hypertension")
     const diagnosis = getVal('primaryDiagnosisInput').trim();
-    if(!diagnosis) {
+    if (!diagnosis) {
         alert("Please enter a Primary Diagnosis to search the FDA database.");
         return;
     }
 
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Searching FDA...`;
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 
     try {
         const query = encodeURIComponent(diagnosis);
         // Hits the official US OpenFDA database for drug indications
         const res = await fetch(`https://api.fda.gov/drug/label.json?search=indications_and_usage:"${query}"&limit=5`);
-        if(!res.ok) throw new Error("No specific indications found in FDA database for this term.");
-        
+        if (!res.ok) throw new Error("No specific indications found in FDA database for this term.");
+
         const data = await res.json();
         let suggestions = [];
-        
+
         data.results.forEach(item => {
-            if(item.openfda && item.openfda.generic_name) {
+            if (item.openfda && item.openfda.generic_name) {
                 suggestions.push(item.openfda.generic_name[0]);
             }
         });
 
         suggestions = [...new Set(suggestions)]; // Deduplicate generic names
 
-        if(suggestions.length > 0) {
-            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="database" class="inline w-4 h-4 mr-1"></i> OpenFDA Approvals for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-1">` + 
-                suggestions.map(s => `<li class="capitalize font-medium">${s.toLowerCase()}</li>`).join('') + 
+        if (suggestions.length > 0) {
+            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="database" class="inline w-4 h-4 mr-1"></i> OpenFDA Approvals for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-1">` +
+                suggestions.map(s => `<li class="capitalize font-medium">${s.toLowerCase()}</li>`).join('') +
                 `</ul><p class="text-[10px] text-indigo-500 mt-3 italic">*Data sourced directly from US FDA Indications and Usage labels.</p>`;
         } else {
             textEl.innerHTML = `No standard generics found in FDA database for "${diagnosis}". Try a broader term.`;
         }
         box.classList.remove('hidden');
-    } catch(e) {
+    } catch (e) {
         alert(e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i data-feather="database" class="w-3.5 h-3.5 mr-1.5"></i> FDA Indication Search`;
-        if(window.feather) feather.replace();
+        if (window.feather) feather.replace();
     }
 }
 
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
-window.askAlgorithmForAlternative = async function(drugA, drugB, btnElement) {
-    const container = btnElement.nextElementSibling; 
-    
+window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
+    const container = btnElement.nextElementSibling;
+
     btnElement.disabled = true;
     btnElement.innerHTML = `<i data-feather="loader" class="w-3 h-3 mr-1 animate-spin"></i> Running Algorithm...`;
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 
     try {
         const res = await fetch(`${API_BASE}/api/suggest-alternative`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ drug_to_replace: drugA, interacting_with: drugB })
         });
-        
+
         const data = await res.json();
-        
-        if(data.alternatives && data.alternatives.length > 0) {
+
+        if (data.alternatives && data.alternatives.length > 0) {
             let html = `<strong class="block mb-2 text-blue-700 border-b border-blue-200 pb-1">Algorithmic Alternatives for ${drugA}:</strong><ul class="list-disc pl-4 space-y-2">`;
             data.alternatives.forEach(alt => {
                 html += `<li><b class="text-gray-800">${alt.generic_name}</b> <span class="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-1">${alt.class}</span></li>`;
@@ -117,12 +121,12 @@ window.askAlgorithmForAlternative = async function(drugA, drugB, btnElement) {
         }
         container.classList.remove('hidden');
         btnElement.classList.add('hidden');
-    } catch(e) {
+    } catch (e) {
         alert("Failed to run algorithm: " + e.message);
         btnElement.disabled = false;
         btnElement.innerHTML = `<i data-feather="database" class="w-3 h-3 mr-1"></i> Suggest Alternative`;
     }
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 // ==========================================
@@ -138,92 +142,113 @@ async function initEMRPage() {
 
     try {
         const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
-        if(!res.ok) throw new Error("Load failed");
-        
+        if (!res.ok) throw new Error("Load failed");
+
         const data = await res.json();
         const p = data.patients || {};
-        
+
         // Grab the most recent triage note attached to this appointment
-        const t = (data.triage_notes && data.triage_notes.length > 0) 
-                  ? data.triage_notes[data.triage_notes.length - 1] 
-                  : {};
-        
+        const t = (data.triage_notes && data.triage_notes.length > 0)
+            ? data.triage_notes[data.triage_notes.length - 1]
+            : {};
+
         currentPatientId = p.id;
         safeSetText('pt-name', p.full_name || 'Unknown');
         safeSetText('pt-details', `${calculateAge(p.dob)} years old | ${p.gender || 'Unknown'}`);
         safeSetText('pt-id', p.mrn || 'N/A');
-        
-        const allergies = p.allergies || "None Known"; 
+
+        const allergies = p.allergies || "None Known";
         safeSetText('pt-allergies', allergies);
-        if(allergies === "None Known") {
-            const alEl = document.getElementById('pt-allergies');
-            if(alEl) alEl.className = "text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded text-right";
+
+        const alEl = document.getElementById('pt-allergies');
+        if (alEl) {
+            alEl.classList.add('cursor-pointer', 'hover:bg-red-200');
+            if (allergies === "None Known") {
+                alEl.className = "text-xs font-medium text-gray-400 bg-gray-50 border border-gray-200 px-2 py-1 rounded text-right cursor-pointer hover:bg-red-100";
+            }
+
+            alEl.onclick = async () => {
+                const newAllergy = prompt("Update Patient Allergies:", alEl.innerText);
+                if (newAllergy !== null && supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('patients')
+                        .update({ allergies: newAllergy })
+                        .eq('id', currentPatientId);
+
+                    if (!error) {
+                        alEl.innerText = newAllergy || "None Known";
+                        alEl.className = (!newAllergy || newAllergy === "None")
+                            ? "text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded text-right"
+                            : "text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-1 rounded shadow-sm text-right";
+                    }
+                }
+            };
         }
-        
+
         // Populate Vitals from Nurse Triage
         safeSetValue('weight', t.weight_kg);
         safeSetValue('height', t.height_cm);
         safeSetValue('systolic', t.systolic);
         safeSetValue('diastolic', t.diastolic);
         safeSetValue('temperature', t.temperature);
-        calculateBMI(); 
-        
+        calculateBMI();
+
         // --- Populate the "Nurse Notes" UI from Nurse Triage ---
         safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded by nurse.");
         safeSetText('pain-score', t.pain_score !== null && t.pain_score !== undefined ? t.pain_score : '--');
         safeSetText('pain-location', t.pain_location || '--');
-        
+
         loadHistoryPanel(p.id);
 
-    } catch (err) { 
-        console.error(err); 
-        alert("Failed to load patient data."); 
+    } catch (err) {
+        console.error(err);
+        alert("Failed to load patient data.");
     }
 }
 
 window.togglePanel = (type) => {
     const rightPanel = document.getElementById('rightPanel');
-    if(!rightPanel) return;
-    
+    if (!rightPanel) return;
+
     const isClosed = rightPanel.classList.contains('translate-x-full');
-    
-    if(isClosed) rightPanel.classList.remove('translate-x-full');
+
+    if (isClosed) rightPanel.classList.remove('translate-x-full');
     else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
-    
+
     rightPanel.dataset.type = type;
     const lab = document.getElementById('labContent');
     const hist = document.getElementById('historyContent');
     const ddi = document.getElementById('ddiContent');
     const title = document.getElementById('rightPanelTitle');
-    
-    if(lab) lab.classList.add('hidden');
-    if(hist) hist.classList.add('hidden');
-    if(ddi) ddi.classList.add('hidden');
-    
-    if(type === 'lab' && lab) { 
-        lab.classList.remove('hidden'); 
-        if(title) title.textContent = "Recent Lab Results"; 
-    } else if (type === 'history' && hist) { 
-        hist.classList.remove('hidden'); 
-        if(title) title.textContent = "Past Medical History"; 
-    } else if (type === 'ddi' && ddi) { 
-        ddi.classList.remove('hidden'); 
-        if(title) title.textContent = "Interaction Report"; 
+
+    if (lab) lab.classList.add('hidden');
+    if (hist) hist.classList.add('hidden');
+    if (ddi) ddi.classList.add('hidden');
+
+    if (type === 'lab' && lab) {
+        lab.classList.remove('hidden');
+        if (title) title.textContent = "Recent Lab Results";
+    } else if (type === 'history' && hist) {
+        hist.classList.remove('hidden');
+        if (title) title.textContent = "Past Medical History";
+    } else if (type === 'ddi' && ddi) {
+        ddi.classList.remove('hidden');
+        if (title) title.textContent = "Interaction Report";
     }
 };
 
 function setupEMRInteractions() {
     const checkDDIBtn = document.getElementById('btnCheckDDI');
-    if(checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
-    
-    const suggestBtn = document.getElementById('btnAlgorithmicSuggestRx');
-    if(suggestBtn) suggestBtn.onclick = handleAlgorithmicSuggestGeneral;
+    if (checkDDIBtn) checkDDIBtn.onclick = runDDICheck;
 
-    window.switchView = function(viewName) {
+    const suggestBtn = document.getElementById('btnAlgorithmicSuggestRx');
+    if (suggestBtn) suggestBtn.onclick = handleAlgorithmicSuggestGeneral;
+
+    window.switchView = function (viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
         document.querySelectorAll('.view-toggle-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(viewName + 'View').classList.remove('hidden-view');
-        if(viewName === 'summary') updateSummary();
+        if (viewName === 'summary') updateSummary();
         const btnMap = { 'nurse': 0, 'doctor': 1, 'summary': 2 };
         document.querySelectorAll('.view-toggle-btn')[btnMap[viewName]].classList.add('active');
     };
@@ -231,32 +256,38 @@ function setupEMRInteractions() {
     const rightPanelBtnLab = document.getElementById('sidebarLabBtn');
     const rightPanelBtnHist = document.getElementById('sidebarHistoryBtn');
     const rightPanelBtnDDI = document.getElementById('sidebarDDIBtn');
-    
+
     if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => window.togglePanel('lab');
     if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => window.togglePanel('history');
     if (rightPanelBtnDDI) rightPanelBtnDDI.onclick = () => window.togglePanel('ddi');
-    
+
     const closeBtn = document.getElementById('closeRightPanel');
     if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
 
-    setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', (item) => {
-        document.getElementById('primaryICDInput').value = item.code;
-        document.getElementById('primaryDiagnosisInput').value = item.description;
-    });
-    
-    // ADDED: Allow searching by typing directly into the Diagnosis Description field
-    setupAutocomplete('primaryDiagnosisInput', 'primaryICDSuggestions', (item) => {
+    setupAutocomplete('primaryICDInput', 'primaryICDSuggestions', 'icd10', (item) => {
         document.getElementById('primaryICDInput').value = item.code;
         document.getElementById('primaryDiagnosisInput').value = item.description;
     });
 
-    setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', (item) => {
+    // ADDED: Allow searching by typing directly into the Diagnosis Description field
+    setupAutocomplete('primaryDiagnosisInput', 'primaryICDSuggestions', 'icd10', (item) => {
+        document.getElementById('primaryICDInput').value = item.code;
+        document.getElementById('primaryDiagnosisInput').value = item.description;
+    });
+
+    setupAutocomplete('comorbidityInput', 'comorbiditySuggestions', 'icd10', (item) => {
         if (!secondaryDiagnoses.some(d => d.code === item.code)) { secondaryDiagnoses.push(item); renderComorbidities(); }
         document.getElementById('comorbidityInput').value = '';
     });
+
+    // ADDED: Drug Search Optimization
+    setupAutocomplete('drugName', null, 'drug', (item) => {
+        document.getElementById('drugName').value = item.local_term;
+        document.getElementById('dosage').focus();
+    });
     document.getElementById('addComorbidityBtn').onclick = () => {
         const val = document.getElementById('comorbidityInput').value.trim();
-        if(val) { secondaryDiagnoses.push({ code: 'DX', description: val }); renderComorbidities(); document.getElementById('comorbidityInput').value = ''; }
+        if (val) { secondaryDiagnoses.push({ code: 'DX', description: val }); renderComorbidities(); document.getElementById('comorbidityInput').value = ''; }
     };
 
     document.getElementById('addPrescription').onclick = () => {
@@ -264,7 +295,7 @@ function setupEMRInteractions() {
         const doseEl = document.getElementById('dosage');
         const freqEl = document.getElementById('schedule');
         const name = nameEl.value; const dose = doseEl.value; const freq = freqEl.value;
-        if(!name) return;
+        if (!name) return;
         currentDrugsList.push({ name, dosage: dose, frequency: freq });
         renderPrescriptions();
         nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
@@ -276,29 +307,29 @@ function setupEMRInteractions() {
         parseBtn.onclick = async () => {
             const input = document.getElementById('bulkDrugsInput');
             const text = input.value;
-            if(!text) return;
+            if (!text) return;
             parseBtn.disabled = true; parseBtn.innerHTML = `<i data-feather="loader" class="animate-spin"></i>`;
             try {
                 const res = await fetch(`${API_BASE}/api/parse-prescription`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text })
                 });
-                if(!res.ok) throw new Error("Parsing Failed");
+                if (!res.ok) throw new Error("Parsing Failed");
                 const data = await res.json();
-                if(data.separate_drugs) data.separate_drugs.forEach(d => currentDrugsList.push({name: d.drugName, class: d.drugClass, dosage: d.dosage, frequency: d.frequency}));
-                if(data.racikan) data.racikan.forEach(r => currentDrugsList.push({name: "Compound (Racikan)", dosage: r.recipe_text, frequency: r.frequency, ingredients: r.ingredients}));
+                if (data.separate_drugs) data.separate_drugs.forEach(d => currentDrugsList.push({ name: d.drugName, class: d.drugClass, dosage: d.dosage, frequency: d.frequency }));
+                if (data.racikan) data.racikan.forEach(r => currentDrugsList.push({ name: "Compound (Racikan)", dosage: r.recipe_text, frequency: r.frequency, ingredients: r.ingredients }));
                 renderPrescriptions();
                 input.value = "";
                 resetDDIStatus();
-            } catch(e) { alert("Parsing error: " + e.message); } 
+            } catch (e) { alert("Parsing error: " + e.message); }
             finally { parseBtn.disabled = false; parseBtn.innerHTML = "Parse"; feather.replace(); }
         };
     }
 
     const submitBtn = document.getElementById('submitDoctorView');
-    if(submitBtn) submitBtn.onclick = () => switchView('summary');
-    
+    if (submitBtn) submitBtn.onclick = () => switchView('summary');
+
     const finalSubmitBtn = document.getElementById('submitSummaryView');
-    if(finalSubmitBtn) finalSubmitBtn.onclick = submitConsultation;
+    if (finalSubmitBtn) finalSubmitBtn.onclick = submitConsultation;
 }
 
 // ==========================================
@@ -306,7 +337,7 @@ function setupEMRInteractions() {
 // ==========================================
 async function runDDICheck() {
     const btn = document.getElementById('btnCheckDDI');
-    
+
     if (currentDrugsList.length < 2) {
         alert("Need at least 2 drugs to check for interactions.");
         return;
@@ -314,7 +345,7 @@ async function runDDICheck() {
 
     btn.disabled = true;
     btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Checking...`;
-    
+
     let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
@@ -327,16 +358,16 @@ async function runDDICheck() {
     try {
         const res = await fetch(`${API_BASE}/api/check-ddi`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ drugs: checkList })
         });
-        
+
         const data = await res.json();
-        const interactions = data.interactions; 
+        const interactions = data.interactions;
         lastDDIResults = interactions;
-        
+
         renderDDIResults(interactions, data.safe);
-        
+
         const rightPanel = document.getElementById('rightPanel');
         if (rightPanel.classList.contains('translate-x-full') || rightPanel.dataset.type !== 'ddi') {
             window.togglePanel('ddi');
@@ -348,29 +379,29 @@ async function runDDICheck() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i data-feather="shield" class="w-3.5 h-3.5 mr-1.5"></i> Check Interactions`;
-        if(window.feather) feather.replace();
+        if (window.feather) feather.replace();
     }
 }
 
 function renderDDIResults(interactions, isSafe) {
     const container = document.getElementById('ddiContent');
-    if(!container) return;
-    
-    container.innerHTML = ''; 
+    if (!container) return;
+
+    container.innerHTML = '';
 
     const ddiSidebarBtn = document.getElementById('sidebarDDIBtn');
     const ddiSidebarIcon = document.getElementById('ddiSidebarIcon');
 
     if (ddiSidebarBtn) {
         ddiSidebarBtn.classList.remove('flash-major', 'text-gray-300', 'text-green-400', 'text-orange-400', 'text-red-400', 'bg-gray-700');
-        
+
         if (isSafe) {
             ddiSidebarBtn.classList.add('text-green-400');
             if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'shield');
         } else {
             const hasMajor = interactions.some(i => i.severity === 'Major');
             if (hasMajor) {
-                ddiSidebarBtn.classList.add('flash-major'); 
+                ddiSidebarBtn.classList.add('flash-major');
                 if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'shield-alert');
             } else {
                 ddiSidebarBtn.classList.add('text-orange-400');
@@ -391,8 +422,8 @@ function renderDDIResults(interactions, isSafe) {
                 </div>`;
         } else {
             const list = document.createElement('div');
-            list.className = "space-y-4 animate-fade-in pb-8"; 
-            
+            list.className = "space-y-4 animate-fade-in pb-8";
+
             interactions.forEach(item => {
                 if (!item || !item.pair) return;
 
@@ -410,7 +441,7 @@ function renderDDIResults(interactions, isSafe) {
                     icon = "alert-triangle";
                 } else if (item.severity === "Minor") {
                     colorClass = "bg-yellow-50 border-yellow-200";
-                    badgeClass = "bg-yellow-500 text-yellow-900"; 
+                    badgeClass = "bg-yellow-500 text-yellow-900";
                     icon = "alert-circle";
                 }
 
@@ -448,7 +479,7 @@ function renderDDIResults(interactions, isSafe) {
                         </div>
                     </div>
                 `;
-                
+
                 highlightInteractingDrugs(item.pair);
                 list.appendChild(card);
             });
@@ -459,7 +490,7 @@ function renderDDIResults(interactions, isSafe) {
         container.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded border border-red-200">Error rendering report UI. Check console.</div>`;
     }
 
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 function highlightInteractingDrugs(pair) {
@@ -467,15 +498,15 @@ function highlightInteractingDrugs(pair) {
     Array.from(listItems).forEach(item => {
         const drugNameEl = item.querySelector('.font-bold');
         if (!drugNameEl) return;
-        
+
         const rawText = drugNameEl.innerText.split('\n')[0].toLowerCase();
         const isMatch = pair.some(p => rawText.includes(p.toLowerCase()));
-        
+
         if (isMatch) {
             item.classList.add('bg-red-50');
             const oldIcon = item.querySelector('.ddi-warning-icon');
-            if(oldIcon) oldIcon.remove();
-            
+            if (oldIcon) oldIcon.remove();
+
             const icon = document.createElement('i');
             icon.setAttribute('data-feather', 'alert-circle');
             icon.className = "w-4 h-4 text-red-500 ml-2 ddi-warning-icon inline";
@@ -486,7 +517,7 @@ function highlightInteractingDrugs(pair) {
 
 function resetDDIStatus() {
     const container = document.getElementById('ddiContent');
-    if(container) {
+    if (container) {
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full text-gray-400">
                 <i data-feather="shield" class="w-12 h-12 mb-3 opacity-50"></i>
@@ -494,7 +525,7 @@ function resetDDIStatus() {
             </div>
         `;
     }
-    
+
     const ddiBtn = document.getElementById('sidebarDDIBtn');
     const ddiIcon = document.getElementById('ddiSidebarIcon');
     if (ddiBtn) {
@@ -507,40 +538,92 @@ function resetDDIStatus() {
     if (rightPanel && rightPanel.dataset.type === 'ddi') {
         rightPanel.classList.add('translate-x-full');
     }
-    
+
     const listItems = document.getElementById('prescriptionList').children;
     Array.from(listItems).forEach(item => {
         item.classList.remove('bg-red-50');
         const icon = item.querySelector('.ddi-warning-icon');
-        if(icon) icon.remove();
+        if (icon) icon.remove();
     });
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
-function setupAutocomplete(inputId, suggestionsId, onSelect) {
+function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
     const input = document.getElementById(inputId);
-    const suggestions = document.getElementById(suggestionsId);
-    if (!input || !suggestions) return;
-    
+    let suggestions = document.getElementById(suggestionsId);
+
+    if (!input) return;
+
+    // Create suggestions div if it doesn't exist (e.g. for drugs)
+    if (!suggestions && inputId === 'drugName') {
+        suggestions = document.createElement('div');
+        suggestions.id = 'drugSuggestions';
+        suggestions.className = 'autocomplete-list hidden';
+        input.parentNode.style.position = 'relative';
+        input.parentNode.appendChild(suggestions);
+    }
+
+    if (!suggestions) return;
+
     input.addEventListener('input', async (e) => {
         const q = e.target.value;
-        if(q.length < 2) { suggestions.classList.add('hidden'); return; }
+        if (q.length < 2) { suggestions.classList.add('hidden'); return; }
+
         try {
-            const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
-            const results = await res.json();
+            let results = [];
+
+            if (type === 'icd10' && supabaseClient) {
+                // Optimized Trigram search for ICD-10
+                const { data } = await supabaseClient
+                    .from('icd10_mit')
+                    .select('icd10_code, who_full_desc')
+                    .or(`who_full_desc.ilike.%${q}%,icd10_code.ilike.${q}%`)
+                    .limit(15);
+
+                results = (data || []).map(d => ({
+                    code: d.icd10_code,
+                    description: d.who_full_desc
+                }));
+            } else if (type === 'drug' && supabaseClient) {
+                // Optimized search for Drugs in the Knowledge Map
+                const { data } = await supabaseClient
+                    .from('knowledge_map')
+                    .select('local_term, openfda_term')
+                    .ilike('local_term', `%${q}%`)
+                    .limit(10);
+
+                results = (data || []).map(d => ({
+                    local_term: d.local_term,
+                    openfda: d.openfda_term
+                }));
+            } else {
+                // Fallback to old API
+                const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
+                results = await res.json();
+            }
+
             suggestions.innerHTML = '';
-            if(results.length > 0) {
+            if (results.length > 0) {
                 suggestions.classList.remove('hidden');
                 results.forEach(item => {
                     const div = document.createElement('div');
-                    div.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm border-b border-gray-100';
-                    div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> ${item.description}`;
-                    div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
+                    div.className = 'px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 transition-colors';
+
+                    if (type === 'icd10') {
+                        div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> <span class="text-gray-700">${item.description}</span>`;
+                        div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
+                    } else if (type === 'drug') {
+                        div.innerHTML = `<i data-feather="package" class="w-3 h-3 inline mr-2 text-gray-400"></i><span class="font-semibold text-gray-800">${item.local_term}</span>`;
+                        div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
+                    }
+
                     suggestions.appendChild(div);
                 });
+                if (window.feather) feather.replace();
             } else { suggestions.classList.add('hidden'); }
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error("Search Error:", e); }
     });
+
     document.addEventListener('click', (e) => {
         if (!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden');
     });
@@ -548,7 +631,7 @@ function setupAutocomplete(inputId, suggestionsId, onSelect) {
 
 function renderComorbidities() {
     const list = document.getElementById('comorbidityList');
-    if(!list) return;
+    if (!list) return;
     list.innerHTML = '';
     if (secondaryDiagnoses.length === 0) {
         list.innerHTML = '<span class="text-xs text-gray-400 self-center italic px-2">No secondary diagnoses added.</span>';
@@ -560,23 +643,23 @@ function renderComorbidities() {
         tag.innerHTML = `<span class="mr-1 font-bold">${item.code}</span><span class="mr-2 truncate max-w-[150px]">${item.description}</span><button class="text-indigo-500 hover:text-red-600 ml-1" onclick="removeComorbidity(${idx})"><i data-feather="x" class="w-3 h-3"></i></button>`;
         list.appendChild(tag);
     });
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 window.removeComorbidity = (idx) => { secondaryDiagnoses.splice(idx, 1); renderComorbidities(); }
 
 function renderPrescriptions() {
     const list = document.getElementById('prescriptionList');
-    if(!list) return;
+    if (!list) return;
     list.innerHTML = '';
-    if(currentDrugsList.length === 0) {
+    if (currentDrugsList.length === 0) {
         list.innerHTML = '<div class="px-4 py-3 text-gray-500 text-sm">No drugs added.</div>';
         return;
     }
     currentDrugsList.forEach((d, idx) => {
         const div = document.createElement('div');
         div.className = 'px-4 py-3 flex justify-between items-start border-b border-gray-100 last:border-0 transition-colors duration-200';
-        
+
         let detailsHtml = '';
         if (d.ingredients && d.ingredients.length > 0) {
             const ingList = d.ingredients.map(i => `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100">${i.name} ${i.strength}</span>`).join('');
@@ -601,24 +684,24 @@ function renderPrescriptions() {
         `;
         list.appendChild(div);
     });
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); resetDDIStatus(); }
 
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
-    if(!container) return;
+    if (!container) return;
     try {
         const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
         const history = await res.json();
         container.innerHTML = '';
-        if(history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
-        
+        if (history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
+
         history.forEach(h => {
             const date = new Date(h.created_at).toLocaleDateString();
             let title = h.assessment;
-            if(h.assessment && h.assessment.includes("PRIMARY:")) {
+            if (h.assessment && h.assessment.includes("PRIMARY:")) {
                 title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
             }
             const div = document.createElement('div');
@@ -626,7 +709,7 @@ async function loadHistoryPanel(patientId) {
             div.innerHTML = `<div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span><span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span></div><h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>`;
             container.appendChild(div);
         });
-    } catch(e) {}
+    } catch (e) { }
 }
 
 function updateSummary() {
@@ -636,8 +719,8 @@ function updateSummary() {
     safeSetText('summaryDiagnosis', getVal('primaryDiagnosisInput'));
     safeSetText('summaryInstructions', getVal('therapyInput'));
     const summaryMeds = document.getElementById('summaryMeds');
-    if(summaryMeds) {
-        if(currentDrugsList.length > 0) {
+    if (summaryMeds) {
+        if (currentDrugsList.length > 0) {
             summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
         } else {
             summaryMeds.textContent = "No medications.";
@@ -646,9 +729,9 @@ function updateSummary() {
 }
 
 async function submitConsultation() {
-    if(!confirm("Finalize EMR?")) return;
+    if (!confirm("Finalize EMR?")) return;
     const btn = document.getElementById('submitSummaryView');
-    if(btn) { btn.textContent = "Processing..."; btn.disabled = true; }
+    if (btn) { btn.textContent = "Processing..."; btn.disabled = true; }
 
     const payload = {
         doctor_id: DOCTOR_ID,
@@ -666,11 +749,11 @@ async function submitConsultation() {
     try {
         const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        if(!res.ok) throw new Error("Error");
-        
+        if (!res.ok) throw new Error("Error");
+
         const responseData = await res.json();
         if (responseData.interactions && responseData.interactions.length > 0) {
             alert("Consultation Saved with DDI Warnings:\n" + responseData.interactions.map(i => i.pair.join(' + ')).join("\n"));
@@ -678,9 +761,9 @@ async function submitConsultation() {
             alert("Consultation Saved Successfully!");
         }
         window.location.href = "APPOINTMENTS.html";
-    } catch(e) {
+    } catch (e) {
         alert("Submit failed: " + e.message);
-        if(btn) { btn.textContent = "Finalize & Submit EMR"; btn.disabled = false; }
+        if (btn) { btn.textContent = "Finalize & Submit EMR"; btn.disabled = false; }
     }
 }
 
@@ -695,14 +778,14 @@ async function initAppointmentsPage() {
         const appointments = await res.json();
         safeSetText('stat-total', appointments.length);
         safeSetText('stat-waiting', Math.max(0, appointments.length - 1));
-        container.innerHTML = ''; 
+        container.innerHTML = '';
         if (appointments.length === 0) {
-            if(heroCard) heroCard.classList.add('hidden');
-            if(emptyState) emptyState.classList.remove('hidden');
+            if (heroCard) heroCard.classList.add('hidden');
+            if (emptyState) emptyState.classList.remove('hidden');
             safeSetText('stat-now-serving', "--");
             return;
         }
-        if(emptyState) emptyState.classList.add('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
         if (heroCard) {
             const activeAppt = appointments[0];
             let activeP = activeAppt.patients || { full_name: "Unknown", mrn: "N/A" };
@@ -714,35 +797,35 @@ async function initAppointmentsPage() {
             safeSetText('active-details', `MRN: ${activeP.mrn || 'N/A'} • ${calculateAge(activeP.dob)} yrs • ${activeP.gender || '--'}`);
             safeSetText('active-triage', `BP: ${activeT.systolic || '--'}/${activeT.diastolic || '--'}`);
             const heroBtn = document.getElementById('open-active-emr-btn');
-            if(heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
+            if (heroBtn) heroBtn.onclick = () => window.location.href = `EMR.html?id=${activeAppt.id}`;
         }
         appointments.slice(1).forEach(appt => {
-            let p = appt.patients || {full_name: 'Unknown'};
+            let p = appt.patients || { full_name: 'Unknown' };
             const div = document.createElement('div');
             div.className = "queue-card bg-white p-4 rounded-xl border border-slate-200 cursor-pointer mb-2";
             div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${appt.queue_number}</div><div><h4 class="font-bold text-sm text-slate-800">${p.full_name}</h4><p class="text-xs text-slate-500">${calculateAge(p.dob)} yrs</p></div></div><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Waiting</span></div>`;
             div.onclick = () => window.location.href = `EMR.html?id=${appt.id}`;
             container.appendChild(div);
         });
-    } catch(e) {}
+    } catch (e) { }
 }
 
-function safeSetText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val || '--'; }
-function safeSetValue(id, val) { const el = document.getElementById(id); if(el && val) el.value = val; }
+function safeSetText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || '--'; }
+function safeSetValue(id, val) { const el = document.getElementById(id); if (el && val) el.value = val; }
 function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
 function calculateBMI() {
     const wEl = document.getElementById('weight');
     const hEl = document.getElementById('height');
-    if(wEl && hEl) {
+    if (wEl && hEl) {
         const w = parseFloat(wEl.value);
         const h = parseFloat(hEl.value) / 100;
-        if(w && h) {
+        if (w && h) {
             const bmiEl = document.getElementById('bmi');
-            if(bmiEl) bmiEl.textContent = (w/(h*h)).toFixed(1);
+            if (bmiEl) bmiEl.textContent = (w / (h * h)).toFixed(1);
         }
     }
 }
-function calculateAge(dob) { if(!dob) return '--'; return Math.floor((new Date() - new Date(dob))/31557600000); }
+function calculateAge(dob) { if (!dob) return '--'; return Math.floor((new Date() - new Date(dob)) / 31557600000); }
 
 
 
