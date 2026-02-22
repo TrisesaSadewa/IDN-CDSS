@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Register Patient</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6">
+
+    <div class="bg-white max-w-lg w-full rounded-2xl shadow-xl p-8 relative">
+        <!-- Back Button -->
+        <a href="ADMIN_PORTAL.html" class="absolute top-6 left-6 text-gray-400 hover:text-indigo-600 transition-colors">
+            <i data-feather="arrow-left" class="w-5 h-5"></i>
+        </a>
+
+        <div class="flex items-center gap-3 mb-6 mt-4">
+            <div class="p-3 bg-indigo-600 rounded-lg text-white">
+                <i data-feather="user-plus"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 brand-font">Register New Patient</h1>
+        </div>
+
+        <form id="register-form" class="space-y-4">
+
+            <!-- Auth Info -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="reg-email" required
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="text" id="reg-pass" value="password123"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-600">
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input type="text" id="reg-name" required
+                    class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                    <input type="date" id="reg-dob" required
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <select id="reg-gender"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">NIK (National ID)</label>
+                <input type="text" id="reg-nik" required
+                    class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            </div>
+
+            <div id="msg-box" class="hidden p-3 rounded-lg text-sm text-center"></div>
+
+            <button type="submit"
+                class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                Create Patient Account
+            </button>
+        </form>
+
+        <div class="mt-6 pt-6 border-t text-center">
+            <a href="ADMIN_PORTAL.html"
+                class="text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">Back
+                to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        feather.replace();
+
+        // 1. Init Supabase with ANON KEY (Secure)
+        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const form = document.getElementById('register-form');
+        const msgBox = document.getElementById('msg-box');
+
+        // Security Check: Redirect if not logged in or not admin
+        const userToken = localStorage.getItem('smart_his_token');
+        const userRole = localStorage.getItem('smart_his_role');
+        if (!userToken || userRole !== 'admin') {
+            alert("Unauthorized. Admin access required.");
+            window.location.href = 'index.html';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = '<i data-feather="loader" class="animate-spin inline mr-2 text-white"></i> Processing...';
+            feather.replace();
+            msgBox.classList.add('hidden');
+
+            const payload = {
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-pass').value,
+                name: document.getElementById('reg-name').value,
+                dob: document.getElementById('reg-dob').value,
+                gender: document.getElementById('reg-gender').value,
+                nik: document.getElementById('reg-nik').value
+            };
+
+            try {
+                // Call Secure Edge Function instead of using Service Key directly
+                const { data, error } = await supabase.functions.invoke('create-patient', {
+                    body: payload,
+                    headers: {
+                        Authorization: `Bearer ${userToken}`
+                    }
+                });
+
+                if (error) throw error;
+
+                showMessage("success", "Patient registered successfully!");
+                form.reset();
+                document.getElementById('reg-pass').value = "password123";
+
+            } catch (err) {
+                console.error(err);
+                showMessage("error", err.message || "Failed to register patient.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+                feather.replace();
+            }
+        });
+
+        function showMessage(type, text) {
+            msgBox.innerText = text;
+            msgBox.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700');
+            if (type === 'success') {
+                msgBox.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+            } else {
+                msgBox.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+            }
+        }
+    </script>
+</body>
+
+</html>
