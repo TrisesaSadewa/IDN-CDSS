@@ -60,7 +60,7 @@ function renderDashboard() {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 <!-- LINK TO ADMIN PANEL (Patient Registration) -->
-                <a href="ADMIN.html" class="group bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
+                <a href="PATIENT_REG.html" class="group bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
                         <div class="mb-4 bg-indigo-100 text-indigo-600 w-fit p-3 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
