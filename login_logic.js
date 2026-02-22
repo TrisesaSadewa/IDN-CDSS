@@ -10,16 +10,16 @@ const errorMsg = document.getElementById('error-msg');
 const errorText = document.getElementById('error-text');
 
 // Expose helper to window for demo buttons
-window.fillCreds = function(email) {
+window.fillCreds = function (email) {
     document.getElementById('email').value = email;
-    document.getElementById('password').value = "password123"; 
+    document.getElementById('password').value = "password123";
 }
 
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoading(true);
-        showError(null); 
+        showError(null);
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -60,9 +60,11 @@ if (loginForm) {
             if (role === 'doctor') {
                 window.location.href = 'APPOINTMENTS.html';
             } else if (role === 'admin') {
-                window.location.href = 'portal.html'; 
+                window.location.href = 'portal.html';
             } else if (role === 'nurse') {
-                window.location.href = 'NURSE_APPOINTMENTS.html'; 
+                window.location.href = 'NURSE_APPOINTMENTS.html';
+            } else if (role === 'pharmacist') {
+                window.location.href = 'PHARMACY.html';
             } else {
                 window.location.href = 'PATIENT_PORTAL.html';
             }
@@ -82,16 +84,16 @@ if (loginForm) {
 
 function showError(msg) {
     if (msg) {
-        if(errorText) errorText.innerText = msg;
-        if(errorMsg) errorMsg.classList.remove('hidden');
+        if (errorText) errorText.innerText = msg;
+        if (errorMsg) errorMsg.classList.remove('hidden');
     } else {
-        if(errorMsg) errorMsg.classList.add('hidden');
+        if (errorMsg) errorMsg.classList.add('hidden');
     }
 }
 
 function setLoading(isLoading) {
-    if(!submitBtn) return;
-    
+    if (!submitBtn) return;
+
     if (isLoading) {
         submitBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i> Signing In...';
         submitBtn.disabled = true;
@@ -101,7 +103,7 @@ function setLoading(isLoading) {
         submitBtn.disabled = false;
         submitBtn.classList.remove('opacity-75');
     }
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 
