@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,13 +12,15 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
         .sidebar {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 50;
         }
-        
+
         .sidebar-tooltip {
             position: absolute;
             left: 100%;
@@ -37,7 +40,7 @@
             z-index: 60;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
+
         .sidebar-item:hover .sidebar-tooltip {
             opacity: 1;
             transform: translateY(-50%) translateX(4px);
@@ -52,7 +55,7 @@
         .queue-card {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .queue-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
@@ -64,36 +67,42 @@
             width: 6px;
             height: 6px;
         }
+
         ::-webkit-scrollbar-track {
             background: transparent;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 3px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
     </style>
 </head>
+
 <body class="bg-slate-50 text-slate-800 overflow-hidden">
-    
+
     <!-- Top Navigation Bar -->
-    <header class="bg-white border-b border-slate-200 h-16 fixed w-full top-0 z-40 flex items-center justify-between px-6 shadow-sm">
+    <header
+        class="bg-white border-b border-slate-200 h-16 fixed w-full top-0 z-40 flex items-center justify-between px-6 shadow-sm">
         <div class="flex items-center space-x-3">
             <div class="bg-blue-600 text-white p-1.5 rounded-lg">
                 <i data-feather="activity" class="w-5 h-5"></i>
             </div>
             <h1 class="text-lg font-bold text-slate-800 tracking-tight">Hospital EMR</h1>
         </div>
-        
+
         <div class="flex items-center space-x-6">
             <!-- Search -->
             <div class="relative hidden md:block">
-                <input type="text" placeholder="Search patients..." class="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 w-64 transition-all">
+                <input type="text" placeholder="Search patients..."
+                    class="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 w-64 transition-all">
                 <i data-feather="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5"></i>
             </div>
-            
+
             <!-- User Profile -->
             <div class="flex items-center space-x-3 pl-6 border-l border-slate-200">
                 <div class="text-right hidden md:block">
@@ -101,7 +110,8 @@
                     <p class="text-sm font-semibold text-slate-700" id="doc-name-display">Dr. John Doe</p>
                     <p class="text-xs text-slate-500">Internal Medicine</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+                <div
+                    class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Doc" alt="Doctor" class="w-full h-full">
                 </div>
             </div>
@@ -112,29 +122,34 @@
         <!-- Sleek Sidebar -->
         <aside class="sidebar bg-slate-900 text-white w-16 flex flex-col items-center py-6 flex-shrink-0 z-50">
             <nav class="flex-1 flex flex-col space-y-6 w-full px-2">
-                <a href="PORTAL.html" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <a href="ADMIN_PORTAL.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
                     <i data-feather="grid" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Dashboard</span>
                 </a>
-                
-                <a href="#" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-900/50 transition-all hover:bg-blue-500">
+
+                <a href="#"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-900/50 transition-all hover:bg-blue-500">
                     <i data-feather="users" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Queue</span>
                 </a>
 
-                <a href="EMR.html" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <a href="EMR.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
                     <i data-feather="file-text" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">EMR System</span>
                 </a>
 
-                <a href="#" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <a href="#"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
                     <i data-feather="calendar" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Schedule</span>
                 </a>
             </nav>
 
             <div class="mt-auto flex flex-col space-y-4 px-2 w-full items-center">
-                <button onclick="localStorage.clear(); window.location.href='index.html'" class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <button onclick="localStorage.clear(); window.location.href='index.html'"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
                     <i data-feather="log-out" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Logout</span>
                 </button>
@@ -144,7 +159,7 @@
         <!-- Main Workspace -->
         <main class="flex-grow overflow-auto p-6 md:p-8">
             <div class="max-w-7xl mx-auto space-y-8">
-                
+
                 <!-- Page Title & Date -->
                 <div class="flex justify-between items-end">
                     <div>
@@ -161,85 +176,99 @@
                 <!-- Stats Widgets -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Current Queue Widget -->
-                    <div class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
+                    <div
+                        class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div class="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-blue-600"></div>
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Now Serving</p>
                             <!-- ID ADDED: stat-now-serving -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-now-serving">--</h3>
                             <p class="text-xs text-blue-600 font-medium mt-2 flex items-center">
-                                <span class="w-2 h-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span> In Consultation
+                                <span class="w-2 h-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span> In
+                                Consultation
                             </p>
                         </div>
-                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                        <div
+                            class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                             <i data-feather="user-check" class="w-6 h-6"></i>
                         </div>
                     </div>
 
                     <!-- Waiting Widget -->
-                    <div class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
+                    <div
+                        class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Waiting List</p>
                             <!-- ID ADDED: stat-waiting -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-waiting">--</h3>
                             <p class="text-xs text-slate-400 mt-2">Patients in queue</p>
                         </div>
-                        <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+                        <div
+                            class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
                             <i data-feather="clock" class="w-6 h-6"></i>
                         </div>
                     </div>
 
                     <!-- Completed Widget -->
-                    <div class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
+                    <div
+                        class="glass-panel p-6 rounded-2xl flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div>
                             <p class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Completed</p>
                             <!-- ID ADDED: stat-total -->
                             <h3 class="text-4xl font-bold text-slate-800" id="stat-total">--</h3>
                             <p class="text-xs text-green-600 mt-2 font-medium">On schedule</p>
                         </div>
-                        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
+                        <div
+                            class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
                             <i data-feather="check-circle" class="w-6 h-6"></i>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
+
                     <!-- Left Column: Queue List -->
                     <div class="lg:col-span-2 space-y-6">
-                        
+
                         <!-- NOW SERVING HERO CARD (Dynamic ID: active-patient-card) -->
-                        <div id="active-patient-card" class="hidden glass-panel rounded-2xl p-6 border-l-4 border-blue-500 shadow-md relative overflow-hidden">
+                        <div id="active-patient-card"
+                            class="hidden glass-panel rounded-2xl p-6 border-l-4 border-blue-500 shadow-md relative overflow-hidden">
                             <div class="absolute top-0 right-0 p-4 opacity-10">
                                 <i data-feather="activity" class="w-32 h-32"></i>
                             </div>
                             <div class="flex justify-between items-start relative z-10">
                                 <div class="flex gap-5">
                                     <!-- ID ADDED: active-queue-no -->
-                                    <div class="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl shadow-inner" id="active-queue-no">
+                                    <div class="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl shadow-inner"
+                                        id="active-queue-no">
                                         --
                                     </div>
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
                                             <!-- ID ADDED: active-name -->
                                             <h3 class="text-xl font-bold text-slate-800" id="active-name">--</h3>
-                                            <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">CURRENT</span>
+                                            <span
+                                                class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">CURRENT</span>
                                         </div>
                                         <!-- ID ADDED: active-details -->
                                         <p class="text-slate-500 text-sm mb-3" id="active-details">--</p>
                                         <div class="flex gap-2">
                                             <!-- ID ADDED: active-triage -->
-                                            <span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200" id="active-triage">--</span>
+                                            <span
+                                                class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200"
+                                                id="active-triage">--</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     <!-- ID ADDED: open-active-emr-btn -->
-                                    <button id="open-active-emr-btn" class="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-200 transform hover:-translate-y-0.5">
+                                    <button id="open-active-emr-btn"
+                                        class="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-200 transform hover:-translate-y-0.5">
                                         <i data-feather="file-text" class="w-4 h-4"></i>
                                         <span>Open EMR</span>
                                     </button>
-                                    <button class="flex items-center justify-center space-x-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-5 py-2 rounded-xl font-medium transition-colors">
+                                    <button
+                                        class="flex items-center justify-center space-x-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-5 py-2 rounded-xl font-medium transition-colors">
                                         <i data-feather="mic" class="w-4 h-4"></i>
                                         <span>Call Patient</span>
                                     </button>
@@ -248,7 +277,8 @@
                         </div>
 
                         <!-- EMPTY STATE (Dynamic ID: empty-state) -->
-                        <div id="empty-state" class="hidden glass-panel p-10 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                        <div id="empty-state"
+                            class="hidden glass-panel p-10 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
                             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                 <i data-feather="coffee" class="w-8 h-8 text-slate-400"></i>
                             </div>
@@ -260,7 +290,8 @@
                         <div>
                             <div class="flex justify-between items-center mb-4 px-1">
                                 <h3 class="text-lg font-bold text-slate-700">Up Next</h3>
-                                <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">View Full List</button>
+                                <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">View Full
+                                    List</button>
                             </div>
                             <!-- DYNAMIC QUEUE CONTAINER -->
                             <div class="space-y-3" id="queue-container">
@@ -280,7 +311,8 @@
                                 </button>
                             </div>
                             <!-- Placeholder for completed appointments -->
-                            <div class="flex-grow p-4 overflow-auto flex items-center justify-center text-slate-400 text-sm">
+                            <div
+                                class="flex-grow p-4 overflow-auto flex items-center justify-center text-slate-400 text-sm">
                                 No completed sessions yet.
                             </div>
                             <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -309,4 +341,5 @@
         feather.replace();
     </script>
 </body>
+
 </html>
