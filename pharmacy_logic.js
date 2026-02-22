@@ -15,7 +15,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Simulate inventory load
     renderInventory();
     setupAddStockLogic();
+    setupGlobalSearch();
 });
+
+let inventoryData = [];
+
+function setupGlobalSearch() {
+    const searchInput = document.getElementById('global-search');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+
+        // Filter Queue
+        const filteredQueue = currentQueue.filter(o =>
+            o.patient_name.toLowerCase().includes(q) ||
+            o.mrn.toLowerCase().includes(q) ||
+            o.items.some(i => i.name.toLowerCase().includes(q))
+        );
+        renderQueue(filteredQueue);
+
+        // Filter Inventory
+        renderInventory(q);
+    });
+}
 
 // --- ADD STOCK MODAL ---
 function openAddStockModal() {
@@ -311,11 +334,9 @@ async function confirmDispense(orderId) {
 }
 
 // --- INVENTORY LOGIC (Live Database) ---
-async function renderInventory() {
+async function renderInventory(searchQuery = "") {
     const tableBody = document.getElementById('inventory-table');
-    const stockAlertEl = document.querySelector('#view-queue .bg-red-50 h3');
-
-    if (!pharmacySupabase) return;
+    if (!pharmacySupabase || !tableBody) return;
 
     try {
         const { data: inventory, error } = await pharmacySupabase
@@ -332,47 +353,123 @@ async function renderInventory() {
             `);
 
         if (error) throw error;
+        inventoryData = inventory || [];
 
+        const filtered = inventoryData.filter(item => {
+            const name = item.knowledge_map?.local_term || "";
+            return name.toLowerCase().includes(searchQuery.toLowerCase());
+        });
+
+        // 1. Calculate Metrics
+        let totalValue = 0;
         let lowStockCount = 0;
+        let outOfStockCount = 0;
 
-        tableBody.innerHTML = (inventory || []).map(item => {
+        inventoryData.forEach(item => {
+            totalValue += (item.unit_price || 0) * (item.stock_level || 0);
+            if (item.stock_level === 0) outOfStockCount++;
+            else if (item.stock_level < 50) lowStockCount++;
+        });
+
+        // 2. Update Metric UI
+        const valEl = document.getElementById('inv-total-value');
+        const skusEl = document.getElementById('inv-total-skus');
+        const lowEl = document.getElementById('inv-low-stock');
+        const outEl = document.getElementById('inv-out-of-stock');
+        const queueAlertEl = document.querySelector('#view-queue .bg-red-50 h3');
+
+        if (valEl) valEl.textContent = `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (skusEl) skusEl.textContent = inventoryData.length;
+        if (lowEl) lowEl.textContent = lowStockCount;
+        if (outEl) outEl.textContent = outOfStockCount;
+        if (queueAlertEl) queueAlertEl.textContent = lowStockCount + outOfStockCount;
+
+        // 3. Render Table
+        tableBody.innerHTML = filtered.map(item => {
             const name = item.knowledge_map?.local_term || "Unknown Drug";
             const stock = item.stock_level || 0;
-            const price = item.unit_price ? `$${item.unit_price.toFixed(2)}` : '--';
+            const price = item.unit_price || 0;
 
             let status = 'ok';
             if (stock === 0) status = 'out';
             else if (stock < 50) status = 'low';
 
-            if (status !== 'ok') lowStockCount++;
-
             let statusBadge = '';
-            if (status === 'ok') statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">In Stock</span>`;
-            if (status === 'low') statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">Low Stock</span>`;
-            if (status === 'out') statusBadge = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">Out of Stock</span>`;
+            if (status === 'ok') statusBadge = `<span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center w-fit"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>In Stock</span>`;
+            if (status === 'low') statusBadge = `<span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 flex items-center w-fit"><span class="w-1.5 h-1.5 bg-amber-500 animate-pulse rounded-full mr-2"></span>Low Stock</span>`;
+            if (status === 'out') statusBadge = `<span class="bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-rose-100 flex items-center w-fit"><span class="w-1.5 h-1.5 bg-rose-500 rounded-full mr-2"></span>None</span>`;
 
             return `
-                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <tr class="hover:bg-slate-50 transition-all border-b border-slate-100 group">
                     <td class="px-6 py-4">
-                        <div class="font-bold text-slate-800">${name}</div>
-                        <div class="text-[10px] text-slate-400 font-mono">${item.drug_id}</div>
+                        <div class="flex items-center">
+                            <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
+                                <i data-feather="package" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">${name}</div>
+                                <div class="text-[10px] text-slate-400 font-mono tracking-tighter">${item.drug_id}</div>
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-6 py-4 text-slate-500 text-xs">Pharma</td>
-                    <td class="px-6 py-4 font-mono font-bold ${status === 'out' ? 'text-red-500' : 'text-slate-700'}">${stock}</td>
-                    <td class="px-6 py-4 text-slate-600 font-medium">${price}</td>
+                    <td class="px-6 py-4 text-slate-500 text-xs font-semibold">General Pharma</td>
+                    <td class="px-6 py-4">
+                        <span class="font-mono text-base font-bold ${status === 'out' ? 'text-rose-500' : 'text-slate-700'}">${stock}</span>
+                        <span class="text-[10px] text-slate-400 ml-1">units</span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 font-bold">$${price.toFixed(2)}</td>
                     <td class="px-6 py-4">${statusBadge}</td>
                     <td class="px-6 py-4 text-right">
-                        <button class="text-slate-300 hover:text-indigo-600 transition-colors bg-white p-1.5 rounded border border-slate-200 shadow-sm"><i data-feather="edit-2" class="w-3.5 h-3.5"></i></button>
+                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editStock('${item.id}', ${stock})" class="text-slate-400 hover:text-indigo-600 transition-colors bg-white p-2 rounded-lg border border-slate-200 shadow-sm"><i data-feather="edit-2" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteStock('${item.id}')" class="text-slate-400 hover:text-rose-600 transition-colors bg-white p-2 rounded-lg border border-slate-200 shadow-sm"><i data-feather="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
                     </td>
                 </tr>
             `;
         }).join('');
 
-        if (stockAlertEl) stockAlertEl.textContent = lowStockCount;
+        if (filtered.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-20 text-center text-slate-400 italic">No inventory matching "${searchQuery}" found.</td></tr>`;
+        }
+
         feather.replace();
 
     } catch (e) {
         console.error("Inventory Fetch Error:", e);
         tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500 font-medium">Failed to load inventory from database.</td></tr>`;
+    }
+}
+
+async function editStock(id, currentStock) {
+    const newStock = prompt("Update Stock Level:", currentStock);
+    if (newStock === null || newStock === "") return;
+
+    try {
+        const { error } = await pharmacySupabase
+            .from('pharmacy_inventory')
+            .update({ stock_level: parseInt(newStock) })
+            .eq('id', id);
+
+        if (error) throw error;
+        renderInventory();
+    } catch (e) {
+        alert("Update failed: " + e.message);
+    }
+}
+
+async function deleteStock(id) {
+    if (!confirm("Remove this item from inventory? This cannot be undone.")) return;
+
+    try {
+        const { error } = await pharmacySupabase
+            .from('pharmacy_inventory')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        renderInventory();
+    } catch (e) {
+        alert("Delete failed: " + e.message);
     }
 }
