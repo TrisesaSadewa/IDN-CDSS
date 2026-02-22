@@ -4,7 +4,7 @@ const API_BASE = "https://smart-his-backend.onrender.com";
 // GLOBAL STATE
 const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
 const DOCTOR_NAME = localStorage.getItem('smart_his_name');
@@ -570,53 +570,50 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
         if (q.length < 2) { suggestions.classList.add('hidden'); return; }
 
         try {
+            // Lazy initialization of supabaseClient
+            if (!supabaseClient && window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+
             let results = [];
 
-            if (type === 'icd10' && supabaseClient) {
-                // Optimized Trigram search for ICD-10
-                const { data } = await supabaseClient
-                    .from('icd10_mit')
-                    .select('icd10_code, who_full_desc')
-                    .or(`who_full_desc.ilike.%${q}%,icd10_code.ilike.${q}%`)
-                    .limit(15);
+            if (type === 'icd10') {
+                if (supabaseClient) {
+                    const { data } = await supabaseClient
+                        .from('icd10_mit')
+                        .select('icd10_code, who_full_desc')
+                        .or(`who_full_desc.ilike.%${q}%,icd10_code.ilike.${q}%`)
+                        .limit(15);
+                    results = (data || []).map(d => ({ code: d.icd10_code, description: d.who_full_desc }));
+                } else {
+                    const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
+                    results = await res.json();
+                }
+            } else if (type === 'drug') {
+                if (supabaseClient) {
+                    const { data } = await supabaseClient
+                        .from('knowledge_map')
+                        .select(`id, local_term, pharmacy_inventory ( stock_level )`)
+                        .ilike('local_term', `%${q}%`)
+                        .limit(15);
 
-                results = (data || []).map(d => ({
-                    code: d.icd10_code,
-                    description: d.who_full_desc
-                }));
-            } else if (type === 'drug' && supabaseClient) {
-                // Search all drugs, showing stock from inventory if it exists
-                const { data } = await supabaseClient
-                    .from('knowledge_map')
-                    .select(`
-                        id,
-                        local_term,
-                        pharmacy_inventory (
-                            stock_level
-                        )
-                    `)
-                    .ilike('local_term', `%${q}%`)
-                    .limit(15);
-
-                results = (data || []).map(d => {
-                    // Robustly handle if pharmacy_inventory is array, object, or null
-                    let totalStock = 0;
-                    if (Array.isArray(d.pharmacy_inventory)) {
-                        totalStock = d.pharmacy_inventory.reduce((sum, inv) => sum + (inv.stock_level || 0), 0);
-                    } else if (d.pharmacy_inventory && typeof d.pharmacy_inventory === 'object') {
-                        totalStock = d.pharmacy_inventory.stock_level || 0;
-                    }
-
-                    return {
-                        id: d.id,
-                        local_term: d.local_term || 'Unnamed Drug',
-                        stock: totalStock
-                    };
-                });
-            } else {
-                // Fallback to old API
-                const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
-                results = await res.json();
+                    results = (data || []).map(d => {
+                        let totalStock = 0;
+                        const inv = d.pharmacy_inventory;
+                        if (Array.isArray(inv)) {
+                            totalStock = inv.reduce((sum, i) => sum + (i.stock_level || 0), 0);
+                        } else if (inv && typeof inv === 'object') {
+                            totalStock = inv.stock_level || 0;
+                        }
+                        return {
+                            id: d.id || '',
+                            local_term: d.local_term || d.name || 'Drug (No Name)',
+                            stock: totalStock || 0
+                        };
+                    });
+                } else {
+                    results = []; // No fallback for drugs if Supabase is missing
+                }
             }
 
             suggestions.innerHTML = '';
