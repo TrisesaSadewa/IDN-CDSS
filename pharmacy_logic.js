@@ -376,7 +376,8 @@ async function renderInventory(searchQuery = "") {
         const skusEl = document.getElementById('inv-total-skus');
         const lowEl = document.getElementById('inv-low-stock');
         const outEl = document.getElementById('inv-out-of-stock');
-        const queueAlertEl = document.querySelector('#view-queue .bg-red-50 h3');
+        if (outEl) outEl.textContent = outOfStockCount;
+        const queueAlertEl = document.getElementById('stat-alerts');
 
         if (valEl) valEl.textContent = `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         if (skusEl) skusEl.textContent = inventoryData.length;
