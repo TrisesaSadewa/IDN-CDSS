@@ -1,247 +1,198 @@
-// CONFIGURATION
-const API_BASE = "https://smart-his-backend.onrender.com";
-
-// STATE
-let currentQueue = [];
-let selectedOrder = null;
-
-// INIT
-document.addEventListener('DOMContentLoaded', () => {
-    fetchQueue();
-    // Simulate inventory load
-    renderInventory(); 
-});
-
-// --- NAVIGATION ---
-function switchTab(tabId) {
-    // 1. Reset Sidebar Active State
-    document.querySelectorAll('.sidebar-item').forEach(el => {
-        el.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-md');
-        el.classList.add('text-slate-300'); // Reset to default
-    });
-
-    // 2. Set Active Sidebar Item
-    const activeBtn = document.getElementById(`tab-${tabId}`);
-    activeBtn.classList.add('active'); // CSS handles the styling via .active class
-
-    // 3. Toggle Content Views
-    document.getElementById('view-queue').classList.add('hidden');
-    document.getElementById('view-inventory').classList.add('hidden');
-    document.getElementById('view-history').classList.add('hidden');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy - Smart HIS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     
-    document.getElementById(`view-${tabId}`).classList.remove('hidden');
-
-    // 4. Update Header Title
-    const titles = {
-        'queue': 'Dispense Queue',
-        'inventory': 'Inventory Management',
-        'history': 'History Logs'
-    };
-    document.getElementById('page-title').textContent = titles[tabId];
-}
-
-// --- QUEUE LOGIC ---
-async function fetchQueue() {
-    const container = document.getElementById('queue-container');
-    
-    try {
-        // Fetch pending orders via Backend API
-        // NOTE: Ensure your main.py has a /pharmacy/queue endpoint or similar. 
-        // If not, we use a mock for demonstration.
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        h1, h2, h3, .brand-font { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        // MOCK DATA (Replace with fetch call in production)
-        const mockData = [
-            {
-                id: "ord_123",
-                patient_name: "Jane Doe",
-                mrn: "PT-1001",
-                doctor: "Dr. Smith",
-                timestamp: "10:30 AM",
-                items: [
-                    { name: "Amoxicillin", dose: "500mg", qty: 20, schedule: "1-1-1" },
-                    { name: "Paracetamol", dose: "500mg", qty: 10, schedule: "PRN" }
-                ],
-                status: "pending"
-            },
-            {
-                id: "ord_124",
-                patient_name: "Budi Santoso",
-                mrn: "PT-1042",
-                doctor: "Dr. Aminah",
-                timestamp: "11:15 AM",
-                items: [
-                    { name: "Metformin", dose: "500mg", qty: 60, schedule: "1-0-1" }
-                ],
-                status: "pending"
-            }
-        ];
+        .sidebar-item { transition: all 0.2s; }
+        .sidebar-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .sidebar-item.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
 
-        currentQueue = mockData; // Replace with API result
-        renderQueue(currentQueue);
-        updateStats(currentQueue.length);
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
 
-    } catch (e) {
-        console.error("Queue Fetch Error:", e);
-        container.innerHTML = `<div class="col-span-full text-center text-red-500 py-10">Error loading queue. Check console.</div>`;
-    }
-}
-
-function renderQueue(orders) {
-    const container = document.getElementById('queue-container');
-    container.innerHTML = '';
-
-    if (orders.length === 0) {
-        container.innerHTML = `
-            <div class="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-                <i data-feather="check-circle" class="w-16 h-16 mb-4 text-emerald-200"></i>
-                <p class="text-lg font-medium">All caught up!</p>
-                <p class="text-sm">No pending prescriptions to dispense.</p>
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col z-20 shadow-xl">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+            <div class="p-1.5 bg-emerald-500 rounded text-white mr-3">
+                <i data-feather="package" class="w-5 h-5"></i>
             </div>
-        `;
-        feather.replace();
-        return;
-    }
+            <span class="text-lg font-bold text-white tracking-wide brand-font">Pharmacy</span>
+        </div>
 
-    orders.forEach(order => {
-        const card = document.createElement('div');
-        card.className = "bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all p-5 flex flex-col relative overflow-hidden group";
-        
-        // Left Border Color Strip
-        card.innerHTML = `
-            <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+        <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Main</p>
             
-            <div class="flex justify-between items-start mb-4 pl-3">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-800">${order.patient_name}</h3>
-                    <p class="text-xs text-slate-500 font-mono">${order.mrn} • ${order.timestamp}</p>
+            <button onclick="switchTab('queue')" id="tab-queue" class="sidebar-item active w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="inbox" class="w-4 h-4 mr-3"></i>
+                Dispense Queue
+                <span id="queue-badge" class="ml-auto bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="database" class="w-4 h-4 mr-3"></i>
+                Inventory Management
+            </button>
+
+            <button onclick="switchTab('history')" id="tab-history" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+                <i data-feather="clock" class="w-4 h-4 mr-3"></i>
+                History Logs
+            </button>
+        </div>
+
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="window.location.href='PORTAL.html'" class="w-full flex items-center justify-center px-4 py-2 border border-slate-700 rounded-lg text-sm hover:bg-slate-800 hover:text-white transition-colors">
+                <i data-feather="arrow-left" class="w-4 h-4 mr-2"></i> Back to Portal
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm z-10">
+            <h2 id="page-title" class="text-xl font-bold text-slate-800 brand-font">Dispense Queue</h2>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <i data-feather="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input type="text" placeholder="Search orders..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
                 </div>
-                <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded border border-indigo-100">
-                    ${order.items.length} Items
-                </span>
-            </div>
-
-            <div class="bg-slate-50 rounded-lg p-3 mb-4 flex-1 border border-slate-100 pl-3">
-                <ul class="space-y-2">
-                    ${order.items.map(item => `
-                        <li class="flex justify-between text-sm text-slate-700">
-                            <span><span class="font-semibold">${item.name}</span> <span class="text-slate-400 text-xs">(${item.dose})</span></span>
-                            <span class="font-mono text-slate-500">x${item.qty}</span>
-                        </li>
-                    `).join('')}
-                </ul>
-            </div>
-
-            <div class="flex items-center justify-between pl-3 pt-2 border-t border-slate-100">
-                <div class="flex items-center text-xs text-slate-400">
-                    <i data-feather="user" class="w-3 h-3 mr-1"></i> ${order.doctor}
+                <div class="w-px h-6 bg-slate-200"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                        PH
+                    </div>
+                    <span class="text-sm font-medium text-slate-700">Pharmacist</span>
                 </div>
-                <button onclick="openDispenseModal('${order.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-emerald-100 transition-transform active:scale-95 flex items-center">
-                    Dispense <i data-feather="arrow-right" class="w-4 h-4 ml-1"></i>
-                </button>
             </div>
-        `;
-        container.appendChild(card);
-    });
-    feather.replace();
-}
+        </header>
 
-function updateStats(count) {
-    const badge = document.getElementById('queue-badge');
-    const statPending = document.getElementById('stat-pending');
-    
-    if (count > 0) {
-        badge.textContent = count;
-        badge.classList.remove('hidden');
-    } else {
-        badge.classList.add('hidden');
-    }
-    
-    statPending.textContent = count;
-    // Mock completed
-    document.getElementById('stat-completed').textContent = 14; 
-}
+        <!-- Content Views -->
+        <div class="flex-1 overflow-auto p-8 relative">
+            
+            <!-- VIEW: DISPENSE QUEUE -->
+            <div id="view-queue" class="fade-in space-y-6">
+                <!-- Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg mr-4"><i data-feather="clock"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Pending Orders</p><h3 class="text-2xl font-bold text-slate-800" id="stat-pending">--</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg mr-4"><i data-feather="check-circle"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Completed Today</p><h3 class="text-2xl font-bold text-slate-800" id="stat-completed">--</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                        <div class="p-3 bg-red-50 text-red-600 rounded-lg mr-4"><i data-feather="alert-triangle"></i></div>
+                        <div><p class="text-slate-500 text-xs uppercase font-bold">Stock Alerts</p><h3 class="text-2xl font-bold text-slate-800">2</h3></div>
+                    </div>
+                </div>
 
-// --- MODAL LOGIC ---
-function openDispenseModal(orderId) {
-    selectedOrder = currentQueue.find(o => o.id === orderId);
-    if (!selectedOrder) return;
+                <!-- Queue List -->
+                <div id="queue-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Cards injected by JS -->
+                    <div class="flex justify-center items-center py-20 col-span-full">
+                        <div class="flex flex-col items-center text-slate-400">
+                            <i data-feather="loader" class="w-8 h-8 animate-spin mb-2"></i>
+                            <p class="text-sm">Loading prescriptions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    const modal = document.getElementById('dispense-modal');
-    const list = document.getElementById('modal-summary');
-    
-    list.innerHTML = selectedOrder.items.map(i => `
-        <li class="flex justify-between">
-            <span>${i.name}</span>
-            <span class="font-bold">x${i.qty}</span>
-        </li>
-    `).join('');
+            <!-- VIEW: INVENTORY -->
+            <div id="view-inventory" class="hidden fade-in space-y-6">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-700">Stock Levels</h3>
+                        <button class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center transition-colors">
+                            <i data-feather="plus" class="w-3 h-3 mr-1"></i> Add Stock
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Drug Name</th>
+                                    <th class="px-6 py-3 font-semibold">Category</th>
+                                    <th class="px-6 py-3 font-semibold">Stock</th>
+                                    <th class="px-6 py-3 font-semibold">Unit Price</th>
+                                    <th class="px-6 py-3 font-semibold">Status</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table" class="divide-y divide-slate-100">
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-    // Setup Confirm Button
-    const confirmBtn = document.getElementById('confirm-dispense-btn');
-    confirmBtn.onclick = () => confirmDispense(orderId);
+            <!-- VIEW: HISTORY -->
+            <div id="view-history" class="hidden fade-in">
+                <div class="bg-white p-10 rounded-xl border border-slate-200 text-center text-slate-400">
+                    <i data-feather="archive" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                    <h3 class="text-lg font-medium text-slate-600">History Log</h3>
+                    <p>Feature coming soon in v2.0</p>
+                </div>
+            </div>
 
-    modal.classList.remove('hidden');
-    // Simple animation logic could go here
-}
+        </div>
+    </main>
 
-function closeModal() {
-    document.getElementById('dispense-modal').classList.add('hidden');
-    selectedOrder = null;
-}
+    <!-- CONFIRM DISPENSE MODAL -->
+    <div id="dispense-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform" id="modal-content">
+            <div class="p-6">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4 mx-auto">
+                    <i data-feather="check" class="w-6 h-6 text-emerald-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-center text-slate-800 mb-2">Confirm Dispense</h3>
+                <p class="text-slate-500 text-center text-sm mb-6">Are you sure you want to mark this order as complete and deduct stock?</p>
+                
+                <div class="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-100 text-sm">
+                    <p class="text-slate-500 text-xs uppercase font-bold mb-2">Order Summary</p>
+                    <ul id="modal-summary" class="space-y-1 text-slate-700">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
 
-async function confirmDispense(orderId) {
-    const btn = document.getElementById('confirm-dispense-btn');
-    const originalText = btn.innerHTML;
-    
-    btn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 inline"></i> Processing...`;
-    feather.replace();
-    
-    // Simulate API Call delay
-    setTimeout(() => {
-        // Remove from local state
-        currentQueue = currentQueue.filter(o => o.id !== orderId);
-        
-        // Update UI
-        renderQueue(currentQueue);
-        updateStats(currentQueue.length);
-        
-        closeModal();
-        btn.innerHTML = originalText;
-        
-        // Optional: Show Toast Success
-        alert("Order Dispensed Successfully!"); 
-    }, 1000);
-}
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
+                    <button id="confirm-dispense-btn" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// --- INVENTORY LOGIC (Mock) ---
-function renderInventory() {
-    const tableBody = document.getElementById('inventory-table');
-    const mockInventory = [
-        { name: "Amoxicillin 500mg", cat: "Antibiotic", stock: 450, price: "$0.50", status: "ok" },
-        { name: "Paracetamol 500mg", cat: "Analgesic", stock: 1200, price: "$0.10", status: "ok" },
-        { name: "Metformin 500mg", cat: "Antidiabetic", stock: 45, price: "$0.30", status: "low" },
-        { name: "Ibuprofen 400mg", cat: "NSAID", stock: 0, price: "$0.25", status: "out" },
-    ];
-
-    tableBody.innerHTML = mockInventory.map(item => {
-        let statusBadge = '';
-        if (item.status === 'ok') statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">In Stock</span>`;
-        if (item.status === 'low') statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Low Stock</span>`;
-        if (item.status === 'out') statusBadge = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Out of Stock</span>`;
-
-        return `
-            <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 font-medium text-slate-800">${item.name}</td>
-                <td class="px-6 py-4 text-slate-500">${item.cat}</td>
-                <td class="px-6 py-4 font-mono font-bold ${item.status === 'out' ? 'text-red-500' : 'text-slate-700'}">${item.stock}</td>
-                <td class="px-6 py-4 text-slate-600">${item.price}</td>
-                <td class="px-6 py-4">${statusBadge}</td>
-                <td class="px-6 py-4 text-right">
-                    <button class="text-slate-400 hover:text-indigo-600 transition-colors"><i data-feather="edit-2" class="w-4 h-4"></i></button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-    
-    feather.replace();
-}
+    <!-- LOGIC SCRIPT -->
+    <script src="pharmacy_logic.js"></script>
+    <script>
+        feather.replace();
+    </script>
+</body>
+</html>
