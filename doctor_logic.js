@@ -849,3 +849,8 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if (!dob) return '--'; return Math.floor((new Date() - new Date(dob)) / 31557600000); }
+
+
+
+
+
