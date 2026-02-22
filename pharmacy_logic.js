@@ -387,7 +387,8 @@ async function renderInventory(searchQuery = "") {
 
         // 3. Render Table
         tableBody.innerHTML = filtered.map(item => {
-            const name = item.knowledge_map?.local_term || "Unknown Drug";
+            const kMap = (Array.isArray(item.knowledge_map) ? item.knowledge_map[0] : item.knowledge_map) || {};
+            const name = kMap.local_term || "Unknown Drug";
             const stock = item.stock_level || 0;
             const price = item.unit_price || 0;
 
