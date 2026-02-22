@@ -60,7 +60,7 @@ if (loginForm) {
             if (role === 'doctor') {
                 window.location.href = 'APPOINTMENTS.html';
             } else if (role === 'admin') {
-                window.location.href = 'portal.html';
+                window.location.href = 'ADMIN_PORTAL.html';
             } else if (role === 'nurse') {
                 window.location.href = 'NURSE_APPOINTMENTS.html';
             } else if (role === 'pharmacist') {
@@ -105,6 +105,7 @@ function setLoading(isLoading) {
     }
     if (window.feather) feather.replace();
 }
+
 
 
 
