@@ -585,17 +585,27 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                     description: d.who_full_desc
                 }));
             } else if (type === 'drug' && supabaseClient) {
-                // Optimized search for Drugs in the Knowledge Map
+                // Optimized search for Drugs that exist in Inventory with Total Stock
                 const { data } = await supabaseClient
                     .from('knowledge_map')
-                    .select('local_term, openfda_term')
+                    .select(`
+                        id,
+                        local_term,
+                        pharmacy_inventory!inner (
+                            stock_level
+                        )
+                    `)
                     .ilike('local_term', `%${q}%`)
-                    .limit(10);
+                    .limit(15);
 
-                results = (data || []).map(d => ({
-                    local_term: d.local_term,
-                    openfda: d.openfda_term
-                }));
+                results = (data || []).map(d => {
+                    const totalStock = (d.pharmacy_inventory || []).reduce((sum, item) => sum + (item.stock_level || 0), 0);
+                    return {
+                        id: d.id,
+                        local_term: d.local_term,
+                        stock: totalStock
+                    };
+                });
             } else {
                 // Fallback to old API
                 const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
@@ -613,7 +623,20 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                         div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> <span class="text-gray-700">${item.description}</span>`;
                         div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
                     } else if (type === 'drug') {
-                        div.innerHTML = `<i data-feather="package" class="w-3 h-3 inline mr-2 text-gray-400"></i><span class="font-semibold text-gray-800">${item.local_term}</span>`;
+                        const stockColor = item.stock > 10 ? 'text-emerald-600' : (item.stock > 0 ? 'text-orange-500' : 'text-red-500');
+                        div.innerHTML = `
+                            <div class="flex justify-between items-center px-1">
+                                <div class="flex items-center">
+                                    <div class="p-1.5 bg-gray-100 rounded mr-3 text-gray-500">
+                                        <i data-feather="package" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <span class="font-bold text-gray-800">${item.local_term}</span>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-[10px] font-bold uppercase tracking-tighter text-gray-400">Inventory</span>
+                                    <span class="text-xs font-black ${stockColor}">${item.stock}</span>
+                                </div>
+                            </div>`;
                         div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
                     }
 
@@ -826,8 +849,3 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if (!dob) return '--'; return Math.floor((new Date() - new Date(dob)) / 31557600000); }
-
-
-
-
-
