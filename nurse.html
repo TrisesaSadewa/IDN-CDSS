@@ -53,8 +53,8 @@
 </head>
 <body class="bg-slate-50 flex h-[100dvh] overflow-hidden text-slate-800">
 
-    <!-- Collapsed Sidebar (Logo & Icons Only) -->
-    <aside class="sidebar w-20 bg-[#0a192f] text-slate-300 flex flex-col shadow-2xl flex-shrink-0 border-r border-slate-800">
+    <!-- 1. Collapsed Primary Sidebar (Navigation) -->
+    <aside class="sidebar w-20 bg-[#0a192f] text-slate-300 flex flex-col shadow-2xl flex-shrink-0 border-r border-slate-800 relative z-40">
         <!-- Brand -->
         <div class="h-16 flex items-center justify-center border-b border-slate-800/50 bg-[#061121]">
             <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400">
@@ -71,31 +71,50 @@
         </nav>
     </aside>
 
-    <!-- Main Wrapper -->
-    <div class="flex-1 flex flex-col min-w-0 h-full relative">
+    <!-- 2. Secondary Left Sidebar (EMR History & Labs) -->
+    <aside class="w-[300px] bg-slate-50 border-r border-slate-200 flex flex-col flex-shrink-0 hidden md:flex relative z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         
-        <!-- Header with Right Panel Toggles -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 flex-shrink-0 z-30">
+        <!-- Tabs Header -->
+        <div class="p-4 bg-white border-b border-slate-200 flex-shrink-0">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center">
+                <i data-feather="folder" class="w-4 h-4 mr-2 text-emerald-500"></i> Patient Context
+            </h3>
+            <div class="flex bg-slate-100 p-1 rounded-lg">
+                <button id="btnTabHistory" onclick="switchSidebarTab('history')" class="flex-1 text-xs font-bold py-1.5 rounded-md bg-white text-emerald-700 shadow-sm transition-all border border-slate-200/50">Past History</button>
+                <button id="btnTabLabs" onclick="switchSidebarTab('labs')" class="flex-1 text-xs font-bold py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all border border-transparent">Lab Results</button>
+            </div>
+        </div>
+        
+        <!-- History Content -->
+        <div id="historyContent" class="flex-1 overflow-y-auto p-4 space-y-3">
+            <div class="flex flex-col items-center justify-center h-full text-slate-400">
+                <i data-feather="loader" class="w-6 h-6 mb-3 animate-spin"></i>
+                <p class="text-sm">Loading History...</p>
+            </div>
+        </div>
+        
+        <!-- Lab Content -->
+        <div id="labContent" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex flex-col items-center justify-center h-full text-slate-400">
+                <i data-feather="flask-conical" class="w-12 h-12 mb-3 opacity-30"></i>
+                <p class="text-sm font-medium">No recent lab results.</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 3. Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-full relative z-20">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 flex-shrink-0">
             <div class="flex items-center gap-4">
                 <h1 class="text-xl font-bold text-slate-800">Clinical Triage</h1>
                 <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs font-bold uppercase tracking-wider hidden sm:block">Triage Phase</span>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <!-- Right Panel Toggles -->
-                <div class="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
-                    <button id="sidebarHistoryBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:shadow-sm hover:text-emerald-600 rounded transition-all flex items-center">
-                        <i data-feather="clock" class="w-3.5 h-3.5 mr-1.5"></i> Pt History
-                    </button>
-                    <button id="sidebarLabBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:shadow-sm hover:text-emerald-600 rounded transition-all flex items-center">
-                        <i data-feather="thermometer" class="w-3.5 h-3.5 mr-1.5"></i> Labs
-                    </button>
-                </div>
-            </div>
         </header>
 
         <!-- Scrollable Content -->
-        <main class="flex-1 overflow-y-auto p-6 lg:p-8 pb-32 scroll-smooth">
+        <main class="flex-1 overflow-y-auto p-6 lg:p-8 pb-32 scroll-smooth bg-white">
             <div class="max-w-4xl mx-auto space-y-6">
                 
                 <!-- Dynamic Patient Info Card -->
@@ -164,8 +183,7 @@
                     </div>
                     <div class="p-6 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            
-                            <!-- UPGRADED PAIN SLIDER -->
+                            <!-- Pain Slider -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Score (0-10)</label>
                                 <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -179,7 +197,6 @@
                                     <span>10 - Worst</span>
                                 </div>
                             </div>
-
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pain Location</label>
                                 <input type="text" id="pain-location" class="input-field" placeholder="e.g. Lower Back, Headache">
@@ -215,29 +232,6 @@
 
             </div>
         </main>
-        
-        <!-- Right Panel (Sidebar for History, Labs) -->
-        <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-[0_0_40px_rgba(0,0,0,0.15)] z-50 transform translate-x-full transition-transform duration-300 w-full sm:w-[400px] border-l border-slate-200 flex flex-col">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center shadow-sm">
-                <h3 id="rightPanelTitle" class="font-bold text-slate-800 text-lg flex items-center">
-                    <i data-feather="info" class="w-5 h-5 mr-2 text-slate-500"></i> Panel
-                </h3>
-                <button id="closeRightPanel" class="text-slate-400 hover:text-rose-500 bg-white hover:bg-rose-50 p-1.5 rounded-md border border-slate-200 transition-colors">
-                    <i data-feather="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div class="flex-grow overflow-y-auto p-5 hidden bg-white" id="labContent">
-                <div class="flex flex-col items-center justify-center h-full text-slate-400">
-                    <i data-feather="flask-conical" class="w-12 h-12 mb-3 opacity-50"></i>
-                    <p class="text-sm font-medium">No recent lab results found.</p>
-                </div>
-            </div>
-            <div class="flex-grow overflow-y-auto p-5 hidden bg-slate-50/50" id="historyContent">
-                <!-- Populated via JS -->
-            </div>
-        </div>
-
     </div>
 
     <!-- Logic Script -->
@@ -250,15 +244,13 @@
             AOS.init({ once: true });
             feather.replace();
 
-            setupRightPanel();
-
             if(!currentApptId) {
                 alert("No appointment selected! Redirecting to queue.");
                 window.location.href = 'NURSE_APPOINTMENTS.html';
                 return;
             }
 
-            // Dynamically Fetch Patient Information
+            // Fetch Patient Information & Load History
             try {
                 const res = await fetch(`${API_BASE}/doctor/appointment/${currentApptId}`);
                 if (!res.ok) throw new Error("Failed to load patient");
@@ -278,8 +270,10 @@
                     document.getElementById('pregnancy-container').classList.remove('hidden');
                 }
                 
-                // Load Medical History into the sidebar
-                if(p.id) loadHistoryPanel(p.id);
+                // Load Medical History into the new left sidebar
+                if(p.id) {
+                    loadHistoryPanel(p.id);
+                }
                 
             } catch (e) {
                 console.error("Error fetching patient header:", e);
@@ -287,43 +281,28 @@
             }
         });
 
-        // --- Sidebar Logic ---
-        function setupRightPanel() {
-            const rightPanelBtnLab = document.getElementById('sidebarLabBtn');
-            const rightPanelBtnHist = document.getElementById('sidebarHistoryBtn');
-            const closeBtn = document.getElementById('closeRightPanel');
+        // --- Left Secondary Sidebar Tab Logic ---
+        function switchSidebarTab(tabName) {
+            const histBtn = document.getElementById('btnTabHistory');
+            const labsBtn = document.getElementById('btnTabLabs');
+            const histContent = document.getElementById('historyContent');
+            const labsContent = document.getElementById('labContent');
 
-            if (rightPanelBtnLab) rightPanelBtnLab.onclick = () => togglePanel('lab');
-            if (rightPanelBtnHist) rightPanelBtnHist.onclick = () => togglePanel('history');
-            if (closeBtn) closeBtn.onclick = () => document.getElementById('rightPanel').classList.add('translate-x-full');
-        }
+            // Reset classes
+            histBtn.className = "flex-1 text-xs font-bold py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all border border-transparent";
+            labsBtn.className = "flex-1 text-xs font-bold py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all border border-transparent";
+            histContent.classList.add('hidden');
+            labsContent.classList.add('hidden');
 
-        window.togglePanel = (type) => {
-            const rightPanel = document.getElementById('rightPanel');
-            if(!rightPanel) return;
-            
-            const isClosed = rightPanel.classList.contains('translate-x-full');
-            
-            if(isClosed) rightPanel.classList.remove('translate-x-full');
-            else if (rightPanel.dataset.type === type) rightPanel.classList.add('translate-x-full');
-            
-            rightPanel.dataset.type = type;
-            const lab = document.getElementById('labContent');
-            const hist = document.getElementById('historyContent');
-            const title = document.getElementById('rightPanelTitle');
-            
-            if(lab) lab.classList.add('hidden');
-            if(hist) hist.classList.add('hidden');
-            
-            if(type === 'lab' && lab) { 
-                lab.classList.remove('hidden'); 
-                if(title) title.innerHTML = '<i data-feather="thermometer" class="w-5 h-5 mr-2 text-slate-500 inline"></i> Recent Lab Results'; 
-            } else if (type === 'history' && hist) { 
-                hist.classList.remove('hidden'); 
-                if(title) title.innerHTML = '<i data-feather="clock" class="w-5 h-5 mr-2 text-slate-500 inline"></i> Past Medical History'; 
+            // Apply active styles
+            if (tabName === 'history') {
+                histBtn.className = "flex-1 text-xs font-bold py-1.5 rounded-md bg-white text-emerald-700 shadow-sm transition-all border border-slate-200/50";
+                histContent.classList.remove('hidden');
+            } else if (tabName === 'labs') {
+                labsBtn.className = "flex-1 text-xs font-bold py-1.5 rounded-md bg-white text-emerald-700 shadow-sm transition-all border border-slate-200/50";
+                labsContent.classList.remove('hidden');
             }
-            if(window.feather) feather.replace();
-        };
+        }
 
         async function loadHistoryPanel(patientId) {
             const container = document.getElementById('historyContent');
@@ -332,8 +311,9 @@
                 const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
                 const history = await res.json();
                 container.innerHTML = '';
+                
                 if(history.length === 0) { 
-                    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i data-feather="file-text" class="w-12 h-12 mb-3 opacity-50"></i><p class="text-sm font-medium">No history found.</p></div>'; 
+                    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i data-feather="file-text" class="w-10 h-10 mb-3 opacity-30"></i><p class="text-sm font-medium">No history found.</p></div>'; 
                     if(window.feather) feather.replace(); 
                     return; 
                 }
@@ -345,19 +325,21 @@
                         title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
                     }
                     const div = document.createElement('div');
-                    div.className = "p-4 bg-white border border-slate-200 rounded-xl mb-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer";
+                    div.className = "p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-emerald-300 transition-colors cursor-pointer relative overflow-hidden";
                     div.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">${date}</span>
-                            <span class="text-xs text-slate-500 font-medium">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span>
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
+                        <div class="flex justify-between items-center mb-1.5 pl-2">
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">${date}</span>
+                            <span class="text-[10px] text-slate-500 font-medium truncate ml-2">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span>
                         </div>
-                        <h4 class="font-semibold text-slate-800 text-sm leading-tight">${title || 'No Diagnosis'}</h4>
+                        <h4 class="font-bold text-slate-800 text-xs leading-snug mt-1 pl-2 line-clamp-2">${title || 'No Diagnosis'}</h4>
                     `;
                     container.appendChild(div);
                 });
                 if(window.feather) feather.replace();
             } catch(e) {
                 console.error("Failed to load history", e);
+                container.innerHTML = '<div class="p-3 text-sm text-red-500 bg-red-50 rounded border border-red-100">Failed to load history.</div>';
             }
         }
 
@@ -370,7 +352,6 @@
             btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 mr-2 animate-spin"></i> Submitting...`;
             feather.replace();
 
-            // Intercept Nurse Notes to append Pregnancy Status if applicable
             let finalNotes = document.getElementById('nurse-notes').value || "";
             const pregContainer = document.getElementById('pregnancy-container');
             
@@ -382,7 +363,6 @@
                 }
             }
 
-            // NOTE: respiratory_rate and spo2 are excluded below to prevent schema cache 500 error from Supabase
             const payload = {
                 appointment_id: currentApptId,
                 weight_kg: parseFloat(document.getElementById('weight').value) || null,
