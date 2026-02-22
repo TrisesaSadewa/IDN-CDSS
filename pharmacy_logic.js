@@ -14,7 +14,100 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchQueue();
     // Simulate inventory load
     renderInventory();
+    setupAddStockLogic();
 });
+
+// --- ADD STOCK MODAL ---
+function openAddStockModal() {
+    document.getElementById('add-stock-modal').classList.remove('hidden');
+}
+
+function closeAddStockModal() {
+    document.getElementById('add-stock-modal').classList.add('hidden');
+    document.getElementById('add-stock-form').reset();
+    document.getElementById('add-drug-suggestions').classList.add('hidden');
+}
+
+function setupAddStockLogic() {
+    const input = document.getElementById('add-drug-name');
+    const suggestions = document.getElementById('add-drug-suggestions');
+    const form = document.getElementById('add-stock-form');
+
+    if (!input || !pharmacySupabase) return;
+
+    input.addEventListener('input', async (e) => {
+        const q = e.target.value;
+        if (q.length < 2) { suggestions.classList.add('hidden'); return; }
+
+        try {
+            const { data } = await pharmacySupabase
+                .from('knowledge_map')
+                .select('id, local_term')
+                .ilike('local_term', `%${q}%`)
+                .limit(10);
+
+            suggestions.innerHTML = '';
+            if (data && data.length > 0) {
+                suggestions.classList.remove('hidden');
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<i data-feather="package" class="w-3 h-3 inline mr-2 text-slate-400"></i><span class="font-semibold text-slate-800">${item.local_term}</span>`;
+                    div.onclick = () => {
+                        input.value = item.local_term;
+                        document.getElementById('selected-drug-id').value = item.id;
+                        suggestions.classList.add('hidden');
+                    };
+                    suggestions.appendChild(div);
+                });
+                feather.replace();
+            } else {
+                suggestions.classList.add('hidden');
+            }
+        } catch (e) {
+            console.error("Search Error:", e);
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const drugId = document.getElementById('selected-drug-id').value;
+        if (!drugId) return alert("Please select a drug from the list.");
+
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Updating...";
+
+        const payload = {
+            drug_id: drugId,
+            batch_number: document.getElementById('batch-number').value,
+            expiry_date: document.getElementById('expiry-date').value,
+            stock_level: parseInt(document.getElementById('stock-qty').value),
+            unit_price: parseFloat(document.getElementById('unit-price').value)
+        };
+
+        try {
+            const { error } = await pharmacySupabase
+                .from('pharmacy_inventory')
+                .insert([payload]);
+
+            if (error) throw error;
+
+            alert("Stock updated successfully!");
+            renderInventory();
+            closeAddStockModal();
+        } catch (err) {
+            alert("Failed to update stock: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden');
+    });
+}
 
 // --- NAVIGATION ---
 function switchTab(tabId) {
