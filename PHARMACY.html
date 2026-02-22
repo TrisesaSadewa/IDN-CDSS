@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,27 +11,77 @@
     <script src="https://unpkg.com/feather-icons"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Logic Script (Must be before body to define globally) -->
+    <script src="pharmacy_logic.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        h1, h2, h3, .brand-font { font-family: 'Plus Jakarta Sans', sans-serif; }
-        
-        .sidebar-item { transition: all 0.2s; }
-        .sidebar-item:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .sidebar-item.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
 
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .sidebar-item {
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-item.active {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
+
 <body class="h-screen flex overflow-hidden">
 
     <!-- SIDEBAR -->
@@ -44,26 +95,31 @@
 
         <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Main</p>
-            
-            <button onclick="switchTab('queue')" id="tab-queue" class="sidebar-item active w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+
+            <button onclick="switchTab('queue')" id="tab-queue"
+                class="sidebar-item active w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
                 <i data-feather="inbox" class="w-4 h-4 mr-3"></i>
                 Dispense Queue
-                <span id="queue-badge" class="ml-auto bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                <span id="queue-badge"
+                    class="ml-auto bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
             </button>
 
-            <button onclick="switchTab('inventory')" id="tab-inventory" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+            <button onclick="switchTab('inventory')" id="tab-inventory"
+                class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
                 <i data-feather="database" class="w-4 h-4 mr-3"></i>
                 Inventory Management
             </button>
 
-            <button onclick="switchTab('history')" id="tab-history" class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
+            <button onclick="switchTab('history')" id="tab-history"
+                class="sidebar-item w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium">
                 <i data-feather="clock" class="w-4 h-4 mr-3"></i>
                 History Logs
             </button>
         </div>
 
         <div class="p-4 border-t border-slate-800">
-            <button onclick="window.location.href='PORTAL.html'" class="w-full flex items-center justify-center px-4 py-2 border border-slate-700 rounded-lg text-sm hover:bg-slate-800 hover:text-white transition-colors">
+            <button onclick="window.location.href='PORTAL.html'"
+                class="w-full flex items-center justify-center px-4 py-2 border border-slate-700 rounded-lg text-sm hover:bg-slate-800 hover:text-white transition-colors">
                 <i data-feather="arrow-left" class="w-4 h-4 mr-2"></i> Back to Portal
             </button>
         </div>
@@ -71,18 +127,20 @@
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
-        
+
         <!-- Header -->
         <header class="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm z-10">
             <h2 id="page-title" class="text-xl font-bold text-slate-800 brand-font">Dispense Queue</h2>
             <div class="flex items-center gap-4">
                 <div class="relative">
                     <i data-feather="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
-                    <input type="text" placeholder="Search orders..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
+                    <input type="text" placeholder="Search orders..."
+                        class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
                 </div>
                 <div class="w-px h-6 bg-slate-200"></div>
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                    <div
+                        class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
                         PH
                     </div>
                     <span class="text-sm font-medium text-slate-700">Pharmacist</span>
@@ -92,22 +150,33 @@
 
         <!-- Content Views -->
         <div class="flex-1 overflow-auto p-8 relative">
-            
+
             <!-- VIEW: DISPENSE QUEUE -->
             <div id="view-queue" class="fade-in space-y-6">
                 <!-- Stats Row -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
                         <div class="p-3 bg-blue-50 text-blue-600 rounded-lg mr-4"><i data-feather="clock"></i></div>
-                        <div><p class="text-slate-500 text-xs uppercase font-bold">Pending Orders</p><h3 class="text-2xl font-bold text-slate-800" id="stat-pending">--</h3></div>
+                        <div>
+                            <p class="text-slate-500 text-xs uppercase font-bold">Pending Orders</p>
+                            <h3 class="text-2xl font-bold text-slate-800" id="stat-pending">--</h3>
+                        </div>
                     </div>
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
-                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg mr-4"><i data-feather="check-circle"></i></div>
-                        <div><p class="text-slate-500 text-xs uppercase font-bold">Completed Today</p><h3 class="text-2xl font-bold text-slate-800" id="stat-completed">--</h3></div>
+                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg mr-4"><i
+                                data-feather="check-circle"></i></div>
+                        <div>
+                            <p class="text-slate-500 text-xs uppercase font-bold">Completed Today</p>
+                            <h3 class="text-2xl font-bold text-slate-800" id="stat-completed">--</h3>
+                        </div>
                     </div>
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center">
-                        <div class="p-3 bg-red-50 text-red-600 rounded-lg mr-4"><i data-feather="alert-triangle"></i></div>
-                        <div><p class="text-slate-500 text-xs uppercase font-bold">Stock Alerts</p><h3 class="text-2xl font-bold text-slate-800">2</h3></div>
+                        <div class="p-3 bg-red-50 text-red-600 rounded-lg mr-4"><i data-feather="alert-triangle"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-xs uppercase font-bold">Stock Alerts</p>
+                            <h3 class="text-2xl font-bold text-slate-800">2</h3>
+                        </div>
                     </div>
                 </div>
 
@@ -128,7 +197,8 @@
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                         <h3 class="font-bold text-slate-700">Stock Levels</h3>
-                        <button class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center transition-colors">
+                        <button
+                            class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center transition-colors">
                             <i data-feather="plus" class="w-3 h-3 mr-1"></i> Add Stock
                         </button>
                     </div>
@@ -165,15 +235,18 @@
     </main>
 
     <!-- CONFIRM DISPENSE MODAL -->
-    <div id="dispense-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform" id="modal-content">
+    <div id="dispense-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform"
+            id="modal-content">
             <div class="p-6">
                 <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4 mx-auto">
                     <i data-feather="check" class="w-6 h-6 text-emerald-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-center text-slate-800 mb-2">Confirm Dispense</h3>
-                <p class="text-slate-500 text-center text-sm mb-6">Are you sure you want to mark this order as complete and deduct stock?</p>
-                
+                <p class="text-slate-500 text-center text-sm mb-6">Are you sure you want to mark this order as complete
+                    and deduct stock?</p>
+
                 <div class="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-100 text-sm">
                     <p class="text-slate-500 text-xs uppercase font-bold mb-2">Order Summary</p>
                     <ul id="modal-summary" class="space-y-1 text-slate-700">
@@ -182,8 +255,10 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <button onclick="closeModal()" class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
-                    <button id="confirm-dispense-btn" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Confirm</button>
+                    <button onclick="closeModal()"
+                        class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
+                    <button id="confirm-dispense-btn"
+                        class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Confirm</button>
                 </div>
             </div>
         </div>
@@ -195,4 +270,5 @@
         feather.replace();
     </script>
 </body>
+
 </html>
