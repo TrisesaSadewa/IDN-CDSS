@@ -292,7 +292,7 @@ function setupEMRInteractions() {
         if (val) { secondaryDiagnoses.push({ code: 'DX', description: val }); renderComorbidities(); document.getElementById('comorbidityInput').value = ''; }
     };
 
-    document.getElementById('addPrescription').onclick = () => {
+    document.getElementById('addPrescription').onclick = async () => {
         const nameEl = document.getElementById('drugName');
         const doseEl = document.getElementById('dosage');
         const freqEl = document.getElementById('schedule');
@@ -305,6 +305,15 @@ function setupEMRInteractions() {
                 const selected = JSON.parse(nameEl.dataset.selectedDrug);
                 if (selected.local_term === name) drugClass = selected.drug_class || 'unknown';
             } catch (e) { }
+        }
+
+        // If still unknown, try resolving from backend (for manual types or unsynced results)
+        if (drugClass === 'unknown') {
+            try {
+                const res = await fetch(`${API_BASE}/api/resolve-drug-class?q=${encodeURIComponent(name)}`);
+                const classData = await res.json();
+                drugClass = classData.drug_class || 'unknown';
+            } catch (e) { console.error("Class resolution failed", e); }
         }
 
         currentDrugsList.push({ name, dosage: dose, frequency: freq, class: drugClass });
@@ -605,7 +614,7 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                 if (supabaseClient) {
                     const { data } = await supabaseClient
                         .from('knowledge_map')
-                        .select(`id, local_term, drug_class, pharmacy_inventory ( stock_level )`)
+                        .select(`id, local_term, pharmacy_inventory ( stock_level )`)
                         .ilike('local_term', `%${q}%`)
                         .limit(15);
 
@@ -623,12 +632,23 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                         }
 
                         if (!uniqueMap.has(key)) {
-                            uniqueMap.set(key, { id: d.id, local_term: name, drug_class: d.drug_class, stock: stock });
+                            uniqueMap.set(key, { id: d.id, local_term: name, stock: stock });
                         } else {
                             uniqueMap.get(key).stock += stock;
                         }
                     });
-                    results = Array.from(uniqueMap.values());
+
+                    // ENRICHMENT: Resolve classes for the unique results using the backend
+                    // We do this in parallel to keep it snappy
+                    results = await Promise.all(Array.from(uniqueMap.values()).map(async (item) => {
+                        try {
+                            const res = await fetch(`${API_BASE}/api/resolve-drug-class?q=${encodeURIComponent(item.local_term)}`);
+                            const classData = await res.json();
+                            return { ...item, drug_class: classData.drug_class || 'unknown' };
+                        } catch (e) {
+                            return { ...item, drug_class: 'unknown' };
+                        }
+                    }));
                 } else {
                     results = []; // No fallback for drugs if Supabase is missing
                 }
@@ -653,6 +673,7 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                                         <i data-feather="package" class="w-3.5 h-3.5"></i>
                                     </div>
                                     <span class="font-bold text-gray-800">${item.local_term}</span>
+                                    ${item.drug_class && item.drug_class !== 'unknown' ? `<span class="ml-2 text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter shadow-sm">${item.drug_class}</span>` : ''}
                                 </div>
                                 <div class="flex flex-col items-end">
                                     <span class="text-[10px] font-bold uppercase tracking-tighter text-gray-400">Inventory</span>
