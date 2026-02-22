@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,29 +12,109 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .sidebar { transition: all 0.3s ease; position: relative; z-index: 40; }
-        .sidebar-tooltip {
-            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
-            background: #1f2937; color: white; padding: 4px 8px; border-radius: 4px;
-            font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-            white-space: nowrap; margin-left: 10px; z-index: 50;
+        .sidebar {
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 40;
         }
-        .sidebar-item:hover .sidebar-tooltip { opacity: 1; }
-        #rightPanel { box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
-        .input-field:focus { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }
-        .view-toggle-btn.active { background-color: white; color: #2563eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        .hidden-view { display: none !important; }
-        .autocomplete-list { position: absolute; z-index: 20; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e5e7eb; width: 100%; }
-        
+
+        .sidebar-tooltip {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            margin-left: 10px;
+            z-index: 50;
+        }
+
+        .sidebar-item:hover .sidebar-tooltip {
+            opacity: 1;
+        }
+
+        #rightPanel {
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+
+        .view-toggle-btn.active {
+            background-color: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .hidden-view {
+            display: none !important;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            z-index: 50;
+            max-height: 280px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e5e7eb;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            margin-top: 4px;
+        }
+
+        .autocomplete-list div {
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+            padding: 12px 16px;
+        }
+
+        .autocomplete-list div:last-child {
+            border-bottom: none;
+        }
+
         /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
         /* DDI Flashing Animation for Major Warnings */
         @keyframes flashMajor {
-            0%, 100% { background-color: #374151; color: #d1d5db; box-shadow: none; }
-            50% { background-color: #ef4444; color: #ffffff; box-shadow: 0 0 18px rgba(239, 68, 68, 0.9); }
+
+            0%,
+            100% {
+                background-color: #374151;
+                color: #d1d5db;
+                box-shadow: none;
+            }
+
+            50% {
+                background-color: #ef4444;
+                color: #ffffff;
+                box-shadow: 0 0 18px rgba(239, 68, 68, 0.9);
+            }
         }
+
         .flash-major {
             animation: flashMajor 1.5s infinite !important;
             border-color: #f87171 !important;
@@ -41,6 +122,7 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans overflow-hidden">
     <!-- Header -->
     <header class="bg-blue-600 text-white shadow-md z-50 relative">
@@ -62,22 +144,26 @@
         <!-- Sidebar -->
         <aside class="sidebar bg-gray-800 text-white w-16 flex flex-col flex-shrink-0 z-40 shadow-lg">
             <div class="p-4 border-b border-gray-700 flex justify-center">
-                <a href="APPOINTMENTS.html" class="sidebar-item relative p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
+                <a href="APPOINTMENTS.html"
+                    class="sidebar-item relative p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
                     <i data-feather="arrow-left" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Back to Appointments</span>
                 </a>
             </div>
             <div class="flex-grow flex flex-col items-center py-6 space-y-6">
-                <button id="sidebarHistoryBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
+                <button id="sidebarHistoryBtn"
+                    class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
                     <i data-feather="clock" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Past EMR History</span>
                 </button>
-                <button id="sidebarLabBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
+                <button id="sidebarLabBtn"
+                    class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all">
                     <i data-feather="activity" class="w-5 h-5"></i>
                     <span class="sidebar-tooltip">Lab Results</span>
                 </button>
                 <!-- Interaction Report Button -->
-                <button id="sidebarDDIBtn" class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all border border-transparent">
+                <button id="sidebarDDIBtn"
+                    class="sidebar-item relative p-3 rounded-xl hover:bg-gray-700 text-gray-300 hover:text-white transition-all border border-transparent">
                     <i data-feather="shield" id="ddiSidebarIcon" class="w-5 h-5 transition-colors"></i>
                     <span class="sidebar-tooltip">Interaction Report</span>
                 </button>
@@ -87,13 +173,13 @@
         <!-- Main Content Area -->
         <main class="flex-grow overflow-auto p-6 bg-gray-50 relative">
             <div class="container mx-auto px-0 space-y-6 max-w-5xl">
-                
+
                 <!-- Patient Data -->
                 <section class="form-section bg-white rounded-lg p-6 w-full">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4">Patient Data</h2>
                     <div class="flex flex-col md:flex-row gap-6">
                         <div class="bg-blue-50 rounded-lg p-4 flex-1 border-l-4 border-blue-500">
-                             <div class="flex items-center mb-4">
+                            <div class="flex items-center mb-4">
                                 <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                                     <i data-feather="user" class="text-blue-500 w-5 h-5"></i>
                                 </div>
@@ -103,22 +189,47 @@
                                 </div>
                             </div>
                             <div class="space-y-3">
-                                <div class="flex justify-between border-b border-blue-100 pb-2"><span class="text-sm font-medium text-gray-600">MRN</span><span class="text-sm font-semibold text-gray-800" id="pt-id">--</span></div>
-                                <div class="flex justify-between border-b border-blue-100 pb-2"><span class="text-sm font-medium text-gray-600">BMI</span><span class="text-sm font-semibold text-gray-800" id="bmi">N/A</span></div>
+                                <div class="flex justify-between border-b border-blue-100 pb-2"><span
+                                        class="text-sm font-medium text-gray-600">MRN</span><span
+                                        class="text-sm font-semibold text-gray-800" id="pt-id">--</span></div>
+                                <div class="flex justify-between border-b border-blue-100 pb-2"><span
+                                        class="text-sm font-medium text-gray-600">BMI</span><span
+                                        class="text-sm font-semibold text-gray-800" id="bmi">N/A</span></div>
                                 <!-- ADDED: Allergy & Special Conditions Alert -->
                                 <div class="flex justify-between items-start pt-1">
-                                    <span class="text-sm font-bold text-red-500 flex items-center"><i data-feather="alert-triangle" class="w-4 h-4 mr-1"></i> Alerts</span>
-                                    <span class="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-1 rounded shadow-sm text-right max-w-[150px] break-words" id="pt-allergies">None Known</span>
+                                    <span class="text-sm font-bold text-red-500 flex items-center"><i
+                                            data-feather="alert-triangle" class="w-4 h-4 mr-1"></i> Alerts</span>
+                                    <span
+                                        class="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-1 rounded shadow-sm text-right max-w-[150px] break-words"
+                                        id="pt-allergies">None Known</span>
                                 </div>
                             </div>
                         </div>
                         <div class="bg-white border rounded-lg p-4 flex-1 shadow-sm">
-                            <h3 class="font-semibold text-gray-700 mb-3 text-xs uppercase tracking-wide">Vital Signs</h3>
+                            <h3 class="font-semibold text-gray-700 mb-3 text-xs uppercase tracking-wide">Vital Signs
+                            </h3>
                             <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Weight</label><input type="text" id="weight" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
-                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Height</label><input type="text" id="height" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
-                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">BP</label><div class="flex gap-1"><input type="text" id="systolic" class="w-10 bg-transparent font-bold text-gray-800 outline-none" value="--"><span>/</span><input type="text" id="diastolic" class="w-10 bg-transparent font-bold text-gray-800 outline-none" value="--"></div></div>
-                                <div class="bg-gray-50 rounded p-2"><label class="text-[10px] text-gray-500 uppercase">Temp</label><input type="text" id="temperature" class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--"></div>
+                                <div class="bg-gray-50 rounded p-2"><label
+                                        class="text-[10px] text-gray-500 uppercase">Weight</label><input type="text"
+                                        id="weight" class="w-full bg-transparent font-bold text-gray-800 outline-none"
+                                        value="--"></div>
+                                <div class="bg-gray-50 rounded p-2"><label
+                                        class="text-[10px] text-gray-500 uppercase">Height</label><input type="text"
+                                        id="height" class="w-full bg-transparent font-bold text-gray-800 outline-none"
+                                        value="--"></div>
+                                <div class="bg-gray-50 rounded p-2"><label
+                                        class="text-[10px] text-gray-500 uppercase">BP</label>
+                                    <div class="flex gap-1"><input type="text" id="systolic"
+                                            class="w-10 bg-transparent font-bold text-gray-800 outline-none"
+                                            value="--"><span>/</span><input type="text" id="diastolic"
+                                            class="w-10 bg-transparent font-bold text-gray-800 outline-none" value="--">
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 rounded p-2"><label
+                                        class="text-[10px] text-gray-500 uppercase">Temp</label><input type="text"
+                                        id="temperature"
+                                        class="w-full bg-transparent font-bold text-gray-800 outline-none" value="--">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -127,9 +238,15 @@
                 <!-- VIEW TOGGLE -->
                 <div class="flex justify-center w-full my-4">
                     <div class="bg-gray-200 p-1 rounded-lg inline-flex shadow-inner">
-                        <button class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="switchView('nurse')">Nurse Notes</button>
-                        <button class="view-toggle-btn active px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="switchView('doctor')">Doctor Consultation</button>
-                        <button id="summaryToggleBtn" class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center focus:outline-none" onclick="switchView('summary')">Visit Summary</button>
+                        <button
+                            class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none"
+                            onclick="switchView('nurse')">Nurse Notes</button>
+                        <button
+                            class="view-toggle-btn active px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none"
+                            onclick="switchView('doctor')">Doctor Consultation</button>
+                        <button id="summaryToggleBtn"
+                            class="view-toggle-btn px-6 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center focus:outline-none"
+                            onclick="switchView('summary')">Visit Summary</button>
                     </div>
                 </div>
 
@@ -138,7 +255,8 @@
                     <section class="form-section bg-gray-50 rounded-lg p-6 border border-gray-200">
                         <h2 class="text-xl font-semibold text-gray-800 mb-6">Nurse Triage Assessment</h2>
                         <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Nurse Notes</label>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Nurse
+                                Notes</label>
                             <p class="text-sm text-gray-700 leading-relaxed" id="nurse-notes-text">Loading...</p>
                             <div class="mt-2 flex gap-4 text-xs text-gray-500">
                                 <span>Pain Score: <b id="pain-score">--</b></span>
@@ -153,67 +271,117 @@
                     <!-- Anamnesis -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Anamnesis</h2>
-                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief Complaint</label><textarea id="chiefComplaintInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
-                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">History of Illness</label><textarea id="historyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Chief
+                                Complaint</label><textarea id="chiefComplaintInput"
+                                class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea>
+                        </div>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">History of
+                                Illness</label><textarea id="historyInput"
+                                class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea>
+                        </div>
                     </section>
 
                     <!-- Analysis -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Analysis</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="md:col-span-2"><label class="block text-xs font-medium text-gray-500 mb-1">Primary Diagnosis</label><input type="text" id="primaryDiagnosisInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md"></div>
-                            <div class="relative"><label class="block text-xs font-medium text-gray-500 mb-1">ICD-10 Code</label><input type="text" id="primaryICDInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-blue-700"><div id="primaryICDSuggestions" class="autocomplete-list hidden"></div></div>
+                            <div class="md:col-span-2"><label
+                                    class="block text-xs font-medium text-gray-500 mb-1">Primary Diagnosis</label><input
+                                    type="text" id="primaryDiagnosisInput"
+                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-md"></div>
+                            <div class="relative"><label class="block text-xs font-medium text-gray-500 mb-1">ICD-10
+                                    Code</label><input type="text" id="primaryICDInput"
+                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-blue-700">
+                                <div id="primaryICDSuggestions" class="autocomplete-list hidden"></div>
+                            </div>
                         </div>
-                        <div class="mt-4"><label class="block text-xs font-medium text-gray-500 mb-1">Secondary Diagnoses</label><div class="flex gap-2 mb-2"><div class="relative flex-grow"><input type="text" id="comorbidityInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Add diagnosis..."><div id="comorbiditySuggestions" class="autocomplete-list hidden"></div></div><button id="addComorbidityBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm border border-gray-300">Add</button></div><div id="comorbidityList" class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50 rounded-lg border border-dashed border-gray-300"></div></div>
-                        <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Clinical Notes</label><textarea id="analysisNotesInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea></div>
+                        <div class="mt-4"><label class="block text-xs font-medium text-gray-500 mb-1">Secondary
+                                Diagnoses</label>
+                            <div class="flex gap-2 mb-2">
+                                <div class="relative flex-grow"><input type="text" id="comorbidityInput"
+                                        class="input-field w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        placeholder="Add diagnosis...">
+                                    <div id="comorbiditySuggestions" class="autocomplete-list hidden"></div>
+                                </div><button id="addComorbidityBtn"
+                                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm border border-gray-300">Add</button>
+                            </div>
+                            <div id="comorbidityList"
+                                class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                            </div>
+                        </div>
+                        <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Clinical
+                                Notes</label><textarea id="analysisNotesInput"
+                                class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"></textarea>
+                        </div>
                     </section>
 
                     <!-- Treatment -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Treatment</h2>
-                        <textarea id="therapyInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24" placeholder="Therapy instructions..."></textarea>
-                        
+                        <textarea id="therapyInput"
+                            class="input-field w-full px-3 py-2 border border-gray-300 rounded-md h-24"
+                            placeholder="Therapy instructions..."></textarea>
+
                         <!-- Prescription Widget -->
                         <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4 shadow-sm relative">
                             <div class="flex justify-between items-center mb-3">
                                 <h4 class="font-semibold text-gray-800 text-sm">Add Drug</h4>
                                 <div class="flex items-center gap-2">
                                     <!-- OPENFDA Suggest Button -->
-                                    <button id="btnAlgorithmicSuggestRx" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
+                                    <button id="btnAlgorithmicSuggestRx"
+                                        class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
                                         <i data-feather="database" class="w-3.5 h-3.5 mr-1.5"></i> FDA Indication Search
                                     </button>
-                                    <button id="btnCheckDDI" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-200 transition-colors flex items-center shadow-sm">
+                                    <button id="btnCheckDDI"
+                                        class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-200 transition-colors flex items-center shadow-sm">
                                         <i data-feather="shield" class="w-3.5 h-3.5 mr-1.5"></i> Check Interactions
                                     </button>
                                 </div>
                             </div>
 
                             <!-- OpenFDA Recommendation Box (Hidden by default) -->
-                            <div id="algorithmicSuggestionBox" class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-900 shadow-inner whitespace-pre-wrap relative">
-                                <button onclick="document.getElementById('algorithmicSuggestionBox').classList.add('hidden')" class="absolute top-2 right-2 text-indigo-400 hover:text-indigo-700"><i data-feather="x" class="w-4 h-4"></i></button>
+                            <div id="algorithmicSuggestionBox"
+                                class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-900 shadow-inner whitespace-pre-wrap relative">
+                                <button
+                                    onclick="document.getElementById('algorithmicSuggestionBox').classList.add('hidden')"
+                                    class="absolute top-2 right-2 text-indigo-400 hover:text-indigo-700"><i
+                                        data-feather="x" class="w-4 h-4"></i></button>
                                 <div id="algorithmicSuggestionText"></div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
-                                <div class="md:col-span-4"><input type="text" id="drugName" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Drug Name"></div>
-                                <div class="md:col-span-3"><input type="text" id="dosage" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Dose (500mg)"></div>
-                                <div class="md:col-span-3"><input type="text" id="schedule" class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Freq (3x1)"></div>
-                                <div class="md:col-span-2"><button id="addPrescription" class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-blue-700">Add</button></div>
+                                <div class="md:col-span-4"><input type="text" id="drugName"
+                                        class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                                        placeholder="Drug Name"></div>
+                                <div class="md:col-span-3"><input type="text" id="dosage"
+                                        class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                                        placeholder="Dose (500mg)"></div>
+                                <div class="md:col-span-3"><input type="text" id="schedule"
+                                        class="input-field w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
+                                        placeholder="Freq (3x1)"></div>
+                                <div class="md:col-span-2"><button id="addPrescription"
+                                        class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-blue-700">Add</button>
+                                </div>
                             </div>
-                            
+
                             <!-- Bulk -->
                             <div class="mb-3 relative">
-                                <textarea id="bulkDrugsInput" class="input-field w-full px-3 py-2 border border-gray-300 rounded-lg h-16 text-sm bg-gray-50 font-mono" placeholder="Bulk: Paracetamol 500mg 3x1"></textarea>
-                                <button id="parseBulkBtn" class="absolute bottom-2 right-2 bg-white border border-gray-300 text-xs px-3 py-1 rounded shadow-sm hover:bg-gray-50 font-semibold">Parse</button>
+                                <textarea id="bulkDrugsInput"
+                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-lg h-16 text-sm bg-gray-50 font-mono"
+                                    placeholder="Bulk: Paracetamol 500mg 3x1"></textarea>
+                                <button id="parseBulkBtn"
+                                    class="absolute bottom-2 right-2 bg-white border border-gray-300 text-xs px-3 py-1 rounded shadow-sm hover:bg-gray-50 font-semibold">Parse</button>
                             </div>
-                            
+
                             <!-- List -->
                             <div id="prescriptionList" class="mt-4 divide-y divide-gray-100"></div>
                         </div>
                     </section>
-                    
+
                     <div class="flex justify-end pt-6 pb-12">
-                        <button id="submitDoctorView" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg">Finalize & Submit</button>
+                        <button id="submitDoctorView"
+                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg">Finalize
+                            & Submit</button>
                     </div>
                 </div>
 
@@ -242,7 +410,9 @@
                             <div class="text-sm text-gray-800 mt-1" id="summaryMeds">--</div>
                         </div>
                         <div class="mt-8 flex justify-end">
-                            <button id="submitSummaryView" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Finalize & Submit</button>
+                            <button id="submitSummaryView"
+                                class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Finalize &
+                                Submit</button>
                         </div>
                     </section>
                 </div>
@@ -250,15 +420,17 @@
         </main>
 
         <!-- Right Panel (Sidebar for History, Labs, and DDI) -->
-        <div id="rightPanel" class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 w-[30%] min-w-[350px] border-l border-gray-200 flex flex-col">
+        <div id="rightPanel"
+            class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 w-[30%] min-w-[350px] border-l border-gray-200 flex flex-col">
             <div class="p-4 bg-gray-100 border-b flex justify-between items-center">
                 <h3 id="rightPanelTitle" class="font-bold text-gray-700">Panel</h3>
-                <button id="closeRightPanel" class="text-gray-500 hover:text-red-500"><i data-feather="minimize-2" class="w-5 h-5"></i></button>
+                <button id="closeRightPanel" class="text-gray-500 hover:text-red-500"><i data-feather="minimize-2"
+                        class="w-5 h-5"></i></button>
             </div>
-            
+
             <div class="flex-grow overflow-y-auto p-4 hidden" id="labContent"></div>
             <div class="flex-grow overflow-y-auto p-4 hidden" id="historyContent"></div>
-            
+
             <div class="flex-grow overflow-y-auto p-4 hidden bg-gray-50" id="ddiContent">
                 <div class="flex flex-col items-center justify-center h-full text-gray-400">
                     <i data-feather="shield" class="w-12 h-12 mb-3 opacity-50"></i>
@@ -275,4 +447,5 @@
         feather.replace();
     </script>
 </body>
+
 </html>
