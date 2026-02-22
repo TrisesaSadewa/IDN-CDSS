@@ -282,7 +282,9 @@ function setupEMRInteractions() {
 
     // ADDED: Drug Search Optimization
     setupAutocomplete('drugName', null, 'drug', (item) => {
-        document.getElementById('drugName').value = item.local_term;
+        const nameEl = document.getElementById('drugName');
+        nameEl.value = item.local_term;
+        nameEl.dataset.selectedDrug = JSON.stringify(item);
         document.getElementById('dosage').focus();
     });
     document.getElementById('addComorbidityBtn').onclick = () => {
@@ -296,9 +298,19 @@ function setupEMRInteractions() {
         const freqEl = document.getElementById('schedule');
         const name = nameEl.value; const dose = doseEl.value; const freq = freqEl.value;
         if (!name) return;
-        currentDrugsList.push({ name, dosage: dose, frequency: freq });
+
+        let drugClass = 'unknown';
+        if (nameEl.dataset.selectedDrug) {
+            try {
+                const selected = JSON.parse(nameEl.dataset.selectedDrug);
+                if (selected.local_term === name) drugClass = selected.drug_class || 'unknown';
+            } catch (e) { }
+        }
+
+        currentDrugsList.push({ name, dosage: dose, frequency: freq, class: drugClass });
         renderPrescriptions();
         nameEl.value = ''; doseEl.value = ''; freqEl.value = '';
+        delete nameEl.dataset.selectedDrug;
         resetDDIStatus();
     };
 
@@ -593,7 +605,7 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                 if (supabaseClient) {
                     const { data } = await supabaseClient
                         .from('knowledge_map')
-                        .select(`id, local_term, pharmacy_inventory ( stock_level )`)
+                        .select(`id, local_term, drug_class, pharmacy_inventory ( stock_level )`)
                         .ilike('local_term', `%${q}%`)
                         .limit(15);
 
@@ -611,7 +623,7 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                         }
 
                         if (!uniqueMap.has(key)) {
-                            uniqueMap.set(key, { id: d.id, local_term: name, stock: stock });
+                            uniqueMap.set(key, { id: d.id, local_term: name, drug_class: d.drug_class, stock: stock });
                         } else {
                             uniqueMap.get(key).stock += stock;
                         }
