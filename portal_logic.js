@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadUserProfile();
     renderDashboard();
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 });
 
 // Mock Data (In real app, fetch from Supabase 'view_daily_business_metrics')
@@ -17,7 +17,7 @@ function loadUserProfile() {
     // Get from LocalStorage (set during Login)
     const name = localStorage.getItem('smart_his_name') || 'User';
     const role = localStorage.getItem('smart_his_role') || 'guest';
-    
+
     // Update UI Elements
     const nameEl = document.getElementById('user-name');
     const welcomeEl = document.getElementById('welcome-name');
@@ -122,6 +122,36 @@ function renderDashboard() {
         `;
     }
 
+    // --- PHARMACIST VIEW ---
+    else if (role === 'pharmacist') {
+        html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">Daily Prescriptions</p>
+                    <h3 class="text-3xl font-bold text-emerald-600">${METRICS.pharmacist.prescriptions}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">Stock Alerts</p>
+                    <h3 class="text-3xl font-bold text-red-500">${METRICS.pharmacist.stock_alerts}</h3>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <p class="text-gray-500 text-sm font-medium">Pending Pickup</p>
+                    <h3 class="text-3xl font-bold text-gray-900">${METRICS.pharmacist.pending_pickup}</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <a href="PHARMACY.html" class="bg-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-colors flex items-center justify-between group">
+                    <div>
+                        <h3 class="text-xl font-bold">Open Pharmacy Module</h3>
+                        <p class="text-emerald-50 text-sm mt-1">Manage dispense queue & inventory levels</p>
+                    </div>
+                    <i data-feather="arrow-right" class="group-hover:translate-x-1 transition-transform"></i>
+                </a>
+            </div>
+        `;
+    }
+
     // --- PATIENT VIEW ---
     else if (role === 'patient') {
         html = `
@@ -162,7 +192,7 @@ function renderDashboard() {
     }
 
     container.innerHTML = html;
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
 }
 
 function logout() {
