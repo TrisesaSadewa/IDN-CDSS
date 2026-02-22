@@ -597,20 +597,26 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                         .ilike('local_term', `%${q}%`)
                         .limit(15);
 
-                    results = (data || []).map(d => {
-                        let totalStock = 0;
+                    const uniqueMap = new Map();
+                    (data || []).forEach(d => {
+                        const name = (d.local_term || d.name || 'Drug (No Name)').trim();
+                        const key = name.toLowerCase();
+
+                        let stock = 0;
                         const inv = d.pharmacy_inventory;
                         if (Array.isArray(inv)) {
-                            totalStock = inv.reduce((sum, i) => sum + (i.stock_level || 0), 0);
+                            stock = inv.reduce((sum, i) => sum + (i.stock_level || 0), 0);
                         } else if (inv && typeof inv === 'object') {
-                            totalStock = inv.stock_level || 0;
+                            stock = inv.stock_level || 0;
                         }
-                        return {
-                            id: d.id || '',
-                            local_term: d.local_term || d.name || 'Drug (No Name)',
-                            stock: totalStock || 0
-                        };
+
+                        if (!uniqueMap.has(key)) {
+                            uniqueMap.set(key, { id: d.id, local_term: name, stock: stock });
+                        } else {
+                            uniqueMap.get(key).stock += stock;
+                        }
                     });
+                    results = Array.from(uniqueMap.values());
                 } else {
                     results = []; // No fallback for drugs if Supabase is missing
                 }
