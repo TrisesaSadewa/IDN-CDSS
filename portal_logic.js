@@ -71,14 +71,17 @@ function renderDashboard() {
                     </div>
                 </a>
 
-                <!-- Placeholder: User Management -->
-                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 border-dashed flex flex-col justify-center opacity-60">
-                    <div class="mb-4 bg-gray-200 text-gray-400 w-fit p-3 rounded-xl">
-                        <i data-feather="users" class="w-6 h-6"></i>
+                <!-- STAFF MANAGEMENT -->
+                <a href="STAFF_MANAGEMENT.html" class="group bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <div class="mb-4 bg-indigo-100 text-indigo-600 w-fit p-3 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <i data-feather="users" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">Staff Management</h4>
+                        <p class="text-gray-500 text-sm mt-2">Manage medical staff accounts (Doctors, Nurses, Pharmacists).</p>
                     </div>
-                    <h4 class="text-lg font-bold text-gray-700">Staff Management</h4>
-                    <p class="text-gray-400 text-sm mt-2">Manage doctor and nurse access (Coming Soon).</p>
-                </div>
+                </a>
 
                 <!-- Placeholder: Reports -->
                 <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 border-dashed flex flex-col justify-center opacity-60">
