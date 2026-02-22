@@ -24,6 +24,144 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
     </style>
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+        const staffSupabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        const userToken = localStorage.getItem('smart_his_token');
+        const userRole = localStorage.getItem('smart_his_role');
+
+        if (!userToken || userRole !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStaff();
+            feather.replace();
+        });
+
+        async function fetchStaff() {
+            const listEl = document.getElementById('staff-list');
+            const { data, error } = await staffSupabase
+                .from('profiles')
+                .select('*')
+                .in('role', ['doctor', 'nurse', 'pharmacist'])
+                .order('role', { ascending: true });
+
+            if (error) {
+                if (listEl) listEl.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error fetching staff list.</td></tr>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                if (listEl) listEl.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">No staff records found.</td></tr>`;
+                return;
+            }
+
+            if (listEl) {
+                listEl.innerHTML = data.map(staff => `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="font-bold text-gray-900">${staff.full_name}</p>
+                            <p class="text-xs text-gray-400">${staff.email}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getRoleColor(staff.role)}">
+                                ${staff.role}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">${staff.specialization || '--'}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-gray-400 hover:text-red-600 transition-colors"><i data-feather="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                feather.replace();
+            }
+        }
+
+        function getRoleColor(role) {
+            switch (role) {
+                case 'doctor': return 'bg-blue-100 text-blue-700';
+                case 'nurse': return 'bg-pink-100 text-pink-700';
+                case 'pharmacist': return 'bg-emerald-100 text-emerald-700';
+                default: return 'bg-gray-100 text-gray-700';
+            }
+        }
+
+        function toggleModal(show) {
+            const modal = document.getElementById('staff-modal');
+            const staffForm = document.getElementById('staff-form');
+            const msgBox = document.getElementById('msg-box');
+
+            if (modal) modal.classList.toggle('hidden', !show);
+            if (!show && staffForm) {
+                staffForm.reset();
+                document.getElementById('staff-pass').value = 'password123';
+                if (msgBox) msgBox.classList.add('hidden');
+            }
+        }
+
+        function setupForm() {
+            const staffForm = document.getElementById('staff-form');
+            if (!staffForm) return;
+
+            staffForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = staffForm.querySelector('button');
+                const msgBox = document.getElementById('msg-box');
+
+                btn.disabled = true;
+                btn.innerHTML = '<i data-feather="loader" class="animate-spin inline mr-2 text-white"></i> Creating...';
+                feather.replace();
+
+                const payload = {
+                    name: document.getElementById('staff-name').value,
+                    email: document.getElementById('staff-email').value,
+                    password: document.getElementById('staff-pass').value,
+                    role: document.getElementById('staff-role').value,
+                    specialization: document.getElementById('staff-spec').value
+                };
+
+                try {
+                    const { data, error } = await staffSupabase.functions.invoke('create-staff', {
+                        body: payload,
+                        headers: { Authorization: `Bearer ${userToken}` }
+                    });
+
+                    if (error) throw error;
+
+                    showMessage('success', `${payload.role} account created successfully!`);
+                    setTimeout(() => {
+                        toggleModal(false);
+                        fetchStaff();
+                    }, 1500);
+
+                } catch (err) {
+                    console.error(err);
+                    showMessage('error', err.message || 'Failed to create account.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Create Account';
+                    feather.replace();
+                }
+            });
+        }
+
+        function showMessage(type, text) {
+            const msgBox = document.getElementById('msg-box');
+            if (msgBox) {
+                msgBox.innerText = text;
+                msgBox.className = `p-3 rounded-lg text-xs text-center font-medium ${type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`;
+                msgBox.classList.remove('hidden');
+            }
+        }
+
+        // Initialize form after DOM load
+        document.addEventListener('DOMContentLoaded', setupForm);
+    </script>
 </head>
 
 <body class="min-h-screen p-6 flex flex-col items-center">
@@ -32,7 +170,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
             <div class="flex items-center gap-3">
-                <a href="portal.html"
+                <a href="ADMIN_PORTAL.html"
                     class="p-2 bg-white rounded-lg border border-gray-200 text-gray-400 hover:text-indigo-600 transition-all shadow-sm">
                     <i data-feather="arrow-left" class="w-5 h-5"></i>
                 </a>
@@ -133,127 +271,7 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        const staffList = document.getElementById('staff-list');
-        const staffForm = document.getElementById('staff-form');
-        const msgBox = document.getElementById('msg-box');
-        const modal = document.getElementById('staff-modal');
-
-        const userToken = localStorage.getItem('smart_his_token');
-        const userRole = localStorage.getItem('smart_his_role');
-
-        if (!userToken || userRole !== 'admin') {
-            window.location.href = 'index.html';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchStaff();
-            feather.replace();
-        });
-
-        async function fetchStaff() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .in('role', ['doctor', 'nurse', 'pharmacist'])
-                .order('role', { ascending: true });
-
-            if (error) {
-                staffList.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error fetching staff list.</td></tr>`;
-                return;
-            }
-
-            if (data.length === 0) {
-                staffList.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">No staff records found.</td></tr>`;
-                return;
-            }
-
-            staffList.innerHTML = data.map(staff => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4">
-                        <p class="font-bold text-gray-900">${staff.full_name}</p>
-                        <p class="text-xs text-gray-400">${staff.email}</p>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getRoleColor(staff.role)}">
-                            ${staff.role}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-gray-500">${staff.specialization || '--'}</td>
-                    <td class="px-6 py-4 text-right">
-                        <button class="text-gray-400 hover:text-red-600 transition-colors"><i data-feather="trash-2" class="w-4 h-4"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-            feather.replace();
-        }
-
-        function getRoleColor(role) {
-            switch (role) {
-                case 'doctor': return 'bg-blue-100 text-blue-700';
-                case 'nurse': return 'bg-pink-100 text-pink-700';
-                case 'pharmacist': return 'bg-emerald-100 text-emerald-700';
-                default: return 'bg-gray-100 text-gray-700';
-            }
-        }
-
-        function toggleModal(show) {
-            modal.classList.toggle('hidden', !show);
-            if (!show) {
-                staffForm.reset();
-                document.getElementById('staff-pass').value = 'password123';
-                msgBox.classList.add('hidden');
-            }
-        }
-
-        staffForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = staffForm.querySelector('button');
-            btn.disabled = true;
-            btn.innerHTML = '<i data-feather="loader" class="animate-spin inline mr-2 text-white"></i> Creating...';
-            feather.replace();
-
-            const payload = {
-                name: document.getElementById('staff-name').value,
-                email: document.getElementById('staff-email').value,
-                password: document.getElementById('staff-pass').value,
-                role: document.getElementById('staff-role').value,
-                specialization: document.getElementById('staff-spec').value
-            };
-
-            try {
-                const { data, error } = await supabase.functions.invoke('create-staff', {
-                    body: payload,
-                    headers: { Authorization: `Bearer ${userToken}` }
-                });
-
-                if (error) throw error;
-
-                showMessage('success', `${payload.role} account created successfully!`);
-                setTimeout(() => {
-                    toggleModal(false);
-                    fetchStaff();
-                }, 1500);
-
-            } catch (err) {
-                console.error(err);
-                showMessage('error', err.message || 'Failed to create account.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Create Account';
-                feather.replace();
-            }
-        });
-
-        function showMessage(type, text) {
-            msgBox.innerText = text;
-            msgBox.className = `p-3 rounded-lg text-xs text-center font-medium ${type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`;
-            msgBox.classList.remove('hidden');
-        }
+        feather.replace();
     </script>
 </body>
 
