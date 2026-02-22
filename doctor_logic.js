@@ -602,7 +602,7 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                     const totalStock = (d.pharmacy_inventory || []).reduce((sum, item) => sum + (item.stock_level || 0), 0);
                     return {
                         id: d.id,
-                        local_term: d.local_term,
+                        local_term: d.local_term || 'Unnamed Drug',
                         stock: totalStock
                     };
                 });
@@ -685,10 +685,10 @@ function renderPrescriptions() {
 
         let detailsHtml = '';
         if (d.ingredients && d.ingredients.length > 0) {
-            const ingList = d.ingredients.map(i => `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100">${i.name} ${i.strength}</span>`).join('');
-            detailsHtml = `<div class="mt-1"><p class="text-xs text-gray-500 font-medium mb-1">Contains:</p><div class="flex flex-wrap gap-1">${ingList}</div><p class="text-xs text-gray-500 mt-1 italic">${d.dosage} • ${d.frequency}</p></div>`;
+            const ingList = d.ingredients.map(i => `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100">${i.name || 'Unknown'} ${i.strength || ''}</span>`).join('');
+            detailsHtml = `<div class="mt-1"><p class="text-xs text-gray-500 font-medium mb-1">Contains:</p><div class="flex flex-wrap gap-1">${ingList}</div><p class="text-xs text-gray-500 mt-1 italic">${d.dosage || '--'} • ${d.frequency || '--'}</p></div>`;
         } else {
-            detailsHtml = `<p class="text-xs text-gray-500">${d.dosage} • ${d.frequency}</p>`;
+            detailsHtml = `<p class="text-xs text-gray-500">${d.dosage || '--'} • ${d.frequency || '--'}</p>`;
         }
 
         let classBadge = '';
