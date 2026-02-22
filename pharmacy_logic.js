@@ -4,7 +4,7 @@ const API_BASE = "https://smart-his-backend.onrender.com";
 // STATE
 const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const pharmacySupabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 let currentQueue = [];
 let selectedOrder = null;
@@ -222,10 +222,10 @@ async function renderInventory() {
     const tableBody = document.getElementById('inventory-table');
     const stockAlertEl = document.querySelector('#view-queue .bg-red-50 h3');
 
-    if (!supabase) return;
+    if (!pharmacySupabase) return;
 
     try {
-        const { data: inventory, error } = await supabase
+        const { data: inventory, error } = await pharmacySupabase
             .from('pharmacy_inventory')
             .select(`
                 id,
