@@ -65,6 +65,8 @@ if (loginForm) {
                 window.location.href = 'NURSE_APPOINTMENTS.html';
             } else if (role === 'pharmacist') {
                 window.location.href = 'PHARMACY.html';
+            } else if (role === 'lab_tech') {
+                window.location.href = 'LAB_PORTAL.html';
             } else {
                 window.location.href = 'PATIENT_PORTAL.html';
             }
@@ -105,7 +107,6 @@ function setLoading(isLoading) {
     }
     if (window.feather) feather.replace();
 }
-
 
 
 
