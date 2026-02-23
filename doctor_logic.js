@@ -883,21 +883,57 @@ async function loadHistoryPanel(patientId) {
             }
 
             const div = document.createElement('div');
-            div.className = "group p-4 bg-white border border-gray-100 rounded-xl mb-3 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all duration-200";
+            div.className = "group p-4 bg-white border border-gray-100 rounded-xl mb-3 hover:border-blue-400 hover:shadow-md transition-all duration-200 relative";
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">${date}</span>
+                    <button onclick="window.importHistoryToForm(${JSON.stringify(h).replace(/"/g, '&quot;')})" 
+                            class="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-feather="copy" class="w-3 h-3"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-widest">Import</span>
+                    </button>
                     <span class="text-[10px] font-medium text-gray-400">Dr. ${h.doctors ? h.doctors.full_name : 'Medical Staff'}</span>
                 </div>
-                <h4 class="font-bold text-gray-800 text-sm mb-1 group-hover:text-blue-700 transition-colors">${title}</h4>
+                <h4 class="font-bold text-gray-800 text-sm mb-1">${title}</h4>
                 <p class="text-xs text-gray-500 line-clamp-2">${h.plan || 'No plan notes.'}</p>
             `;
             container.appendChild(div);
         });
+        if (window.feather) feather.replace();
     } catch (e) {
+        console.error("Critical error in history panel:", e);
         container.innerHTML = '<div class="p-4 text-xs text-red-400">Error loading medical history.</div>';
     }
 }
+
+window.importHistoryToForm = (h) => {
+    if (!confirm("Load this past record into your current consultation form? (This will overwrite current inputs)")) return;
+
+    // 1. Subjective (CC & HPI)
+    const sub = h.subjective || "";
+    const cc = (sub.match(/CC:\s*([^\n]*)/i) || [])[1] || "";
+    const hpi = (sub.match(/HPI:\s*([\s\S]*)/i) || [])[1] || "";
+    safeSetValue('chiefComplaintInput', cc.trim());
+    safeSetValue('historyInput', hpi.trim());
+
+    // 2. Assessment (Diagnosis & ICD)
+    const ass = h.assessment || "";
+    const primary = (ass.match(/PRIMARY:\s*([^\[\n]*)/i) || [])[1] || "";
+    const icd = (ass.match(/\[([^\]]*)\]/) || [])[1] || "";
+    const notes = (ass.match(/NOTES:\s*([\s\S]*)/i) || [])[1] || "";
+
+    safeSetValue('primaryDiagnosisInput', primary.trim());
+    safeSetValue('primaryICDInput', icd.trim());
+    safeSetValue('analysisNotesInput', notes.trim());
+
+    // 3. Plan
+    safeSetValue('therapyInput', h.plan || "");
+
+    // 4. UI Transition
+    alert("Data imported! Please review and adjust for today's visit.");
+    document.getElementById('rightPanel').classList.add('translate-x-full');
+}
+
 
 async function loadLabResults(patientId) {
     const container = document.getElementById('labContent');
@@ -1071,8 +1107,3 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if (!dob) return '--'; return Math.floor((new Date() - new Date(dob)) / 31557600000); }
-
-
-
-
-
