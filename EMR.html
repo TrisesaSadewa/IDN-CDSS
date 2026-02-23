@@ -98,6 +98,79 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
+        /* DDI Enhanced Styles */
+        .ddi-card.is-expanded {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .ddi-card.is-expanded .ddi-details {
+            display: block !important;
+        }
+
+        .ddi-card.is-expanded .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-down {
+            animation: slideDown 0.25s ease-out forwards;
+        }
+
+        .flash-major {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                background-color: rgba(239, 68, 68, 0.1);
+            }
+
+            50% {
+                background-color: rgba(239, 68, 68, 0.3);
+            }
+
+            100% {
+                background-color: rgba(239, 68, 68, 0.1);
+            }
+        }
+
+        button.grayscale {
+            filter: grayscale(1);
+            opacity: 0.6;
+            transition: all 0.2s ease;
+        }
+
+        button.grayscale:hover {
+            filter: grayscale(0);
+            opacity: 1;
+        }
+
+        /* Responsive Panel Width */
+        @media (max-width: 1200px) {
+            #rightPanel {
+                width: 40% !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #rightPanel {
+                width: 90% !important;
+            }
+        }
+
         /* DDI Flashing Animation for Major Warnings */
         @keyframes flashMajor {
 
