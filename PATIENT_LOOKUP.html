@@ -20,6 +20,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
+            overflow: hidden;
         }
 
         h1,
@@ -27,6 +28,42 @@
         h3,
         .brand-font {
             font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .sidebar {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+        }
+
+        .sidebar-tooltip {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            white-space: nowrap;
+            margin-left: 12px;
+            z-index: 60;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-item:hover .sidebar-tooltip {
+            opacity: 1;
+            transform: translateY(-50%) translateX(4px);
+        }
+
+        .sidebar-active {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.4);
         }
 
         .search-container {
@@ -46,11 +83,6 @@
         .tab-active {
             color: #4f46e5;
             border-bottom: 2px solid #4f46e5;
-        }
-
-        /* Glassmorphism sidebar */
-        .glass-sidebar {
-            background: #0f172a;
         }
 
         /* Custom Scrollbar */
@@ -85,187 +117,226 @@
     </style>
 </head>
 
-<body class="min-h-screen flex text-slate-900">
+<body class="min-h-screen text-slate-900">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 glass-sidebar text-white flex flex-col hidden lg:flex shrink-0">
-        <div class="p-6 flex items-center gap-3">
-            <div class="p-2 bg-indigo-600 rounded-lg">
-                <i data-feather="activity" class="w-6 h-6"></i>
+    <!-- Top Navigation Bar -->
+    <header
+        class="bg-white border-b border-slate-200 h-16 fixed w-full top-0 z-40 flex items-center justify-between px-6 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-1.5 rounded-lg">
+                <i data-feather="activity" class="w-5 h-5"></i>
             </div>
-            <h1 class="text-xl font-bold tracking-tight">Smart HIS</h1>
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">Smart HIS</h1>
         </div>
 
-        <nav class="flex-1 px-4 mt-4 space-y-2">
-            <a href="DOCTOR_PORTAL.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="grid" class="w-5 h-5"></i>
-                <span class="font-medium">Dashboard</span>
-            </a>
-            <a href="APPOINTMENTS.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="users" class="w-5 h-5"></i>
-                <span class="font-medium">Patient Queue</span>
-            </a>
-            <a href="PATIENT_LOOKUP.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-900/40">
-                <i data-feather="search" class="w-5 h-5"></i>
-                <span class="font-semibold">Patient Finder</span>
-            </a>
-            <a href="DDI_CHECKER.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="shield" class="w-5 h-5"></i>
-                <span class="font-medium">DDI Inspector</span>
-            </a>
-        </nav>
+        <div class="flex items-center space-x-6">
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest" id="live-date">Monday, 23
+                    Feb
+                </p>
+                <p class="text-sm font-bold text-slate-700 leading-none" id="live-time">09:30 AM</p>
+            </div>
 
-        <div class="p-4 border-t border-slate-800">
-            <button onclick="localStorage.clear(); window.location.href='index.html'"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-950/30 transition-all">
-                <i data-feather="log-out" class="w-5 h-5"></i>
-                <span class="font-medium">Sign Out</span>
-            </button>
-        </div>
-    </aside>
+            <div class="h-8 w-px bg-slate-200"></div>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col max-h-screen overflow-hidden">
-        <!-- HEADER -->
-        <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 z-10">
-            <h2 class="text-xl font-bold text-slate-800">Electronic Health Records</h2>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <div class="text-right">
                     <p class="text-sm font-bold text-slate-800" id="doc-name">Dr. Loading...</p>
-                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Accessing Global
-                        Directory</p>
+                    <p class="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Active Portfolio</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center overflow-hidden">
+                <div
+                    class="w-9 h-9 rounded-xl bg-indigo-100 border-2 border-white flex items-center justify-center shadow-sm overflow-hidden">
                     <img id="doc-avatar" src="https://ui-avatars.com/api/?name=Doctor&background=6366f1&color=fff"
                         class="w-full h-full object-cover">
                 </div>
             </div>
-        </header>
-
-        <div class="flex-1 flex overflow-hidden">
-
-            <!-- LEFT PANEL: Search & List (35% Width) -->
-            <div class="w-[350px] border-r border-slate-200 bg-white flex flex-col shrink-0">
-                <div class="p-6 pb-4">
-                    <div class="relative group">
-                        <input type="text" id="patient-search" placeholder="Search Name, NIK, or MRN..."
-                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none text-sm">
-                        <i data-feather="search"
-                            class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto px-4 space-y-2 pb-6" id="patient-list">
-                    <div class="py-10 text-center text-slate-400">
-                        <i data-feather="user-search" class="w-8 h-8 mx-auto mb-3 opacity-20"></i>
-                        <p class="text-xs">Enter a keyword to find patients</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT PANEL: Full EHR Detail (Flexible) -->
-            <div class="flex-1 bg-slate-50 overflow-y-auto" id="ehr-container">
-                <!-- Empty State -->
-                <div class="h-full flex flex-col items-center justify-center text-center p-12 opacity-40">
-                    <div class="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-                        <i data-feather="file-text" class="w-12 h-12 text-slate-400"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800 mb-2">No Patient Selected</h3>
-                    <p class="max-w-md text-slate-500">Select a patient from the list on the left to view their complete
-                        medical history, lab results, and upcoming schedule.</p>
-                </div>
-            </div>
-
         </div>
-    </main>
+    </header>
 
-    <!-- FHIR EXPORT MODAL -->
-    <div id="export-modal"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-up">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="text-xl font-bold text-slate-800">HL7 FHIR R4 Export</h3>
-                <button onclick="closeExport()" class="text-slate-400 hover:text-slate-600 transition-colors"><i
-                        data-feather="x"></i></button>
+    <div class="flex h-screen pt-16">
+        <!-- Sleek Sidebar -->
+        <aside class="sidebar bg-slate-900 text-white w-16 flex flex-col items-center py-6 flex-shrink-0 z-50">
+            <nav class="flex-1 flex flex-col space-y-6 w-full px-2">
+                <a href="DOCTOR_PORTAL.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="grid" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Dashboard</span>
+                </a>
+
+                <a href="APPOINTMENTS.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="users" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Patient Queue</span>
+                </a>
+
+                <a href="PATIENT_LOOKUP.html"
+                    class="sidebar-item sidebar-active relative flex items-center justify-center w-10 h-10 rounded-xl transition-all">
+                    <i data-feather="search" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Patient Finder</span>
+                </a>
+
+                <a href="DDI_CHECKER.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="shield" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">DDI Inspector</span>
+                </a>
+
+                <a href="#"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-opacity-40">
+                    <i data-feather="calendar" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Schedule (Soon)</span>
+                </a>
+            </nav>
+
+            <div class="mt-auto flex flex-col space-y-4 px-2 w-full items-center">
+                <button onclick="localStorage.clear(); window.location.href='index.html'"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="log-out" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Logout</span>
+                </button>
             </div>
-            <div class="p-8">
-                <p class="text-sm text-slate-500 mb-6 font-medium">This JSON payload complies with International
-                    Interoperability Standards (HL7 FHIR). You can share this with clinical partners or research
-                    institutions.</p>
-                <div class="bg-slate-900 rounded-2xl p-6 overflow-hidden">
-                    <pre class="text-emerald-400 text-xs font-mono max-h-[400px] overflow-y-auto"
-                        id="fhir-payload">Generating payload...</pre>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden">
+            <!-- PAGE TITLE BAR -->
+            <div class="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 bg-slate-50/20">
+                <h2 class="text-xl font-bold text-slate-800">Electronic Health Records</h2>
+            </div>
+
+            <div class="flex-1 flex overflow-hidden">
+
+                <!-- LEFT PANEL: Search & List (35% Width) -->
+                <div class="w-[350px] border-r border-slate-200 bg-white flex flex-col shrink-0">
+                    <div class="p-6 pb-4">
+                        <div class="relative group">
+                            <input type="text" id="patient-search" placeholder="Search Name, NIK, or MRN..."
+                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none text-sm">
+                            <i data-feather="search"
+                                class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto px-4 space-y-2 pb-6" id="patient-list">
+                        <div class="py-10 text-center text-slate-400">
+                            <i data-feather="user-search" class="w-8 h-8 mx-auto mb-3 opacity-20"></i>
+                            <p class="text-xs">Enter a keyword to find patients</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-8 flex gap-4">
-                    <button onclick="copyFHIR()"
-                        class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
-                        <i data-feather="copy" class="w-4 h-4"></i> Copy JSON
-                    </button>
-                    <button onclick="downloadFHIR()"
-                        class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                        <i data-feather="download" class="w-4 h-4"></i> Download .json
-                    </button>
+
+                <!-- RIGHT PANEL: Full EHR Detail (Flexible) -->
+                <div class="flex-1 bg-slate-50 overflow-y-auto" id="ehr-container">
+                    <!-- Empty State -->
+                    <div class="h-full flex flex-col items-center justify-center text-center p-12 opacity-40">
+                        <div class="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
+                            <i data-feather="file-text" class="w-12 h-12 text-slate-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800 mb-2">No Patient Selected</h3>
+                        <p class="max-w-md text-slate-500">Select a patient from the list on the left to view their
+                            complete
+                            medical history, lab results, and upcoming schedule.</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- FHIR EXPORT MODAL -->
+        <div id="export-modal"
+            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-up">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="text-xl font-bold text-slate-800">HL7 FHIR R4 Export</h3>
+                    <button onclick="closeExport()" class="text-slate-400 hover:text-slate-600 transition-colors"><i
+                            data-feather="x"></i></button>
+                </div>
+                <div class="p-8">
+                    <p class="text-sm text-slate-500 mb-6 font-medium">This JSON payload complies with International
+                        Interoperability Standards (HL7 FHIR). You can share this with clinical partners or research
+                        institutions.</p>
+                    <div class="bg-slate-900 rounded-2xl p-6 overflow-hidden">
+                        <pre class="text-emerald-400 text-xs font-mono max-h-[400px] overflow-y-auto"
+                            id="fhir-payload">Generating payload...</pre>
+                    </div>
+                    <div class="mt-8 flex gap-4">
+                        <button onclick="copyFHIR()"
+                            class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
+                            <i data-feather="copy" class="w-4 h-4"></i> Copy JSON
+                        </button>
+                        <button onclick="downloadFHIR()"
+                            class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                            <i data-feather="download" class="w-4 h-4"></i> Download .json
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        // CONFIG
-        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
-        const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        <script>
+            // CONFIG
+            const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+            const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-        const DOCTOR_NAME = localStorage.getItem('smart_his_name');
-        let currentPatient = null;
+            const DOCTOR_NAME = localStorage.getItem('smart_his_name');
+            let currentPatient = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadUserProfile();
-            initSearch();
-            if (window.feather) feather.replace();
-        });
-
-        function loadUserProfile() {
-            if (DOCTOR_NAME) {
-                document.getElementById('doc-name').textContent = DOCTOR_NAME;
-                document.getElementById('doc-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(DOCTOR_NAME)}&background=6366f1&color=fff`;
-            }
-        }
-
-        function initSearch() {
-            const input = document.getElementById('patient-search');
-            let timer;
-
-            input.addEventListener('input', (e) => {
-                clearTimeout(timer);
-                const query = e.target.value.trim();
-                if (query.length < 2) return;
-
-                timer = setTimeout(() => searchPatients(query), 400);
+            document.addEventListener('DOMContentLoaded', () => {
+                loadDocProfile();
+                startTime();
+                initSearch();
+                if (window.feather) feather.replace();
             });
-        }
 
-        async function searchPatients(q) {
-            const list = document.getElementById('patient-list');
-            list.innerHTML = `<div class="py-10 text-center"><i data-feather="loader" class="animate-spin w-6 h-6 mx-auto text-indigo-500"></i></div>`;
-            feather.replace();
-
-            try {
-                const { data, error } = await supabase.from('patients')
-                    .select('*')
-                    .or(`full_name.ilike.%${q}%,mrn.ilike.%${q}%,nik.ilike.%${q}%`)
-                    .limit(15);
-
-                if (!data || data.length === 0) {
-                    list.innerHTML = `<div class="py-10 text-center text-slate-400 font-medium">No results found for "${q}"</div>`;
-                    return;
+            function loadDocProfile() {
+                if (DOCTOR_NAME) {
+                    document.getElementById('doc-name').textContent = DOCTOR_NAME;
+                    document.getElementById('doc-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(DOCTOR_NAME)}&background=6366f1&color=fff`;
                 }
+            }
 
-                list.innerHTML = data.map(p => `
+            function startTime() {
+                const timeEl = document.getElementById('live-time');
+                const dateEl = document.getElementById('live-date');
+                function update() {
+                    const now = new Date();
+                    timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'short' });
+                }
+                update(); setInterval(update, 1000);
+            }
+
+            function initSearch() {
+                const input = document.getElementById('patient-search');
+                let timer;
+
+                input.addEventListener('input', (e) => {
+                    clearTimeout(timer);
+                    const query = e.target.value.trim();
+                    if (query.length < 2) return;
+
+                    timer = setTimeout(() => searchPatients(query), 400);
+                });
+            }
+
+            async function searchPatients(q) {
+                const list = document.getElementById('patient-list');
+                list.innerHTML = `<div class="py-10 text-center"><i data-feather="loader" class="animate-spin w-6 h-6 mx-auto text-indigo-500"></i></div>`;
+                feather.replace();
+
+                try {
+                    const { data, error } = await supabase.from('patients')
+                        .select('*')
+                        .or(`full_name.ilike.%${q}%,mrn.ilike.%${q}%,nik.ilike.%${q}%`)
+                        .limit(15);
+
+                    if (!data || data.length === 0) {
+                        list.innerHTML = `<div class="py-10 text-center text-slate-400 font-medium">No results found for "${q}"</div>`;
+                        return;
+                    }
+
+                    list.innerHTML = data.map(p => `
                     <div class="patient-card p-4 rounded-2xl border border-slate-100 bg-white cursor-pointer group" onclick="loadPatient('${p.id}')">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter">MRN: ${p.mrn || 'N/A'}</span>
@@ -275,15 +346,15 @@
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${p.gender || '--'} • ${calculateAge(p.dob)} yrs</p>
                     </div>
                 `).join('');
-                feather.replace();
-            } catch (e) {
-                list.innerHTML = `<p class="text-xs text-red-500 text-center py-10">Search Error</p>`;
+                    feather.replace();
+                } catch (e) {
+                    list.innerHTML = `<p class="text-xs text-red-500 text-center py-10">Search Error</p>`;
+                }
             }
-        }
 
-        async function loadPatient(id) {
-            const container = document.getElementById('ehr-container');
-            container.innerHTML = `
+            async function loadPatient(id) {
+                const container = document.getElementById('ehr-container');
+                container.innerHTML = `
                 <div class="h-full flex items-center justify-center">
                     <div class="flex flex-col items-center gap-4">
                         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -292,39 +363,39 @@
                 </div>
             `;
 
-            try {
-                // Fetch Patient + Lab Results + Appointments + Consultations in parallel
-                const [pRes, labsRes, apptsRes] = await Promise.all([
-                    supabase.from('patients').select('*').eq('id', id).single(),
-                    supabase.from('lab_results').select('*').eq('patient_id', id).order('created_at', { ascending: false }),
-                    supabase.from('appointments').select('*').eq('patient_id', id).order('created_at', { ascending: false })
-                ]);
+                try {
+                    // Fetch Patient + Lab Results + Appointments + Consultations in parallel
+                    const [pRes, labsRes, apptsRes] = await Promise.all([
+                        supabase.from('patients').select('*').eq('id', id).single(),
+                        supabase.from('lab_results').select('*').eq('patient_id', id).order('created_at', { ascending: false }),
+                        supabase.from('appointments').select('*').eq('patient_id', id).order('created_at', { ascending: false })
+                    ]);
 
-                if (pRes.error) throw pRes.error;
-                currentPatient = pRes.data;
-                const labs = labsRes.data || [];
-                const appts = apptsRes.data || [];
+                    if (pRes.error) throw pRes.error;
+                    currentPatient = pRes.data;
+                    const labs = labsRes.data || [];
+                    const appts = apptsRes.data || [];
 
-                // Fetch consultations for these appointments
-                let consults = [];
-                if (appts.length > 0) {
-                    const { data } = await supabase.from('consultations')
-                        .select('*, doctors:profiles!doctor_id(full_name)')
-                        .in('appointment_id', appts.map(a => a.id))
-                        .order('created_at', { ascending: false });
-                    consults = data || [];
+                    // Fetch consultations for these appointments
+                    let consults = [];
+                    if (appts.length > 0) {
+                        const { data } = await supabase.from('consultations')
+                            .select('*, doctors:profiles!doctor_id(full_name)')
+                            .in('appointment_id', appts.map(a => a.id))
+                            .order('created_at', { ascending: false });
+                        consults = data || [];
+                    }
+
+                    renderEHR(currentPatient, labs, appts, consults);
+                } catch (e) {
+                    container.innerHTML = `<p class="text-sm text-red-500 p-20 text-center font-bold">Failed to load longitudinal data.</p>`;
                 }
-
-                renderEHR(currentPatient, labs, appts, consults);
-            } catch (e) {
-                container.innerHTML = `<p class="text-sm text-red-500 p-20 text-center font-bold">Failed to load longitudinal data.</p>`;
             }
-        }
 
-        function renderEHR(p, labs, appts, consults) {
-            const container = document.getElementById('ehr-container');
+            function renderEHR(p, labs, appts, consults) {
+                const container = document.getElementById('ehr-container');
 
-            container.innerHTML = `
+                container.innerHTML = `
                 <div class="p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
                     
                     <!-- Top Ribbon: Patient Identity -->
@@ -385,32 +456,32 @@
                     </div>
                 </div>
             `;
-            feather.replace();
-
-            // Store local helper functions for the newly injected HTML
-            window.switchEHRArea = (type) => {
-                const tabs = ['visits', 'labs', 'schedule'];
-                tabs.forEach(t => {
-                    const el = document.getElementById(`tab-${t}`);
-                    if (el) {
-                        el.classList.remove('tab-active', 'border-indigo-600');
-                        el.classList.add('border-transparent');
-                    }
-                });
-                document.getElementById(`tab-${type}`).classList.add('tab-active');
-
-                const area = document.getElementById('ehr-content-area');
-                if (type === 'visits') area.innerHTML = renderVisits(consults);
-                if (type === 'labs') area.innerHTML = renderLabs(labs);
-                if (type === 'schedule') area.innerHTML = renderSchedule(appts);
                 feather.replace();
-            };
-        }
 
-        function renderVisits(consults) {
-            if (consults.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No past consultations found.</p>`;
+                // Store local helper functions for the newly injected HTML
+                window.switchEHRArea = (type) => {
+                    const tabs = ['visits', 'labs', 'schedule'];
+                    tabs.forEach(t => {
+                        const el = document.getElementById(`tab-${t}`);
+                        if (el) {
+                            el.classList.remove('tab-active', 'border-indigo-600');
+                            el.classList.add('border-transparent');
+                        }
+                    });
+                    document.getElementById(`tab-${type}`).classList.add('tab-active');
 
-            return `
+                    const area = document.getElementById('ehr-content-area');
+                    if (type === 'visits') area.innerHTML = renderVisits(consults);
+                    if (type === 'labs') area.innerHTML = renderLabs(labs);
+                    if (type === 'schedule') area.innerHTML = renderSchedule(appts);
+                    feather.replace();
+                };
+            }
+
+            function renderVisits(consults) {
+                if (consults.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No past consultations found.</p>`;
+
+                return `
                 <div class="space-y-4">
                     ${consults.map(c => `
                         <div class="p-5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all border-l-4 border-l-indigo-500">
@@ -440,12 +511,12 @@
                     `).join('')}
                 </div>
             `;
-        }
+            }
 
-        function renderLabs(labs) {
-            if (labs.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No laboratory results found.</p>`;
+            function renderLabs(labs) {
+                if (labs.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No laboratory results found.</p>`;
 
-            return `
+                return `
                 <div class="border border-slate-100 rounded-2xl overflow-hidden">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b border-slate-100">
@@ -472,13 +543,13 @@
                     </table>
                 </div>
             `;
-        }
+            }
 
-        function renderSchedule(appts) {
-            const upcoming = appts.filter(a => a.status !== 'completed' && a.status !== 'cancelled');
-            if (upcoming.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No upcoming appointments scheduled.</p>`;
+            function renderSchedule(appts) {
+                const upcoming = appts.filter(a => a.status !== 'completed' && a.status !== 'cancelled');
+                if (upcoming.length === 0) return `<p class="py-10 text-center text-slate-400 font-medium italic">No upcoming appointments scheduled.</p>`;
 
-            return `
+                return `
                 <div class="space-y-3">
                     ${upcoming.map(a => `
                         <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -495,58 +566,58 @@
                     `).join('')}
                 </div>
             `;
-        }
+            }
 
-        // FHIR LOGIC
-        function openFHIRModal() {
-            if (!currentPatient) return;
-            const modal = document.getElementById('export-modal');
-            const pre = document.getElementById('fhir-payload');
+            // FHIR LOGIC
+            function openFHIRModal() {
+                if (!currentPatient) return;
+                const modal = document.getElementById('export-modal');
+                const pre = document.getElementById('fhir-payload');
 
-            const fhir = {
-                resourceType: "Bundle",
-                type: "collection",
-                entry: [
-                    {
-                        resource: {
-                            resourceType: "Patient",
-                            id: currentPatient.id,
-                            identifier: [{ system: "NIK", value: currentPatient.nik }, { system: "MRN", value: currentPatient.mrn }],
-                            name: [{ use: "official", text: currentPatient.full_name }],
-                            gender: currentPatient.gender,
-                            birthDate: currentPatient.dob,
-                            telecom: [{ system: "phone", value: currentPatient.phone_number }],
-                            address: [{ text: currentPatient.address }]
+                const fhir = {
+                    resourceType: "Bundle",
+                    type: "collection",
+                    entry: [
+                        {
+                            resource: {
+                                resourceType: "Patient",
+                                id: currentPatient.id,
+                                identifier: [{ system: "NIK", value: currentPatient.nik }, { system: "MRN", value: currentPatient.mrn }],
+                                name: [{ use: "official", text: currentPatient.full_name }],
+                                gender: currentPatient.gender,
+                                birthDate: currentPatient.dob,
+                                telecom: [{ system: "phone", value: currentPatient.phone_number }],
+                                address: [{ text: currentPatient.address }]
+                            }
                         }
-                    }
-                ]
-            };
+                    ]
+                };
 
-            pre.textContent = JSON.stringify(fhir, null, 4);
-            modal.classList.remove('hidden');
-            feather.replace();
-        }
+                pre.textContent = JSON.stringify(fhir, null, 4);
+                modal.classList.remove('hidden');
+                feather.replace();
+            }
 
-        function closeExport() { document.getElementById('export-modal').classList.add('hidden'); }
-        function copyFHIR() {
-            navigator.clipboard.writeText(document.getElementById('fhir-payload').textContent);
-            alert("FHIR JSON copied to clipboard!");
-        }
-        function downloadFHIR() {
-            const data = document.getElementById('fhir-payload').textContent;
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `patient_${currentPatient.mrn}_fhir.json`;
-            a.click();
-        }
+            function closeExport() { document.getElementById('export-modal').classList.add('hidden'); }
+            function copyFHIR() {
+                navigator.clipboard.writeText(document.getElementById('fhir-payload').textContent);
+                alert("FHIR JSON copied to clipboard!");
+            }
+            function downloadFHIR() {
+                const data = document.getElementById('fhir-payload').textContent;
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `patient_${currentPatient.mrn}_fhir.json`;
+                a.click();
+            }
 
-        function calculateAge(dob) {
-            if (!dob) return '--';
-            return Math.floor((new Date() - new Date(dob)) / 31557600000);
-        }
-    </script>
+            function calculateAge(dob) {
+                if (!dob) return '--';
+                return Math.floor((new Date() - new Date(dob)) / 31557600000);
+            }
+        </script>
 </body>
 
 </html>
