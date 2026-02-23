@@ -909,30 +909,69 @@ async function loadHistoryPanel(patientId) {
 window.importHistoryToForm = (h) => {
     if (!confirm("Load this past record into your current consultation form? (This will overwrite current inputs)")) return;
 
-    // 1. Subjective (CC & HPI)
-    const sub = h.subjective || "";
-    const cc = (sub.match(/CC:\s*([^\n]*)/i) || [])[1] || "";
-    const hpi = (sub.match(/HPI:\s*([\s\S]*)/i) || [])[1] || "";
-    safeSetValue('chiefComplaintInput', cc.trim());
-    safeSetValue('historyInput', hpi.trim());
+    // Fix for database escaped newlines (e.g. \\n becoming real \n)
+    const sub = (h.subjective || "").replace(/\\n/g, '\n');
+    const ass = (h.assessment || "").replace(/\\n/g, '\n');
 
-    // 2. Assessment (Diagnosis & ICD)
-    const ass = h.assessment || "";
-    const primary = (ass.match(/PRIMARY:\s*([^\[\n]*)/i) || [])[1] || "";
+    // 1. SMART Subjective (CC & HPI)
+    // If prefixes are missing, treat the whole thing as HPI (Anamnesis)
+    if (sub.includes("CC:") || sub.includes("HPI:")) {
+        const cc = (sub.match(/CC:\s*([^\n]*)/i) || [])[1] || "";
+        const hpi = (sub.match(/HPI:\s*([\s\S]*)/i) || [])[1] || "";
+        safeSetValue('chiefComplaintInput', cc.trim());
+        safeSetValue('historyInput', hpi.trim());
+    } else {
+        // Fallback: If no prefix, assume everything is History and CC is inferred from first phrase
+        safeSetValue('chiefComplaintInput', sub.split('.')[0].trim());
+        safeSetValue('historyInput', sub.trim());
+    }
+
+    // 2. SMART Assessment (Diagnosis & ICD)
+    // Avoid capturing 'Secondary:' or 'NOTES:' into the primary diagnosis field
+    const primary = (ass.match(/PRIMARY:\s*([^\[\n\r]*)/i) || [])[1] || "";
     const icd = (ass.match(/\[([^\]]*)\]/) || [])[1] || "";
     const notes = (ass.match(/NOTES:\s*([\s\S]*)/i) || [])[1] || "";
 
-    safeSetValue('primaryDiagnosisInput', primary.trim());
+    // If PRIMARY prefix was missing entirely (old records)
+    if (!primary && ass) {
+        safeSetValue('primaryDiagnosisInput', ass.split('\n')[0].trim());
+    } else {
+        safeSetValue('primaryDiagnosisInput', primary.trim());
+    }
+
     safeSetValue('primaryICDInput', icd.trim());
     safeSetValue('analysisNotesInput', notes.trim());
 
     // 3. Plan
     safeSetValue('therapyInput', h.plan || "");
 
-    // 4. UI Transition
-    alert("Data imported! Please review and adjust for today's visit.");
+    // 4. SMART Prescriptions
+    if (h.prescription_raw_text) {
+        try {
+            // Support both JSON array format and potential Python string format
+            let raw = h.prescription_raw_text;
+            if (raw.startsWith("[") && raw.includes("'")) {
+                // Convert Python-style list of dicts to JSON (Single quote to Double quote)
+                // WARNING: This is a hacky fallback for legacy data
+                raw = raw.replace(/'/g, '"');
+            }
+            const drugs = JSON.parse(raw);
+            if (Array.isArray(drugs)) {
+                currentDrugsList = drugs;
+                renderPrescriptions();
+                resetDDIStatus();
+            }
+        } catch (e) {
+            console.warn("Could not parse prescription_raw_text:", e);
+        }
+    }
+
+    // 5. UI Transition
+    alert("Data imported successfully!");
     document.getElementById('rightPanel').classList.add('translate-x-full');
+    if (window.switchView) window.switchView('nurse'); // Start at beginning of clinical flow
 }
+
 
 
 async function loadLabResults(patientId) {
