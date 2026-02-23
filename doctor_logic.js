@@ -13,9 +13,6 @@ let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
 let lastDDIResults = [];
-// Hybrid Coding State
-let selectedClinicalCode = null;
-let selectedClinicalSystem = "ICD-10";
 
 document.addEventListener('DOMContentLoaded', () => {
     const docNameEl = document.getElementById('doc-name-display');
@@ -680,9 +677,17 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
             let results = [];
 
             if (type === 'icd10') {
-                // Use the Hybrid Terminology Broker
-                const res = await fetch(`${API_BASE}/api/terminology/search?q=${q}`);
-                results = await res.json();
+                if (supabaseClient) {
+                    const { data } = await supabaseClient
+                        .from('icd10_mit')
+                        .select('icd10_code, who_full_desc')
+                        .or(`who_full_desc.ilike.%${q}%,icd10_code.ilike.${q}%`)
+                        .limit(15);
+                    results = (data || []).map(d => ({ code: d.icd10_code, description: d.who_full_desc }));
+                } else {
+                    const res = await fetch(`${API_BASE}/api/icd/search?q=${q}`);
+                    results = await res.json();
+                }
             } else if (type === 'drug') {
                 if (supabaseClient) {
                     const { data } = await supabaseClient
@@ -735,33 +740,8 @@ function setupAutocomplete(inputId, suggestionsId, type, onSelect) {
                     div.className = 'px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 transition-colors';
 
                     if (type === 'icd10') {
-                        const isPremium = item.premium;
-                        const sys = item.system || "ICD-10";
-                        const badgeColor = isPremium ? "bg-indigo-100 text-indigo-700 border-indigo-200" : "bg-gray-100 text-gray-600 border-gray-200";
-
-                        div.innerHTML = `
-                            <div class="flex justify-between items-center w-full">
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] font-black uppercase ${isPremium ? 'text-indigo-600' : 'text-blue-600'}">${item.code}</span>
-                                    <span class="text-xs text-gray-700 font-medium">${item.description}</span>
-                                </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    <span class="text-[9px] px-1.5 py-0.5 rounded border ${badgeColor} font-bold whitespace-nowrap">${sys}</span>
-                                    ${item.billing_equivalent !== item.code ? `<span class="text-[8px] text-gray-400 italic">Maps to ${item.billing_equivalent}</span>` : ''}
-                                </div>
-                            </div>
-                        `;
-                        div.onclick = () => {
-                            selectedClinicalCode = item.code;
-                            selectedClinicalSystem = item.system || "ICD-10";
-
-                            // Auto-map to billing code for SATUSEHAT compliance
-                            onSelect({
-                                code: item.billing_equivalent || item.code,
-                                description: item.description
-                            });
-                            suggestions.classList.add('hidden');
-                        };
+                        div.innerHTML = `<span class="font-bold text-blue-600 w-12 inline-block">${item.code}</span> <span class="text-gray-700">${item.description}</span>`;
+                        div.onclick = () => { onSelect(item); suggestions.classList.add('hidden'); };
                     } else if (type === 'drug') {
                         const stockColor = item.stock > 10 ? 'text-emerald-600' : (item.stock > 0 ? 'text-orange-500' : 'text-red-500');
                         div.innerHTML = `
@@ -1034,7 +1014,7 @@ async function loadLabResults(patientId) {
                 div.className = "p-3 bg-white border border-gray-100 rounded-lg mb-2 flex justify-between items-center shadow-sm";
                 div.innerHTML = `
                     <div>
-                        <p class="text-xs font-bold text-gray-700">${lab.test_name}</p>
+                        <p class="text-xs font-bold text-gray-700">${lab.test_name} <span class="bg-indigo-50 text-indigo-600 text-[9px] px-1 py-0.5 rounded ml-1 tracking-widest font-mono" title="International LOINC Standard">LOINC: ${lab.loinc_code || 'N/A'}</span></p>
                         <p class="text-[10px] text-gray-400">${date}</p>
                     </div>
                     <div class="text-right">
@@ -1083,10 +1063,7 @@ async function submitConsultation() {
         secondary_diagnoses: secondaryDiagnoses.map(d => `${d.description} (${d.code})`),
         clinical_notes: getVal('analysisNotesInput'),
         therapy_instructions: getVal('therapyInput'),
-        prescription_items: currentDrugsList,
-        // Enriched Hybrid Coding Payload
-        clinical_code: selectedClinicalCode || getVal('primaryICDInput'),
-        clinical_system: selectedClinicalSystem || "ICD-10"
+        prescription_items: currentDrugsList
     };
 
     try {
