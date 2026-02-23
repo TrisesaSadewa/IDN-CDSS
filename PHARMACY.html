@@ -205,7 +205,7 @@
                         </div>
                         <div>
                             <p class="text-slate-500 text-xs uppercase font-bold">Stock Alerts</p>
-                            <h3 class="text-2xl font-bold text-slate-800">2</h3>
+                            <h3 class="text-2xl font-bold text-slate-800" id="stat-alerts">0</h3>
                         </div>
                     </div>
                 </div>
@@ -374,21 +374,51 @@
                     <i data-feather="check" class="w-6 h-6 text-emerald-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-center text-slate-800 mb-2">Confirm Dispense</h3>
-                <p class="text-slate-500 text-center text-sm mb-6">Are you sure you want to mark this order as complete
-                    and deduct stock?</p>
+                <p class="text-slate-500 text-center text-sm mb-4">Review order against global safety standards.</p>
 
-                <div class="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-100 text-sm">
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex gap-3 items-center mb-4">
+                    <i data-feather="shield" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                    <p class="text-[10px] text-indigo-800 font-semibold leading-relaxed">
+                        International Standard (ATC/RxNorm) Mapping Active: <br>
+                        <span
+                            class="font-mono bg-white px-1 border border-indigo-200 rounded mt-1 inline-block text-indigo-600">RxNorm:
+                            8640-1</span> All dispensing actions recorded to audit log.
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 rounded-lg p-4 mb-4 border border-slate-100 text-sm">
                     <p class="text-slate-500 text-xs uppercase font-bold mb-2">Order Summary</p>
                     <ul id="modal-summary" class="space-y-1 text-slate-700">
                         <!-- Populated by JS -->
                     </ul>
                 </div>
 
+                <div class="space-y-3 mb-6 bg-rose-50 p-4 border border-rose-100 rounded-lg">
+                    <h4 class="text-xs font-bold text-rose-800 uppercase tracking-widest"><i
+                            data-feather="alert-triangle" class="w-3 h-3 inline"></i> Mandatory Verification</h4>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="check-allergies"
+                            class="mt-1 w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                            onchange="toggleDispenseBtn()">
+                        <span class="text-sm text-slate-700 font-medium">I have checked against known Patient
+                            Allergies.</span>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="check-counseling"
+                            class="mt-1 w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                            onchange="toggleDispenseBtn()">
+                        <span class="text-sm text-slate-700 font-medium">I have verified dosage and provided
+                            counseling.</span>
+                    </label>
+                </div>
+
                 <div class="flex gap-3">
                     <button onclick="closeModal()"
                         class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
-                    <button id="confirm-dispense-btn"
-                        class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">Confirm</button>
+                    <button id="confirm-dispense-btn" disabled
+                        class="flex-1 py-2.5 bg-slate-300 text-slate-500 font-bold rounded-lg cursor-not-allowed transition-all relative">
+                        <i data-feather="lock" class="w-4 h-4 absolute left-4 top-3 opacity-50"></i> Confirm
+                    </button>
                 </div>
             </div>
         </div>
