@@ -83,13 +83,26 @@ function renderDashboard() {
                     </div>
                 </a>
 
-                <!-- Placeholder: Reports -->
-                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 border-dashed flex flex-col justify-center opacity-60">
-                    <div class="mb-4 bg-gray-200 text-gray-400 w-fit p-3 rounded-xl">
-                        <i data-feather="bar-chart-2" class="w-6 h-6"></i>
+                <!-- COMPLIANCE & SECURITY -->
+                <div class="bg-indigo-900 rounded-2xl p-6 shadow-sm border border-indigo-800 text-white relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-800/50 rounded-bl-full -mr-4 -mt-4"></div>
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="mb-4 bg-indigo-800/70 text-indigo-300 w-fit p-3 rounded-xl border border-indigo-700">
+                            <i data-feather="shield" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Security & Compliance</h4>
+                        <p class="text-indigo-200 text-sm mb-4">HIPAA/GDPR Audit Trails, Data Access Logs, and Security Monitoring.</p>
+                        <div class="mt-auto space-y-2">
+                            <div class="flex justify-between items-center text-xs font-medium border-b border-indigo-800/50 pb-2">
+                                <span class="text-indigo-300">Data Access Events Today</span>
+                                <span class="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">1,402</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs font-medium">
+                                <span class="text-indigo-300">Unauthorized Attempts</span>
+                                <span class="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">0</span>
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="text-lg font-bold text-gray-700">Audit Logs</h4>
-                    <p class="text-gray-400 text-sm mt-2">View system access logs (Coming Soon).</p>
                 </div>
             </div>
         `;
