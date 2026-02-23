@@ -94,10 +94,21 @@ async function handleAlgorithmicSuggestGeneral() {
 
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
 window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
-    const container = btnElement.closest('.mt-3').querySelector('.ai-response-box');
+    const container = btnElement.closest('.pt-3').querySelector('.ai-response-box');
 
     btnElement.disabled = true;
-    btnElement.innerHTML = `<i data-feather="loader" class="w-3 h-3 mr-1 animate-spin"></i> Running Algorithm...`;
+    const originalText = btnElement.innerHTML;
+    btnElement.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Analyzing...`;
+    if (window.feather) feather.replace();
+
+    container.classList.remove('hidden');
+    container.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-6 text-blue-600 space-y-3 animate-pulse">
+            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <i data-feather="terminal" class="w-5 h-5"></i>
+            </div>
+            <p class="text-[10px] font-black uppercase tracking-widest">Running Safety Logic...</p>
+        </div>`;
     if (window.feather) feather.replace();
 
     try {
@@ -110,35 +121,42 @@ window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
         const data = await res.json();
 
         if (data.alternatives && data.alternatives.length > 0) {
-            let html = `<strong class="block mb-2 text-blue-700 border-b border-blue-200 pb-1 flex items-center justify-between text-[11px] uppercase tracking-wider">
-                            <span>Alternatives for ${drugA}</span>
-                            <span class="text-[9px] text-gray-400 font-normal normal-case italic">Safe with ${drugB}</span>
-                        </strong>
-                        <ul class="space-y-1.5 mt-2">`;
+            let html = `<div class="mb-3 flex items-center justify-between border-b border-blue-200/50 pb-2">
+                            <span class="text-[10px] font-black text-blue-700 uppercase tracking-widest">Suggested Swaps</span>
+                            <span class="text-[9px] text-blue-500 font-bold bg-blue-100 px-2 py-0.5 rounded-full">Safe with ${drugB}</span>
+                        </div>
+                        <div class="space-y-2">`;
+
             data.alternatives.forEach(alt => {
                 const altClass = alt.class.toLowerCase().replace(/_/g, ' ');
-                html += `<li class="flex justify-between items-center group bg-white/50 p-2 rounded-lg border border-transparent hover:border-blue-100 hover:bg-white transition-all shadow-sm">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-gray-800 text-[11px]">${alt.generic_name}</span>
-                        <span class="text-[9px] font-bold text-blue-500 uppercase">${altClass}</span>
+                html += `
+                <div class="group relative flex items-center justify-between p-2.5 bg-white/70 rounded-xl border border-transparent hover:border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm">
+                    <div>
+                        <p class="text-[11px] font-black text-gray-800 leading-tight">${alt.generic_name}</p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">${altClass}</p>
                     </div>
                     <button onclick="replaceDrug('${drugA.replace(/'/g, "\\'")}', '${alt.generic_name.replace(/'/g, "\\'")}', '${alt.class}')" 
-                            class="text-[9px] font-bold bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 transition-colors shadow-sm opacity-0 group-hover:opacity-100">
-                        Swap Now
+                            class="px-3 py-1.5 bg-emerald-600 text-white text-[9px] font-black rounded-lg hover:bg-emerald-700 hover:shadow-md transition-all active:scale-95 shadow-sm">
+                        SWAP
                     </button>
-                </li>`;
+                </div>`;
             });
-            html += `</ul><p class="text-[9px] mt-2.5 text-gray-500 leading-tight">Click 'Swap Now' to replace ${drugA} in the prescription list.</p>`;
+            html += `</div>
+                     <p class="mt-3 text-[9px] text-gray-500 italic leading-tight">*Substitution based on therapeutic drug class equivalence and validated safe cross-rules.</p>`;
             container.innerHTML = html;
         } else {
-            container.innerHTML = `<div class="p-2 border border-red-100 rounded text-red-600 font-medium text-[10px]">No safe therapeutic alternatives found for ${drugA} that avoid interaction with ${drugB}.</div>`;
+            container.innerHTML = `
+                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-center">
+                    <i data-feather="slash" class="w-5 h-5 text-red-400 mx-auto mb-2"></i>
+                    <p class="text-[10px] font-bold text-red-700 uppercase tracking-tighter">No Safe Alternatives</p>
+                    <p class="text-[9px] text-red-600 mt-1">Our engine couldn't find an immediate therapeutic swap that avoids this interaction. Manual override required.</p>
+                </div>`;
         }
-        container.classList.remove('hidden');
         btnElement.classList.add('hidden');
     } catch (e) {
-        alert("Failed to run algorithm: " + e.message);
+        container.innerHTML = `<p class="text-[10px] text-red-500">Error: ${e.message}</p>`;
         btnElement.disabled = false;
-        btnElement.innerHTML = `<i data-feather="database" class="w-3 h-3 mr-1"></i> Suggest Alternative`;
+        btnElement.innerHTML = originalText;
     }
     if (window.feather) feather.replace();
 }
@@ -424,12 +442,11 @@ function renderDDIResults(interactions, isSafe) {
 
     container.innerHTML = '';
 
+    // Sidebar indicator logic
     const ddiSidebarBtn = document.getElementById('sidebarDDIBtn');
     const ddiSidebarIcon = document.getElementById('ddiSidebarIcon');
-
     if (ddiSidebarBtn) {
         ddiSidebarBtn.classList.remove('flash-major', 'text-gray-300', 'text-green-400', 'text-orange-400', 'text-red-400', 'bg-gray-700');
-
         if (isSafe) {
             ddiSidebarBtn.classList.add('text-green-400');
             if (ddiSidebarIcon) ddiSidebarIcon.setAttribute('data-feather', 'shield');
@@ -445,95 +462,133 @@ function renderDDIResults(interactions, isSafe) {
         }
     }
 
-    try {
-        if (isSafe) {
-            container.innerHTML = `
-                <div class="mt-2 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start text-green-800 text-sm animate-fade-in shadow-sm">
-                    <i data-feather="check-circle" class="w-6 h-6 mr-3 mt-0.5 text-green-600"></i> 
-                    <div>
-                        <h4 class="font-bold text-base mb-1">Prescription Safe</h4>
-                        <p>No major interactions found in the current drug combination.</p>
-                    </div>
-                </div>`;
-        } else {
-            const list = document.createElement('div');
-            list.className = "space-y-4 animate-fade-in pb-8";
-
-            interactions.forEach(item => {
-                if (!item || !item.pair) return;
-
-                let colorClass = "bg-white border-gray-200";
-                let badgeClass = "bg-gray-200 text-gray-700";
-                let icon = "info";
-
-                if (item.severity === "Major") {
-                    colorClass = "bg-red-50 border-red-200";
-                    badgeClass = "bg-red-600 text-white";
-                    icon = "alert-octagon";
-                } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
-                    colorClass = "bg-orange-50 border-orange-200";
-                    badgeClass = "bg-orange-500 text-white";
-                    icon = "alert-triangle";
-                } else if (item.severity === "Minor") {
-                    colorClass = "bg-yellow-50 border-yellow-200";
-                    badgeClass = "bg-yellow-500 text-yellow-900";
-                    icon = "alert-circle";
-                }
-
-                const card = document.createElement('div');
-                card.className = `p-4 rounded-xl border ${colorClass} shadow-sm`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200/50">
-                        <div class="flex gap-2 items-center">
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center shadow-sm ${badgeClass}">
-                                <i data-feather="${icon}" class="w-3 h-3 mr-1"></i> ${item.severity}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <h4 class="font-bold text-gray-800 text-sm mb-3 leading-tight">${item.pair[0]} <span class="text-gray-400 mx-1">+</span> ${item.pair[1]}</h4>
-                    
-                    <div class="space-y-3 text-xs">
-                        <div>
-                            <p class="font-bold text-gray-500 uppercase tracking-wide mb-1 text-[10px]">Reason / Mechanism</p>
-                            <p class="text-gray-700 leading-relaxed">${item.description}</p>
-                        </div>
-                        <div class="bg-white/80 p-3 rounded-lg border border-gray-200 shadow-sm mb-2">
-                            <p class="font-bold text-blue-600 uppercase tracking-wide mb-1 text-[10px] flex items-center">
-                                <i data-feather="activity" class="w-3 h-3 mr-1"></i> Recommendation
-                            </p>
-                            <p class="text-gray-900 font-medium leading-relaxed">${item.advice}</p>
-                        </div>
-                        
-                        <!-- Algorithmic Suggest Alternative Button -->
-                        <div class="mt-3 pt-3 border-t border-gray-200/50">
-                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mb-2">Resolve Interaction</p>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="askAlgorithmForAlternative('${item.pair[0].replace(/'/g, "\\'")}', '${item.pair[1].replace(/'/g, "\\'")}', this)" 
-                                        class="flex-1 text-[9px] font-bold bg-white text-gray-700 border border-gray-200 px-2 py-1.5 rounded hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm">
-                                    <i data-feather="refresh-cw" class="w-2.5 h-2.5 mr-1.5 text-blue-500"></i> Replace ${item.pair[0]}
-                                </button>
-                                <button onclick="askAlgorithmForAlternative('${item.pair[1].replace(/'/g, "\\'")}', '${item.pair[0].replace(/'/g, "\\'")}', this)" 
-                                        class="flex-1 text-[9px] font-bold bg-white text-gray-700 border border-gray-200 px-2 py-1.5 rounded hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm">
-                                    <i data-feather="refresh-cw" class="w-2.5 h-2.5 mr-1.5 text-blue-500"></i> Replace ${item.pair[1]}
-                                </button>
-                            </div>
-                            <div class="ai-response-box hidden mt-3 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100 shadow-inner"></div>
-                        </div>
-                    </div>
-                `;
-
-                highlightInteractingDrugs(item.pair);
-                list.appendChild(card);
-            });
-            container.appendChild(list);
-        }
-    } catch (renderError) {
-        console.error("Failed building DDI DOM", renderError);
-        container.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded border border-red-200">Error rendering report UI. Check console.</div>`;
+    if (isSafe) {
+        container.innerHTML = `
+            <div class="mt-2 p-6 bg-emerald-50 border border-emerald-100 rounded-2xl flex flex-col items-center text-center text-emerald-800 animate-fade-in shadow-sm">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <i data-feather="check-circle" class="w-8 h-8 text-emerald-600"></i>
+                </div>
+                <h4 class="font-black text-lg mb-1 uppercase tracking-tight">Prescription Safe</h4>
+                <p class="text-emerald-600/80 text-xs font-medium px-4">No major drug-drug interactions detected. You proceed with the current combination.</p>
+            </div>`;
+        if (window.feather) feather.replace();
+        return;
     }
 
+    // --- 1. DASHBOARD SUMMARY ---
+    const majorCount = interactions.filter(i => i.severity === 'Major').length;
+    const moderateCount = interactions.filter(i => i.severity === 'Intermediate' || i.severity === 'Moderate').length;
+    const minorCount = interactions.filter(i => i.severity === 'Minor').length;
+
+    const dashboard = document.createElement('div');
+    dashboard.className = "mb-6 grid grid-cols-3 gap-2 sticky top-0 bg-gray-50 pt-2 pb-4 z-10 border-b border-gray-200";
+    dashboard.innerHTML = `
+        <button onclick="filterDDI('Major')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-red-500 transition-all group ${majorCount > 0 ? 'border-red-100' : 'opacity-50 grayscale border-gray-100'}">
+            <span class="text-xs font-black text-red-600">${majorCount}</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Major</span>
+        </button>
+        <button onclick="filterDDI('Moderate')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-orange-500 transition-all group ${moderateCount > 0 ? 'border-orange-100' : 'opacity-50 grayscale border-gray-100'}">
+            <span class="text-xs font-black text-orange-500">${moderateCount}</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Moderate</span>
+        </button>
+        <button onclick="filterDDI('All')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-blue-500 transition-all group border-blue-100">
+            <span class="text-xs font-black text-blue-600">${interactions.length}</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Total</span>
+        </button>
+    `;
+    container.appendChild(dashboard);
+
+    // --- 2. INTERACTION LIST ---
+    const list = document.createElement('div');
+    list.className = "space-y-3 animate-fade-in pb-12";
+    list.id = "ddiResultsList";
+
+    interactions.forEach((item, idx) => {
+        let theme = { bg: "bg-white", border: "border-gray-200", badge: "bg-gray-100 text-gray-500", icon: "help-circle", glow: "" };
+
+        if (item.severity === "Major") {
+            theme = { bg: "bg-red-50", border: "border-red-200", badge: "bg-red-600 text-white", icon: "alert-octagon", glow: "shadow-[0_0_15px_rgba(239,68,68,0.1)]" };
+        } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
+            theme = { bg: "bg-orange-50", border: "border-orange-200", badge: "bg-orange-500 text-white", icon: "alert-triangle", glow: "" };
+        } else if (item.severity === "Minor") {
+            theme = { bg: "bg-yellow-50", border: "border-yellow-200", badge: "bg-yellow-400 text-yellow-900", icon: "alert-circle", glow: "" };
+        }
+
+        const card = document.createElement('div');
+        card.className = `ddi-card relative overflow-hidden rounded-2xl border ${theme.border} ${theme.bg} ${theme.glow} transition-all duration-300 group`;
+        card.dataset.severity = item.severity === 'Major' ? 'Major' : (item.severity === 'Minor' ? 'Minor' : 'Moderate');
+
+        card.innerHTML = `
+            <!-- COMPACT HEADER (Always Visible) -->
+            <div class="px-4 py-3 cursor-pointer flex justify-between items-center" onclick="this.parentElement.classList.toggle('is-expanded')">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full ${theme.badge} flex items-center justify-center shadow-sm">
+                        <i data-feather="${theme.icon}" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-[12px] leading-tight">${item.pair[0]} + ${item.pair[1]}</h4>
+                        <span class="text-[9px] font-black uppercase tracking-widest opacity-60">${item.severity} Risk</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-down" class="w-4 h-4 text-gray-400 transition-transform duration-300 chevron-icon"></i>
+            </div>
+
+            <!-- EXPANDABLE CONTENT -->
+            <div class="ddi-details hidden px-4 pb-4 animate-slide-down">
+                <div class="pt-2 border-t border-gray-200/50 space-y-4">
+                    <div>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 flex items-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span> Mechanism
+                        </p>
+                        <p class="text-xs text-gray-700 leading-relaxed font-medium">${item.description}</p>
+                    </div>
+
+                    <div class="p-3 bg-white/60 rounded-xl border border-gray-200/50 shadow-inner">
+                        <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5 flex items-center">
+                            <i data-feather="activity" class="w-3 h-3 mr-2"></i> Clinical Advice
+                        </p>
+                        <p class="text-xs text-gray-900 font-bold leading-tight">${item.advice}</p>
+                    </div>
+
+                    <!-- RESOLUTION ACTIONS -->
+                    <div class="pt-3 border-t border-gray-200/30">
+                        <div class="flex gap-2">
+                             <button onclick="askAlgorithmForAlternative('${item.pair[0].replace(/'/g, "\\'")}', '${item.pair[1].replace(/'/g, "\\'")}', this)" 
+                                    class="flex-1 text-[9px] font-black bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center">
+                                <i data-feather="refresh-cw" class="w-3 h-3 mr-1.5"></i> Replace ${item.pair[0]}
+                            </button>
+                            <button onclick="askAlgorithmForAlternative('${item.pair[1].replace(/'/g, "\\'")}', '${item.pair[0].replace(/'/g, "\\'")}', this)" 
+                                    class="flex-1 text-[9px] font-black bg-white text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center">
+                                <i data-feather="refresh-cw" class="w-3 h-3 mr-1.5"></i> Replace ${item.pair[1]}
+                            </button>
+                        </div>
+                        <div class="ai-response-box hidden mt-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 shadow-inner overflow-hidden"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+
+    container.appendChild(list);
     if (window.feather) feather.replace();
+
+    // Auto-expand the first Major interaction if any
+    const firstMajor = container.querySelector('.ddi-card[data-severity="Major"]');
+    if (firstMajor) firstMajor.classList.add('is-expanded');
+}
+
+window.filterDDI = (severity) => {
+    const items = document.querySelectorAll('.ddi-card');
+    items.forEach(item => {
+        if (severity === 'All') {
+            item.classList.remove('hidden');
+        } else if (severity === 'Moderate') {
+            item.classList.toggle('hidden', item.dataset.severity !== 'Moderate');
+        } else {
+            item.classList.toggle('hidden', item.dataset.severity !== severity);
+        }
+    });
 }
 
 function highlightInteractingDrugs(pair) {
