@@ -94,7 +94,7 @@ async function handleAlgorithmicSuggestGeneral() {
 
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
 window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
-    const container = btnElement.nextElementSibling;
+    const container = btnElement.closest('.mt-3').querySelector('.ai-response-box');
 
     btnElement.disabled = true;
     btnElement.innerHTML = `<i data-feather="loader" class="w-3 h-3 mr-1 animate-spin"></i> Running Algorithm...`;
@@ -110,14 +110,28 @@ window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
         const data = await res.json();
 
         if (data.alternatives && data.alternatives.length > 0) {
-            let html = `<strong class="block mb-2 text-blue-700 border-b border-blue-200 pb-1">Algorithmic Alternatives for ${drugA}:</strong><ul class="list-disc pl-4 space-y-2">`;
+            let html = `<strong class="block mb-2 text-blue-700 border-b border-blue-200 pb-1 flex items-center justify-between text-[11px] uppercase tracking-wider">
+                            <span>Alternatives for ${drugA}</span>
+                            <span class="text-[9px] text-gray-400 font-normal normal-case italic">Safe with ${drugB}</span>
+                        </strong>
+                        <ul class="space-y-1.5 mt-2">`;
             data.alternatives.forEach(alt => {
-                html += `<li><b class="text-gray-800">${alt.generic_name}</b> <span class="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-1">${alt.class}</span></li>`;
+                const altClass = alt.class.toLowerCase().replace(/_/g, ' ');
+                html += `<li class="flex justify-between items-center group bg-white/50 p-2 rounded-lg border border-transparent hover:border-blue-100 hover:bg-white transition-all shadow-sm">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-800 text-[11px]">${alt.generic_name}</span>
+                        <span class="text-[9px] font-bold text-blue-500 uppercase">${altClass}</span>
+                    </div>
+                    <button onclick="replaceDrug('${drugA.replace(/'/g, "\\'")}', '${alt.generic_name.replace(/'/g, "\\'")}', '${alt.class}')" 
+                            class="text-[9px] font-bold bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 transition-colors shadow-sm opacity-0 group-hover:opacity-100">
+                        Swap Now
+                    </button>
+                </li>`;
             });
-            html += `</ul><p class="text-[10px] mt-3 italic text-gray-500 bg-white p-2 rounded border border-gray-100"><i data-feather="check-circle" class="inline w-3 h-3 text-green-500 mr-1"></i> These classes have been cross-checked to ensure they do not trigger a known interaction rule with ${drugB}.</p>`;
+            html += `</ul><p class="text-[9px] mt-2.5 text-gray-500 leading-tight">Click 'Swap Now' to replace ${drugA} in the prescription list.</p>`;
             container.innerHTML = html;
         } else {
-            container.innerHTML = `<span class="text-red-600 font-medium text-xs"><i data-feather="alert-circle" class="inline w-3 h-3 mr-1"></i> No algorithmic alternative class mapped in the local database for ${drugA}.</span>`;
+            container.innerHTML = `<div class="p-2 border border-red-100 rounded text-red-600 font-medium text-[10px]">No safe therapeutic alternatives found for ${drugA} that avoid interaction with ${drugB}.</div>`;
         }
         container.classList.remove('hidden');
         btnElement.classList.add('hidden');
@@ -492,11 +506,19 @@ function renderDDIResults(interactions, isSafe) {
                         </div>
                         
                         <!-- Algorithmic Suggest Alternative Button -->
-                        <div class="mt-3 pt-3 border-t border-gray-200/50 flex flex-col">
-                            <button onclick="askAlgorithmForAlternative('${item.pair[0]}', '${item.pair[1]}', this)" class="self-start text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded hover:bg-blue-100 transition-colors flex items-center shadow-sm">
-                                <i data-feather="database" class="w-3 h-3 mr-1.5"></i> Find Safe Alternative
-                            </button>
-                            <div class="ai-response-box hidden mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200 text-xs text-blue-900 whitespace-pre-wrap leading-relaxed shadow-inner"></div>
+                        <div class="mt-3 pt-3 border-t border-gray-200/50">
+                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mb-2">Resolve Interaction</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="askAlgorithmForAlternative('${item.pair[0].replace(/'/g, "\\'")}', '${item.pair[1].replace(/'/g, "\\'")}', this)" 
+                                        class="flex-1 text-[9px] font-bold bg-white text-gray-700 border border-gray-200 px-2 py-1.5 rounded hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm">
+                                    <i data-feather="refresh-cw" class="w-2.5 h-2.5 mr-1.5 text-blue-500"></i> Replace ${item.pair[0]}
+                                </button>
+                                <button onclick="askAlgorithmForAlternative('${item.pair[1].replace(/'/g, "\\'")}', '${item.pair[0].replace(/'/g, "\\'")}', this)" 
+                                        class="flex-1 text-[9px] font-bold bg-white text-gray-700 border border-gray-200 px-2 py-1.5 rounded hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm">
+                                    <i data-feather="refresh-cw" class="w-2.5 h-2.5 mr-1.5 text-blue-500"></i> Replace ${item.pair[1]}
+                                </button>
+                            </div>
+                            <div class="ai-response-box hidden mt-3 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100 shadow-inner"></div>
                         </div>
                     </div>
                 `;
@@ -754,6 +776,19 @@ function renderPrescriptions() {
 }
 
 window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); resetDDIStatus(); }
+
+window.replaceDrug = (oldName, newName, newClass) => {
+    const idx = currentDrugsList.findIndex(d => d.name === oldName);
+    if (idx !== -1) {
+        currentDrugsList[idx] = {
+            ...currentDrugsList[idx],
+            name: newName,
+            class: newClass || 'unknown'
+        };
+        renderPrescriptions();
+        runDDICheck(); // Automatically re-run to confirm safety
+    }
+}
 
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
