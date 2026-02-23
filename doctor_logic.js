@@ -15,9 +15,28 @@ let secondaryDiagnoses = [];
 let lastDDIResults = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    const docNameEl = document.getElementById('doc-name-display');
-    if (docNameEl && DOCTOR_NAME) docNameEl.textContent = DOCTOR_NAME;
-    if (document.getElementById('current-time')) startClock();
+    // Standardized Profile Loader
+    if (DOCTOR_NAME) {
+        const nameEls = ['doc-name', 'doc-name-display', 'doc-name-finder', 'doc-name-checker', 'welcome-name'];
+        nameEls.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === 'welcome-name') el.textContent = DOCTOR_NAME.split(' ')[0];
+                else el.textContent = DOCTOR_NAME;
+            }
+        });
+
+        const avatarEls = ['doc-avatar', 'doc-avatar-finder', 'doc-avatar-checker'];
+        avatarEls.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(DOCTOR_NAME)}&background=6366f1&color=fff`;
+            }
+        });
+    }
+
+    if (document.getElementById('live-time')) startClock();
+    else if (document.getElementById('current-time')) startClock();
 
     if (document.getElementById('queue-container')) {
         initAppointmentsPage();
@@ -27,11 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function startClock() {
-    const timeEl = document.getElementById('current-time');
+    const timeEl = document.getElementById('live-time') || document.getElementById('current-time');
+    const dateEl = document.getElementById('live-date');
     if (!timeEl) return;
     function update() {
         const now = new Date();
-        timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: (dateEl ? '2-digit' : undefined) });
+        if (dateEl) {
+            dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'short' });
+        }
     }
     update();
     setInterval(update, 1000);
