@@ -210,14 +210,39 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Heart Rate
                                 (bpm)</label>
-                            <input type="number" id="hr" class="input-field" placeholder="e.g. 80">
+                            <input type="number" id="hr" class="input-field mews-trigger" placeholder="e.g. 80">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-rose-400">Resp.
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Resp.
                                 Rate</label>
-                            <input type="number" id="rr" class="input-field bg-slate-50" placeholder="e.g. 18"
-                                title="Note: Excluded from DB sync">
+                            <input type="number" id="rr" class="input-field mews-trigger" placeholder="e.g. 18">
                         </div>
+                        <div class="md:col-span-2">
+                            <label
+                                class="block text-xs font-bold text-emerald-600 uppercase mb-2 flex items-center gap-1"><i
+                                    data-feather="globe" class="w-3 h-3"></i> Int'l Standard: AVPU Scale</label>
+                            <select id="avpu" class="input-field mews-trigger font-medium">
+                                <option value="A">Alert (Normal)</option>
+                                <option value="V">Reacts to Voice</option>
+                                <option value="P">Reacts to Pain</option>
+                                <option value="U">Unresponsive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- MEWS ALERT STRIP -->
+                    <div id="mews-container"
+                        class="bg-slate-100 border-t border-slate-200 px-6 py-4 flex items-center justify-between transition-colors duration-300">
+                        <div class="flex items-center gap-4">
+                            <div id="mews-badge"
+                                class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center font-black text-xl text-slate-500 shadow-sm border border-slate-300 transition-colors">
+                                0</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Modified Early Warning Score (MEWS)</h4>
+                                <p id="mews-status" class="text-xs text-slate-500 font-medium">Normal baseline. Routine
+                                    monitoring.</p>
+                            </div>
+                        </div>
+                        <i data-feather="shield" class="w-6 h-6 text-slate-400 opacity-50"></i>
                     </div>
                 </div>
 
@@ -346,6 +371,7 @@
             feather.replace();
 
             setupRightPanel();
+            setupMEWSCalculator();
 
             if (!currentApptId) {
                 alert("No appointment selected! Redirecting to queue.");
@@ -385,6 +411,99 @@
                 document.getElementById('pt-name').textContent = "Error Loading Data";
             }
         });
+
+        // --- MEWS Calculator ---
+        function setupMEWSCalculator() {
+            const inputs = ['hr', 'rr', 'systolic', 'temperature', 'avpu'];
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', calculateMEWS);
+                    el.addEventListener('change', calculateMEWS);
+                }
+            });
+        }
+
+        function calculateMEWS() {
+            let score = 0;
+            const rr = parseFloat(document.getElementById('rr').value);
+            const hr = parseFloat(document.getElementById('hr').value);
+            const sys = parseFloat(document.getElementById('systolic').value);
+            const temp = parseFloat(document.getElementById('temperature').value);
+            const avpu = document.getElementById('avpu').value;
+
+            // RR
+            if (!isNaN(rr)) {
+                if (rr <= 8) score += 2;
+                else if (rr >= 9 && rr <= 14) score += 0;
+                else if (rr >= 15 && rr <= 20) score += 1;
+                else if (rr >= 21 && rr <= 29) score += 2;
+                else if (rr >= 30) score += 3;
+            }
+            // HR
+            if (!isNaN(hr)) {
+                if (hr <= 40) score += 2;
+                else if (hr >= 41 && hr <= 50) score += 1;
+                else if (hr >= 51 && hr <= 100) score += 0;
+                else if (hr >= 101 && hr <= 110) score += 1;
+                else if (hr >= 111 && hr <= 129) score += 2;
+                else if (hr >= 130) score += 3;
+            }
+            // Systolic BP
+            if (!isNaN(sys)) {
+                if (sys <= 70) score += 3;
+                else if (sys >= 71 && sys <= 80) score += 2;
+                else if (sys >= 81 && sys <= 100) score += 1;
+                else if (sys >= 101 && sys <= 199) score += 0;
+                else if (sys >= 200) score += 2;
+            }
+            // Temp
+            if (!isNaN(temp)) {
+                if (temp < 35) score += 2;
+                else if (temp >= 35 && temp <= 38.4) score += 0;
+                else if (temp >= 38.5) score += 2;
+            }
+            // AVPU
+            if (avpu === 'V') score += 1;
+            else if (avpu === 'P') score += 2;
+            else if (avpu === 'U') score += 3;
+
+            updateMEWSUI(score);
+        }
+
+        function updateMEWSUI(score) {
+            const badge = document.getElementById('mews-badge');
+            const status = document.getElementById('mews-status');
+            const container = document.getElementById('mews-container');
+
+            badge.innerText = score;
+
+            // Reset classes
+            badge.className = "w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm border transition-colors ";
+            container.className = "px-6 py-4 flex items-center justify-between transition-colors duration-300 border-t ";
+
+            if (score === 0) {
+                badge.classList.add('bg-slate-200', 'text-slate-500', 'border-slate-300');
+                container.classList.add('bg-slate-100', 'border-slate-200');
+                status.innerText = "Normal baseline. Routine monitoring.";
+                status.className = "text-xs font-medium text-slate-500";
+            } else if (score >= 1 && score <= 2) {
+                badge.classList.add('bg-yellow-100', 'text-yellow-700', 'border-yellow-300');
+                container.classList.add('bg-yellow-50', 'border-yellow-200');
+                status.innerText = "Low Risk. Inform charge nurse. Monitor every 4 hours.";
+                status.className = "text-xs font-bold text-yellow-700";
+            } else if (score >= 3 && score <= 4) {
+                badge.classList.add('bg-orange-100', 'text-orange-700', 'border-orange-300');
+                container.classList.add('bg-orange-50', 'border-orange-200');
+                status.innerText = "Medium Risk. Needs urgent medical review within 30 mins.";
+                status.className = "text-xs font-bold text-orange-700";
+            } else {
+                badge.classList.add('bg-red-600', 'text-white', 'border-red-700', 'animate-pulse');
+                container.classList.add('bg-red-50', 'border-red-200');
+                status.innerText = "HIGH RISK! Immediate clinical escalation & emergency response required.";
+                status.className = "text-xs font-bold text-red-600 uppercase tracking-widest gap-1 flex items-center";
+            }
+        }
 
         // --- Sliding Right Panel Logic ---
         function setupRightPanel() {
