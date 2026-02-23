@@ -1,17 +1,45 @@
-document.addEventListener('DOMContentLoaded', () => {
+// CONFIGURATION
+const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+const portalSupabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+document.addEventListener('DOMContentLoaded', async () => {
     loadUserProfile();
+    await fetchLiveMetrics(); // Upgrade: Fetch real-time clinical metrics from Supabase
     renderDashboard();
     if (window.feather) feather.replace();
 });
 
-// Mock Data (In real app, fetch from Supabase 'view_daily_business_metrics')
-const METRICS = {
-    doctor: { waiting: 12, completed: 5, urgent: 2 },
-    nurse: { triage_pending: 8, vitals_check: 3, admitted: 45 },
-    pharmacist: { prescriptions: 24, stock_alerts: 3, pending_pickup: 10 },
-    admin: { revenue: '$12,450', active_users: 18, system_health: '98%' },
-    patient: { next_appt: 'Tomorrow, 10 AM', prescriptions: 2, bills: '$0' }
+// Real-Time Clinical Intelligence State (Initialized with safe defaults)
+let METRICS = {
+    doctor: { waiting: 0, completed: 0, urgent: 0 },
+    nurse: { triage_pending: 0, active_patients: 0 },
+    pharmacist: { prescriptions: 0, stock_alerts: 0, pending_pickup: 0 },
+    admin: { revenue: '$0.00', active_users: 0, system_health: '100% (Stable)' },
+    patient: { next_appt: 'No upcoming visits', prescriptions: 0, bills: '$0' }
 };
+
+async function fetchLiveMetrics() {
+    if (!portalSupabase) return;
+    try {
+        // Fetch from the standardized International HIS Metrics View
+        const { data, error } = await portalSupabase.from('view_daily_business_metrics').select('*').single();
+        if (error) throw error;
+
+        // Map database view to the global METRICS state
+        METRICS.doctor.waiting = data.doc_waiting;
+        METRICS.doctor.completed = data.doc_completed;
+        METRICS.doctor.urgent = data.doc_urgent;
+        METRICS.nurse.triage_pending = data.nurse_triage;
+        METRICS.nurse.active_patients = data.active_patients;
+        METRICS.pharmacist.prescriptions = data.pharm_pending;
+        METRICS.pharmacist.stock_alerts = data.pharm_stock_alerts;
+        METRICS.admin.active_users = data.active_logins;
+        METRICS.admin.revenue = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.revenue_today);
+    } catch (e) {
+        console.error("Clinical Intelligence Sync Failed:", e);
+    }
+}
 
 function loadUserProfile() {
     // Get from LocalStorage (set during Login)
@@ -104,6 +132,39 @@ function renderDashboard() {
                         </div>
                     </div>
                 </div>
+            </div>
+        `;
+    }
+
+    // --- NURSE VIEW ---
+    else if (role === 'nurse') {
+        html = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Triage Queue</p>
+                        <h3 class="text-3xl font-bold text-amber-600 mt-1">${METRICS.nurse.triage_pending}</h3>
+                    </div>
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl"><i data-feather="clock"></i></div>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Patients in Unit</p>
+                        <h3 class="text-3xl font-bold text-indigo-600 mt-1">${METRICS.nurse.active_patients}</h3>
+                    </div>
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i data-feather="users"></i></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <a href="nurse.html" class="bg-indigo-600 rounded-2xl p-8 text-white shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-between group overflow-hidden relative">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-8 -mt-8"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold">Launch Nursing Station</h3>
+                        <p class="text-indigo-100 mt-2">Start Patient Triage, Vital Checks, and MEWS Monitoring.</p>
+                    </div>
+                    <i data-feather="arrow-right" class="w-8 h-8 group-hover:translate-x-2 transition-transform relative z-10"></i>
+                </a>
             </div>
         `;
     }
