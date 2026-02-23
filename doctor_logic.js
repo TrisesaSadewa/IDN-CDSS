@@ -862,7 +862,7 @@ async function loadHistoryPanel(patientId) {
         if ((!history || history.length === 0) && supabaseClient) {
             const { data: appts } = await supabaseClient.from('appointments').select('id').eq('patient_id', patientId);
             if (appts && appts.length > 0) {
-                const { data: consults } = await supabaseClient.from('consultations').select('*, doctors:profiles(full_name)').in('appointment_id', appts.map(a => a.id));
+                const { data: consults } = await supabaseClient.from('consultations').select('*, doctors:profiles!doctor_id(full_name)').in('appointment_id', appts.map(a => a.id));
                 if (consults) history = consults;
             }
         }
