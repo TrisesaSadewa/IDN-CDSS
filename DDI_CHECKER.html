@@ -20,6 +20,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
+            overflow: hidden;
         }
 
         h1,
@@ -27,6 +28,42 @@
         h3,
         .brand-font {
             font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .sidebar {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+        }
+
+        .sidebar-tooltip {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            white-space: nowrap;
+            margin-left: 12px;
+            z-index: 60;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-item:hover .sidebar-tooltip {
+            opacity: 1;
+            transform: translateY(-50%) translateX(4px);
+        }
+
+        .sidebar-active {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.4);
         }
 
         .drug-tag {
@@ -69,245 +106,302 @@
     </style>
 </head>
 
-<body class="min-h-screen flex text-slate-900">
+<body class="min-h-screen text-slate-900">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden lg:flex shrink-0">
-        <div class="p-6 flex items-center gap-3">
-            <div class="p-2 bg-indigo-600 rounded-lg">
-                <i data-feather="activity" class="w-6 h-6"></i>
+    <!-- Top Navigation Bar -->
+    <header
+        class="bg-white border-b border-slate-200 h-16 fixed w-full top-0 z-40 flex items-center justify-between px-6 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-1.5 rounded-lg">
+                <i data-feather="activity" class="w-5 h-5"></i>
             </div>
-            <h1 class="text-xl font-bold tracking-tight">Smart HIS</h1>
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">Smart HIS</h1>
         </div>
 
-        <nav class="flex-1 px-4 mt-4 space-y-2">
-            <a href="DOCTOR_PORTAL.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="grid" class="w-5 h-5"></i>
-                <span class="font-medium">Dashboard</span>
-            </a>
-            <a href="APPOINTMENTS.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="users" class="w-5 h-5"></i>
-                <span class="font-medium">Patient Queue</span>
-            </a>
-            <a href="DDI_CHECKER.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-900/40">
-                <i data-feather="shield" class="w-5 h-5"></i>
-                <span class="font-semibold">DDI Inspector</span>
-            </a>
-            <a href="PATIENT_LOOKUP.html"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-                <i data-feather="search" class="w-5 h-5"></i>
-                <span class="font-medium">Patient Finder</span>
-            </a>
-        </nav>
+        <div class="flex items-center space-x-6">
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest" id="live-date">Monday, 23
+                    Feb
+                </p>
+                <p class="text-sm font-bold text-slate-700 leading-none" id="live-time">09:30 AM</p>
+            </div>
 
-        <div class="p-4 border-t border-slate-800">
-            <button onclick="localStorage.clear(); window.location.href='index.html'"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-950/30 transition-all">
-                <i data-feather="log-out" class="w-5 h-5"></i>
-                <span class="font-medium">Sign Out</span>
-            </button>
+            <div class="h-8 w-px bg-slate-200"></div>
+
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <p class="text-sm font-bold text-slate-800" id="doc-name">Dr. Loading...</p>
+                    <p class="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Active Portfolio</p>
+                </div>
+                <div
+                    class="w-9 h-9 rounded-xl bg-indigo-100 border-2 border-white flex items-center justify-center shadow-sm overflow-hidden">
+                    <img id="doc-avatar" src="https://ui-avatars.com/api/?name=Doctor&background=6366f1&color=fff"
+                        class="w-full h-full object-cover">
+                </div>
+            </div>
         </div>
-    </aside>
+    </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col max-h-screen overflow-hidden">
-        <!-- HEADER -->
-        <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 z-10">
-            <div class="flex items-center gap-4">
-                <a href="DOCTOR_PORTAL.html" class="lg:hidden p-2 text-slate-400 hover:text-slate-600">
-                    <i data-feather="arrow-left"></i>
+    <div class="flex h-screen pt-16">
+        <!-- Sleek Sidebar -->
+        <aside class="sidebar bg-slate-900 text-white w-16 flex flex-col items-center py-6 flex-shrink-0 z-50">
+            <nav class="flex-1 flex flex-col space-y-6 w-full px-2">
+                <a href="DOCTOR_PORTAL.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="grid" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Dashboard</span>
                 </a>
-                <h2 class="text-xl font-bold text-slate-800">Drug-Drug Interaction Inspector</h2>
+
+                <a href="APPOINTMENTS.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="users" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Patient Queue</span>
+                </a>
+
+                <a href="PATIENT_LOOKUP.html"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="search" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Patient Finder</span>
+                </a>
+
+                <a href="DDI_CHECKER.html"
+                    class="sidebar-item sidebar-active relative flex items-center justify-center w-10 h-10 rounded-xl transition-all">
+                    <i data-feather="shield" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">DDI Inspector</span>
+                </a>
+
+                <a href="#"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-opacity-40">
+                    <i data-feather="calendar" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Schedule (Soon)</span>
+                </a>
+            </nav>
+
+            <div class="mt-auto flex flex-col space-y-4 px-2 w-full items-center">
+                <button onclick="localStorage.clear(); window.location.href='index.html'"
+                    class="sidebar-item relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                    <i data-feather="log-out" class="w-5 h-5"></i>
+                    <span class="sidebar-tooltip">Logout</span>
+                </button>
             </div>
-            <div class="flex items-center gap-4">
-                <span
-                    class="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">Bulk
-                    Search Active</span>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden">
+            <!-- PAGE TITLE BAR -->
+            <div class="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 bg-slate-50/20">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-bold text-slate-800">Drug-Drug Interaction Inspector</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span
+                        class="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">Bulk
+                        Search Active</span>
+                </div>
             </div>
-        </header>
 
-        <div class="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
+            <div class="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
 
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
 
-                <!-- Left Panel: Input -->
-                <div class="xl:col-span-1 space-y-6">
-                    <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                        <h3
-                            class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <i data-feather="plus-circle" class="w-4 h-4"></i> Add Drugs to List
-                        </h3>
-
-                        <div class="relative group">
-                            <input type="text" id="drug-input" placeholder="Search drug name..."
-                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
-                            <i data-feather="search"
-                                class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-
-                            <!-- Autocomplete -->
-                            <div id="drug-suggestions"
-                                class="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-2xl mt-2 shadow-xl z-20 hidden overflow-hidden">
-                                <!-- Suggestions here -->
-                            </div>
-                        </div>
-
-                        <div class="mt-8">
+                    <!-- Left Panel: Input -->
+                    <div class="xl:col-span-1 space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
                             <h3
-                                class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-between">
-                                <span>Drug List</span>
-                                <button onclick="clearAll()" class="text-[10px] text-rose-500 hover:underline">Clear
-                                    All</button>
+                                class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <i data-feather="plus-circle" class="w-4 h-4"></i> Add Drugs to List
                             </h3>
-                            <div id="selected-drugs-container" class="flex flex-wrap gap-2">
-                                <!-- Drug Tags -->
-                                <p class="text-xs text-slate-400 italic py-4 text-center w-full">No drugs selected yet.
-                                </p>
+
+                            <div class="relative group">
+                                <input type="text" id="drug-input" placeholder="Search drug name..."
+                                    class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                                <i data-feather="search"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+
+                                <!-- Autocomplete -->
+                                <div id="drug-suggestions"
+                                    class="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-2xl mt-2 shadow-xl z-20 hidden overflow-hidden">
+                                    <!-- Suggestions here -->
+                                </div>
                             </div>
-                        </div>
 
-                        <button id="run-check-btn" onclick="runCheck()" disabled
-                            class="w-full mt-8 flex items-center justify-center gap-2 py-4 bg-slate-200 text-slate-400 font-bold rounded-2xl transition-all">
-                            <i data-feather="shield" class="w-5 h-5"></i> Run Interaction Check
-                        </button>
-                    </div>
+                            <div class="mt-8">
+                                <h3
+                                    class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-between">
+                                    <span>Drug List</span>
+                                    <button onclick="clearAll()" class="text-[10px] text-rose-500 hover:underline">Clear
+                                        All</button>
+                                </h3>
+                                <div id="selected-drugs-container" class="flex flex-wrap gap-2">
+                                    <!-- Drug Tags -->
+                                    <p class="text-xs text-slate-400 italic py-4 text-center w-full">No drugs selected
+                                        yet.
+                                    </p>
+                                </div>
+                            </div>
 
-                    <!-- Bulk Paste -->
-                    <div
-                        class="bg-indigo-900 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-                        <div class="relative z-10">
-                            <h3 class="text-lg font-bold mb-2">Bulk Inspection</h3>
-                            <p class="text-indigo-200 text-xs mb-4">Paste clinical notes or multiple drugs to
-                                auto-extract and check.</p>
-                            <textarea id="bulk-input" rows="4"
-                                class="w-full bg-indigo-800/50 border border-indigo-700 rounded-xl p-3 text-sm text-white placeholder-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 mb-4"
-                                placeholder="e.g. Amlodipine 5mg, Simvastatin 20mg, Warfarin..."></textarea>
-                            <button onclick="parseBulk()" id="parse-btn"
-                                class="w-full py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2">
-                                <i data-feather="cpu" class="w-4 h-4"></i> Extract & Inspect
+                            <button id="run-check-btn" onclick="runCheck()" disabled
+                                class="w-full mt-8 flex items-center justify-center gap-2 py-4 bg-slate-200 text-slate-400 font-bold rounded-2xl transition-all">
+                                <i data-feather="shield" class="w-5 h-5"></i> Run Interaction Check
                             </button>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Right Panel: Results -->
-                <div class="xl:col-span-2 space-y-6">
-                    <div class="bg-white rounded-3xl border border-slate-200 min-h-[600px] shadow-sm flex flex-col">
+                        <!-- Bulk Paste -->
                         <div
-                            class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800">Inspection Report</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Automated screening against International
-                                    Pharmacopoeia</p>
-                            </div>
-                            <div id="status-badge">
-                                <!-- Status Badge here -->
-                            </div>
-                        </div>
-
-                        <div class="flex-1 p-8" id="results-container">
-                            <div
-                                class="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-30">
-                                <i data-feather="search" class="w-16 h-16"></i>
-                                <p class="text-slate-500 font-medium">Select drugs on the left to begin inspection.</p>
+                            class="bg-indigo-900 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+                            <div class="relative z-10">
+                                <h3 class="text-lg font-bold mb-2">Bulk Inspection</h3>
+                                <p class="text-indigo-200 text-xs mb-4">Paste clinical notes or multiple drugs to
+                                    auto-extract and check.</p>
+                                <textarea id="bulk-input" rows="4"
+                                    class="w-full bg-indigo-800/50 border border-indigo-700 rounded-xl p-3 text-sm text-white placeholder-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 mb-4"
+                                    placeholder="e.g. Amlodipine 5mg, Simvastatin 20mg, Warfarin..."></textarea>
+                                <button onclick="parseBulk()" id="parse-btn"
+                                    class="w-full py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2">
+                                    <i data-feather="cpu" class="w-4 h-4"></i> Extract & Inspect
+                                </button>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Right Panel: Results -->
+                    <div class="xl:col-span-2 space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 min-h-[600px] shadow-sm flex flex-col">
+                            <div
+                                class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Inspection Report</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">Automated screening against International
+                                        Pharmacopoeia</p>
+                                </div>
+                                <div id="status-badge">
+                                    <!-- Status Badge here -->
+                                </div>
+                            </div>
+
+                            <div class="flex-1 p-8" id="results-container">
+                                <div
+                                    class="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-30">
+                                    <i data-feather="search" class="w-16 h-16"></i>
+                                    <p class="text-slate-500 font-medium">Select drugs on the left to begin inspection.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
+        </main>
 
-        </div>
-    </main>
+        <script>
+            const API_BASE = "https://smart-his-backend.onrender.com";
+            const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+            const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-    <script>
-        const API_BASE = "https://smart-his-backend.onrender.com";
-        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
-        const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+            const DOCTOR_NAME = localStorage.getItem('smart_his_name');
+            let selectedDrugs = [];
 
-        let selectedDrugs = [];
+            document.addEventListener('DOMContentLoaded', () => {
+                initSearch();
+                loadDocProfile();
+                startTime();
+                if (window.feather) feather.replace();
+            });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initSearch();
-            if (window.feather) feather.replace();
-        });
-
-        function initSearch() {
-            const input = document.getElementById('drug-input');
-            const suggestions = document.getElementById('drug-suggestions');
-
-            input.addEventListener('input', async (e) => {
-                const query = e.target.value.trim();
-                if (query.length < 2) {
-                    suggestions.classList.add('hidden');
-                    return;
+            function loadDocProfile() {
+                if (DOCTOR_NAME) {
+                    document.getElementById('doc-name').textContent = DOCTOR_NAME;
+                    document.getElementById('doc-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(DOCTOR_NAME)}&background=6366f1&color=fff`;
                 }
+            }
 
-                try {
-                    const { data, error } = await supabase.from('drugs').select('*').ilike('name', `%${query}%`).limit(8);
-                    if (data && data.length > 0) {
-                        suggestions.innerHTML = data.map(d => `
+            function startTime() {
+                const timeEl = document.getElementById('live-time');
+                const dateEl = document.getElementById('live-date');
+                function update() {
+                    const now = new Date();
+                    timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'short' });
+                }
+                update(); setInterval(update, 1000);
+            }
+
+            function initSearch() {
+                const input = document.getElementById('drug-input');
+                const suggestions = document.getElementById('drug-suggestions');
+
+                input.addEventListener('input', async (e) => {
+                    const query = e.target.value.trim();
+                    if (query.length < 2) {
+                        suggestions.classList.add('hidden');
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await supabase.from('drugs').select('*').ilike('name', `%${query}%`).limit(8);
+                        if (data && data.length > 0) {
+                            suggestions.innerHTML = data.map(d => `
                             <div class="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center" 
                                  onclick="addDrug('${d.name.replace(/'/g, "\\'")}')">
                                 <span class="font-bold text-slate-700">${d.name}</span>
                                 <i data-feather="plus" class="w-3 h-3 text-slate-300"></i>
                             </div>
                         `).join('');
-                        suggestions.classList.remove('hidden');
-                        if (window.feather) feather.replace();
-                    } else {
+                            suggestions.classList.remove('hidden');
+                            if (window.feather) feather.replace();
+                        } else {
+                            suggestions.classList.add('hidden');
+                        }
+                    } catch (e) { }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
                         suggestions.classList.add('hidden');
                     }
-                } catch (e) { }
-            });
+                });
+            }
 
-            document.addEventListener('click', (e) => {
-                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-                    suggestions.classList.add('hidden');
-                }
-            });
-        }
+            function addDrug(name) {
+                if (selectedDrugs.includes(name)) return;
+                selectedDrugs.push(name);
+                renderDrugTags();
+                document.getElementById('drug-input').value = '';
+                document.getElementById('drug-suggestions').classList.add('hidden');
+                updateCheckBtn();
+            }
 
-        function addDrug(name) {
-            if (selectedDrugs.includes(name)) return;
-            selectedDrugs.push(name);
-            renderDrugTags();
-            document.getElementById('drug-input').value = '';
-            document.getElementById('drug-suggestions').classList.add('hidden');
-            updateCheckBtn();
-        }
+            function removeDrug(idx) {
+                selectedDrugs.splice(idx, 1);
+                renderDrugTags();
+                updateCheckBtn();
+            }
 
-        function removeDrug(idx) {
-            selectedDrugs.splice(idx, 1);
-            renderDrugTags();
-            updateCheckBtn();
-        }
-
-        function clearAll() {
-            selectedDrugs = [];
-            renderDrugTags();
-            updateCheckBtn();
-            document.getElementById('results-container').innerHTML = `
+            function clearAll() {
+                selectedDrugs = [];
+                renderDrugTags();
+                updateCheckBtn();
+                document.getElementById('results-container').innerHTML = `
                 <div class="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-30">
                     <i data-feather="search" class="w-16 h-16"></i>
                     <p class="text-slate-500 font-medium">Select drugs on the left to begin inspection.</p>
                 </div>
             `;
-            document.getElementById('status-badge').innerHTML = '';
-            if (window.feather) feather.replace();
-        }
-
-        function renderDrugTags() {
-            const container = document.getElementById('selected-drugs-container');
-            if (selectedDrugs.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 italic py-4 text-center w-full">No drugs selected yet.</p>';
-                return;
+                document.getElementById('status-badge').innerHTML = '';
+                if (window.feather) feather.replace();
             }
 
-            container.innerHTML = selectedDrugs.map((d, idx) => `
+            function renderDrugTags() {
+                const container = document.getElementById('selected-drugs-container');
+                if (selectedDrugs.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-400 italic py-4 text-center w-full">No drugs selected yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = selectedDrugs.map((d, idx) => `
                 <div class="drug-tag bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl flex items-center gap-2 group">
                     <span class="text-sm font-bold text-indigo-700">${d}</span>
                     <button onclick="removeDrug(${idx})" class="text-indigo-300 hover:text-rose-500">
@@ -315,88 +409,88 @@
                     </button>
                 </div>
             `).join('');
-            if (window.feather) feather.replace();
-        }
-
-        function updateCheckBtn() {
-            const btn = document.getElementById('run-check-btn');
-            if (selectedDrugs.length >= 2) {
-                btn.disabled = false;
-                btn.classList.remove('bg-slate-200', 'text-slate-400');
-                btn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-100', 'hover:bg-indigo-700');
-            } else {
-                btn.disabled = true;
-                btn.classList.add('bg-slate-200', 'text-slate-400');
-                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-100', 'hover:bg-indigo-700');
-            }
-        }
-
-        async function parseBulk() {
-            const text = document.getElementById('bulk-input').value.trim();
-            if (!text) return;
-
-            const btn = document.getElementById('parse-btn');
-            btn.disabled = true;
-            btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 animate-spin"></i> Analyzing...`;
-            if (window.feather) feather.replace();
-
-            try {
-                const res = await fetch(`${API_BASE}/api/parse-prescription`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
-                const data = await res.json();
-
-                if (data.separate_drugs) {
-                    data.separate_drugs.forEach(d => {
-                        if (!selectedDrugs.includes(d.drugName)) selectedDrugs.push(d.drugName);
-                    });
-                }
-
-                renderDrugTags();
-                updateCheckBtn();
-                document.getElementById('bulk-input').value = '';
-
-                if (selectedDrugs.length >= 2) runCheck();
-
-            } catch (e) {
-                alert("Extraction failed. Try manually adding drugs.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-feather="cpu" class="w-4 h-4"></i> Extract & Inspect`;
                 if (window.feather) feather.replace();
             }
-        }
 
-        async function runCheck() {
-            const container = document.getElementById('results-container');
-            const statusBadge = document.getElementById('status-badge');
-            const btn = document.getElementById('run-check-btn');
+            function updateCheckBtn() {
+                const btn = document.getElementById('run-check-btn');
+                if (selectedDrugs.length >= 2) {
+                    btn.disabled = false;
+                    btn.classList.remove('bg-slate-200', 'text-slate-400');
+                    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-100', 'hover:bg-indigo-700');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('bg-slate-200', 'text-slate-400');
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-100', 'hover:bg-indigo-700');
+                }
+            }
 
-            btn.disabled = true;
-            btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 animate-spin"></i> Evaluating...`;
-            if (window.feather) feather.replace();
+            async function parseBulk() {
+                const text = document.getElementById('bulk-input').value.trim();
+                if (!text) return;
 
-            container.innerHTML = `
+                const btn = document.getElementById('parse-btn');
+                btn.disabled = true;
+                btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 animate-spin"></i> Analyzing...`;
+                if (window.feather) feather.replace();
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/parse-prescription`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text })
+                    });
+                    const data = await res.json();
+
+                    if (data.separate_drugs) {
+                        data.separate_drugs.forEach(d => {
+                            if (!selectedDrugs.includes(d.drugName)) selectedDrugs.push(d.drugName);
+                        });
+                    }
+
+                    renderDrugTags();
+                    updateCheckBtn();
+                    document.getElementById('bulk-input').value = '';
+
+                    if (selectedDrugs.length >= 2) runCheck();
+
+                } catch (e) {
+                    alert("Extraction failed. Try manually adding drugs.");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-feather="cpu" class="w-4 h-4"></i> Extract & Inspect`;
+                    if (window.feather) feather.replace();
+                }
+            }
+
+            async function runCheck() {
+                const container = document.getElementById('results-container');
+                const statusBadge = document.getElementById('status-badge');
+                const btn = document.getElementById('run-check-btn');
+
+                btn.disabled = true;
+                btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 animate-spin"></i> Evaluating...`;
+                if (window.feather) feather.replace();
+
+                container.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <i data-feather="shield" class="w-12 h-12 text-indigo-200 animate-pulse"></i>
                     <p class="text-slate-400 font-medium tracking-tight">Accessing drug-drug interaction databases...</p>
                 </div>
             `;
 
-            try {
-                const res = await fetch(`${API_BASE}/api/check-ddi`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ drugs: selectedDrugs })
-                });
-                const data = await res.json();
-                const interactions = data.interactions;
+                try {
+                    const res = await fetch(`${API_BASE}/api/check-ddi`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ drugs: selectedDrugs })
+                    });
+                    const data = await res.json();
+                    const interactions = data.interactions;
 
-                if (interactions.length === 0) {
-                    statusBadge.innerHTML = `<span class="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-emerald-200">No Interactions Found</span>`;
-                    container.innerHTML = `
+                    if (interactions.length === 0) {
+                        statusBadge.innerHTML = `<span class="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-emerald-200">No Interactions Found</span>`;
+                        container.innerHTML = `
                         <div class="bg-emerald-50 border border-emerald-100 rounded-3xl p-10 text-center flex flex-col items-center">
                             <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-sm mb-6">
                                 <i data-feather="shield-check" class="w-10 h-10"></i>
@@ -405,26 +499,26 @@
                             <p class="text-emerald-700/70 max-w-sm mx-auto">None of the drugs selected show documented major or moderate interactions in our database. Proceed with standard caution.</p>
                         </div>
                     `;
-                } else {
-                    const majorCount = interactions.filter(i => i.severity === 'Major').length;
-                    const modCount = interactions.filter(i => i.severity !== 'Major').length;
+                    } else {
+                        const majorCount = interactions.filter(i => i.severity === 'Major').length;
+                        const modCount = interactions.filter(i => i.severity !== 'Major').length;
 
-                    statusBadge.innerHTML = `
+                        statusBadge.innerHTML = `
                         <div class="flex gap-2">
                             ${majorCount > 0 ? `<span class="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-rose-200">${majorCount} Major</span>` : ''}
                             ${modCount > 0 ? `<span class="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-amber-200">${modCount} Moderate</span>` : ''}
                         </div>
                     `;
 
-                    container.innerHTML = `
+                        container.innerHTML = `
                         <div class="space-y-4">
                             ${interactions.map(i => {
-                        const isMajor = i.severity === 'Major';
-                        const theme = isMajor
-                            ? { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-900', icon: 'bg-rose-600 text-white' }
-                            : { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', icon: 'bg-amber-500 text-white' };
+                            const isMajor = i.severity === 'Major';
+                            const theme = isMajor
+                                ? { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-900', icon: 'bg-rose-600 text-white' }
+                                : { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', icon: 'bg-amber-500 text-white' };
 
-                        return `
+                            return `
                                     <div class="interaction-card ${theme.bg} border ${theme.border} rounded-3xl p-6 shadow-sm">
                                         <div class="flex items-start gap-4">
                                             <div class="p-2 rounded-xl ${theme.icon} shrink-0">
@@ -451,20 +545,20 @@
                                         </div>
                                     </div>
                                 `;
-                    }).join('')}
+                        }).join('')}
                         </div>
                     `;
-                }
+                    }
 
-            } catch (e) {
-                container.innerHTML = '<div class="p-8 text-center text-rose-500 font-bold">Error analyzing interactions. Please try again.</div>';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-feather="shield" class="w-5 h-5"></i> Run Interaction Check`;
-                if (window.feather) feather.replace();
+                } catch (e) {
+                    container.innerHTML = '<div class="p-8 text-center text-rose-500 font-bold">Error analyzing interactions. Please try again.</div>';
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-feather="shield" class="w-5 h-5"></i> Run Interaction Check`;
+                    if (window.feather) feather.replace();
+                }
             }
-        }
-    </script>
+        </script>
 </body>
 
 </html>
