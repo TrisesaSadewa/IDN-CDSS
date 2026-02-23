@@ -159,6 +159,11 @@ async function initBookingPage() {
     }
 }
 
+// --- EMR PAGE INITIALIZATION ---
+async function initPatientEMR() {
+    await loadEMRHistory(false);
+}
+
 // --- EMR HISTORY ---
 async function loadEMRHistory(isSummary = false) {
     const container = document.getElementById(isSummary ? 'timeline-container' : 'emr-history-container');
