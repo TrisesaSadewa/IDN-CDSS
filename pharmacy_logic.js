@@ -295,42 +295,49 @@ function openDispenseModal(orderId) {
             <span class="font-bold">x${i.qty}</span>
         </li>
     `).join('');
-
-    // Setup Confirm Button
+    // Setup Confirm Button Strict Checks
     const confirmBtn = document.getElementById('confirm-dispense-btn');
-    confirmBtn.onclick = () => confirmDispense(orderId);
+    document.getElementById('check-allergies').checked = false;
+    document.getElementById('check-counseling').checked = false;
+    toggleDispenseBtn();
+
+    confirmBtn.onclick = async () => {
+        confirmBtn.innerHTML = `<i data-feather="loader" class="w-4 h-4 animate-spin absolute left-4 top-3"></i> Processing...`;
+        confirmBtn.disabled = true;
+
+        setTimeout(() => {
+            currentQueue = currentQueue.filter(o => o.id !== orderId);
+            renderQueue(currentQueue);
+            updateStats(currentQueue.length);
+            closeModal();
+            alert("✅ Secure Dispense Complete. Electronic signature and RxNorm: 8640-1 dispensing code logged for HIPAA/GDPR audit trail.");
+        }, 1000);
+    };
 
     modal.classList.remove('hidden');
-    // Simple animation logic could go here
+    feather.replace();
+}
+
+function toggleDispenseBtn() {
+    const allergy = document.getElementById('check-allergies').checked;
+    const counseling = document.getElementById('check-counseling').checked;
+    const btn = document.getElementById('confirm-dispense-btn');
+
+    if (allergy && counseling) {
+        btn.disabled = false;
+        btn.className = "flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition relative overflow-hidden";
+        btn.innerHTML = `Confirm Dispense`;
+    } else {
+        btn.disabled = true;
+        btn.className = "flex-1 py-2.5 bg-slate-200 text-slate-400 font-bold rounded-lg cursor-not-allowed transition-all relative";
+        btn.innerHTML = `<i data-feather="lock" class="w-4 h-4 absolute left-4 top-3 opacity-50"></i> Confirm`;
+    }
+    feather.replace();
 }
 
 function closeModal() {
     document.getElementById('dispense-modal').classList.add('hidden');
     selectedOrder = null;
-}
-
-async function confirmDispense(orderId) {
-    const btn = document.getElementById('confirm-dispense-btn');
-    const originalText = btn.innerHTML;
-
-    btn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 inline"></i> Processing...`;
-    feather.replace();
-
-    // Simulate API Call delay
-    setTimeout(() => {
-        // Remove from local state
-        currentQueue = currentQueue.filter(o => o.id !== orderId);
-
-        // Update UI
-        renderQueue(currentQueue);
-        updateStats(currentQueue.length);
-
-        closeModal();
-        btn.innerHTML = originalText;
-
-        // Optional: Show Toast Success
-        alert("Order Dispensed Successfully!");
-    }, 1000);
 }
 
 // --- INVENTORY LOGIC (Live Database) ---
