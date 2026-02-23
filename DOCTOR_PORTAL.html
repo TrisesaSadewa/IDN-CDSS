@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Portal - Smart HIS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .dashboard-card {
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-active {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.4);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex text-slate-900">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden lg:flex shrink-0">
+        <div class="p-6 flex items-center gap-3">
+            <div class="p-2 bg-indigo-600 rounded-lg">
+                <i data-feather="activity" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">Smart HIS</h1>
+        </div>
+
+        <nav class="flex-1 px-4 mt-4 space-y-2">
+            <a href="DOCTOR_PORTAL.html" class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-active">
+                <i data-feather="grid" class="w-5 h-5"></i>
+                <span class="font-semibold">Dashboard</span>
+            </a>
+            <a href="APPOINTMENTS.html"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+                <i data-feather="users" class="w-5 h-5"></i>
+                <span class="font-medium">Patient Queue</span>
+            </a>
+            <a href="EMR.html"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+                <i data-feather="file-text" class="w-5 h-5"></i>
+                <span class="font-medium">Medical Records</span>
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+                <i data-feather="calendar" class="w-5 h-5"></i>
+                <span class="font-medium">My Schedule</span>
+                <span class="ml-auto text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded">Soon</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="localStorage.clear(); window.location.href='index.html'"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-950/30 transition-all">
+                <i data-feather="log-out" class="w-5 h-5"></i>
+                <span class="font-medium">Sign Out</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 flex flex-col max-h-screen overflow-hidden">
+        <!-- HEADER -->
+        <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
+            <h2 class="text-lg font-bold text-slate-700" id="page-title">Doctor Dashboard</h2>
+
+            <div class="flex items-center gap-6">
+                <!-- Live Clock -->
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-bold text-indigo-600 uppercase tracking-widest" id="live-date">Monday, 23 Feb
+                    </p>
+                    <p class="text-lg font-mono font-medium text-slate-700 leading-none" id="live-time">09:30 AM</p>
+                </div>
+
+                <div class="h-8 w-px bg-slate-200"></div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-slate-800" id="doc-name">Dr. Loading...</p>
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Active Portfolio</p>
+                    </div>
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-100 border-2 border-white flex items-center justify-center overflow-hidden">
+                        <img id="doc-avatar" src="https://ui-avatars.com/api/?name=Doctor&background=6366f1&color=fff"
+                            class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD BODY -->
+        <div class="flex-1 overflow-y-auto p-8 space-y-8">
+
+            <!-- Welcome Hero -->
+            <div
+                class="bg-gradient-to-r from-indigo-700 to-indigo-600 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-indigo-100">
+                <div class="relative z-10">
+                    <h1 class="text-3xl font-extrabold mb-1">Welcome back, <span id="welcome-name">Doctor</span>!</h1>
+                    <p class="text-indigo-100 text-lg opacity-90">You have <span class="font-bold text-white underline"
+                            id="waiting-count">--</span> patients waiting in your queue today.</p>
+                </div>
+                <div class="absolute right-0 top-0 w-64 h-full bg-white/10 -mr-16 rotate-12 blur-2xl"></div>
+                <div class="absolute bottom-0 right-12 opacity-20">
+                    <i data-feather="activity" class="w-32 h-32"></i>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-slate-200 flex items-center">
+                    <div class="p-4 bg-amber-50 text-amber-600 rounded-2xl mr-4"><i data-feather="users"
+                            class="w-6 h-6"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">In Queue</p>
+                        <h3 class="text-2xl font-black text-slate-800" id="stat-queue">0</h3>
+                    </div>
+                </div>
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-slate-200 flex items-center">
+                    <div class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl mr-4"><i data-feather="check-circle"
+                            class="w-6 h-6"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Consulted Today</p>
+                        <h3 class="text-2xl font-black text-slate-800" id="stat-done">0</h3>
+                    </div>
+                </div>
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-slate-200 flex items-center">
+                    <div class="p-4 bg-rose-50 text-rose-600 rounded-2xl mr-4"><i data-feather="alert-triangle"
+                            class="w-6 h-6"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Urgent Cases</p>
+                        <h3 class="text-2xl font-black text-slate-800" id="stat-urgent">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Work Area -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+                <!-- Active Queue View -->
+                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                    <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-feather="play-circle" class="w-4 h-4 text-indigo-600"></i> Next Patients
+                        </h3>
+                        <a href="APPOINTMENTS.html"
+                            class="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-widest">Full
+                            Queue</a>
+                    </div>
+                    <div class="p-4 divide-y divide-slate-100 overflow-y-auto max-h-[400px]" id="mini-queue">
+                        <!-- Queue Items injected by JS -->
+                        <div class="py-10 text-center text-slate-400">
+                            <i data-feather="loader" class="w-8 h-8 animate-spin mx-auto mb-3"></i>
+                            <p>Synchronizing with Nursing Station...</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-slate-50 border-t border-slate-100">
+                        <a href="APPOINTMENTS.html"
+                            class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                            Launch Appointment Module <i data-feather="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Schedule / Calendar Placeholder -->
+                <div class="bg-indigo-900 rounded-3xl p-8 text-white relative overflow-hidden flex flex-col">
+                    <div class="relative z-10 h-full flex flex-col">
+                        <div class="p-3 bg-indigo-800/80 rounded-xl w-fit mb-6 border border-indigo-700 shadow-lg">
+                            <i data-feather="calendar" class="w-6 h-6 text-indigo-300"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">My Daily Schedule</h3>
+                        <p class="text-indigo-200 mb-8 max-w-sm">Standardizing clinic hours and procedure slots
+                            according to International HIS scheduling protocols.</p>
+
+                        <div class="mt-auto space-y-4">
+                            <div
+                                class="bg-indigo-800/40 p-5 rounded-2xl border border-indigo-700/50 flex items-center gap-4 group hover:bg-indigo-700/50 transition-all cursor-pointer">
+                                <span
+                                    class="text-2xl font-black text-indigo-400 group-hover:text-indigo-100">08:00</span>
+                                <div class="w-px h-8 bg-indigo-700"></div>
+                                <div>
+                                    <p class="font-bold text-indigo-100">Morning Rounds</p>
+                                    <p class="text-xs text-indigo-400 uppercase font-black tracking-widest">Standard
+                                        Visitations</p>
+                                </div>
+                            </div>
+                            <div
+                                class="bg-indigo-800/40 p-5 rounded-2xl border border-indigo-700/50 flex items-center gap-4 opacity-40">
+                                <span class="text-2xl font-black text-indigo-400">14:00</span>
+                                <div class="w-px h-8 bg-indigo-700"></div>
+                                <div>
+                                    <p class="font-bold text-indigo-100">Outpatient Clinic</p>
+                                    <p class="text-xs text-indigo-400 uppercase font-black tracking-widest">Coming Soon
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Decor -->
+                    <div class="absolute -right-8 -bottom-8 w-48 h-48 bg-indigo-700/30 rounded-full blur-3xl"></div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // SUPABASE CLIENT
+        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+        const docSupabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        const DOCTOR_ID = localStorage.getItem('smart_his_user_id');
+        const DOCTOR_NAME = localStorage.getItem('smart_his_name');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadDocProfile();
+            startTime();
+            await fetchStats();
+            await fetchQueue();
+            if (window.feather) feather.replace();
+        });
+
+        function loadDocProfile() {
+            if (DOCTOR_NAME) {
+                document.getElementById('doc-name').textContent = DOCTOR_NAME;
+                document.getElementById('welcome-name').textContent = DOCTOR_NAME.split(' ')[0];
+                document.getElementById('doc-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(DOCTOR_NAME)}&background=6366f1&color=fff`;
+            }
+        }
+
+        async function fetchStats() {
+            if (!docSupabase) return;
+            try {
+                const { data } = await docSupabase.from('view_daily_business_metrics').select('*').single();
+                if (data) {
+                    document.getElementById('waiting-count').textContent = data.doc_waiting;
+                    document.getElementById('stat-queue').textContent = data.doc_waiting;
+                    document.getElementById('stat-done').textContent = data.doc_completed;
+                    document.getElementById('stat-urgent').textContent = data.doc_urgent;
+                }
+            } catch (e) { }
+        }
+
+        async function fetchQueue() {
+            const container = document.getElementById('mini-queue');
+            try {
+                const res = await fetch(`https://smart-his-backend.onrender.com/doctor/queue?doctor_id=${DOCTOR_ID}`);
+                const list = await res.json();
+
+                if (!list || list.length === 0) {
+                    container.innerHTML = '<div class="py-10 text-center"><p class="text-sm text-slate-400">All cleared! No patients in immediate queue.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = list.map(a => `
+                    <div class="py-4 flex items-center justify-between group cursor-pointer hover:bg-slate-50 transition-all px-2 rounded-xl" onclick="window.location.href='EMR.html?id=${a.id}'">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600 shadow-inner">
+                                ${a.queue_number}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">${a.patients?.full_name || 'Patient'}</h4>
+                                <p class="text-xs text-slate-400 uppercase font-black tracking-widest">
+                                    ${a.status === 'consultation' ? 'Now Serving' : 'Waiting'}
+                                </p>
+                            </div>
+                        </div>
+                        <i data-feather="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"></i>
+                    </div>
+                `).join('');
+
+                if (window.feather) feather.replace();
+            } catch (e) {
+                container.innerHTML = '<p class="text-xs text-red-400 text-center p-4">Sync Error. Check your connection.</p>';
+            }
+        }
+
+        function startTime() {
+            const timeEl = document.getElementById('live-time');
+            const dateEl = document.getElementById('live-date');
+            function update() {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'short' });
+            }
+            update(); setInterval(update, 1000);
+        }
+    </script>
+</body>
+
+</html>
