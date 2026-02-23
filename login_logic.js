@@ -58,7 +58,7 @@ if (loginForm) {
 
             // 4. Redirect based on Role
             if (role === 'doctor') {
-                window.location.href = 'APPOINTMENTS.html';
+                window.location.href = 'DOCTOR_PORTAL.html';
             } else if (role === 'admin') {
                 window.location.href = 'ADMIN_PORTAL.html';
             } else if (role === 'nurse') {
