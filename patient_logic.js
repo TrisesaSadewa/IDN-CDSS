@@ -1,5 +1,5 @@
 // CONFIGURATION
-const API_BASE = "https://smart-his-backend.onrender.com"; 
+const API_BASE = "https://smart-his-backend.onrender.com";
 
 // GLOBAL STATE
 let currentUser = {
@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. ROUTER
     const doctorSelect = document.getElementById('doctor-select');
-    
+
     if (doctorSelect) {
         initBookingPage();
-    } 
+    }
     else if (document.getElementById('timeline-container')) {
-        setupPortal(); 
+        setupPortal();
     }
 });
 
@@ -29,33 +29,67 @@ document.addEventListener('DOMContentLoaded', () => {
 async function setupPortal() {
     try {
         const res = await fetch(`${API_BASE}/patient/profile?user_id=${currentUser.id}`);
-        if(res.ok) {
+        if (res.ok) {
             const profile = await res.json();
             const mrnEl = document.getElementById('patient-mrn');
-            if(mrnEl) mrnEl.textContent = profile.mrn || 'N/A';
+            if (mrnEl) mrnEl.textContent = profile.mrn || 'N/A';
+
+            // Gender check for pregnancy tracker
+            if (profile.gender === 'female') {
+                checkPregnancyStatus();
+            }
         }
-    } catch(e) { console.error("Profile Error", e); }
+    } catch (e) { console.error("Profile Error", e); }
 
     await loadNextAppointment();
     await loadEMRHistory(true);
+}
+
+// --- PREGNANCY DETECTION ---
+async function checkPregnancyStatus() {
+    const tracker = document.getElementById('pregnancy-tracker');
+    if (!tracker) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/patient/history?patient_id=${currentUser.id}`);
+        const records = await res.json();
+
+        // Check if any triage note has pregnancy_status = 'pregnant'
+        // OR if any assessment mentions pregnancy
+        const isPregnant = records.some(rec =>
+            rec.pregnancy_status === 'pregnant' ||
+            (rec.assessment && (
+                rec.assessment.toLowerCase().includes('pregnant') ||
+                rec.assessment.toLowerCase().includes('pregnancy') ||
+                rec.assessment.toLowerCase().includes('gravida') ||
+                rec.assessment.toLowerCase().includes('hamil')
+            ))
+        );
+
+        if (isPregnant) {
+            tracker.classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error("Pregnancy Status Error", e);
+    }
 }
 
 // --- FETCH NEXT APPOINTMENT ---
 async function loadNextAppointment() {
     const container = document.getElementById('next-appt-card');
     const noApptMsg = document.getElementById('no-appt-msg');
-    
-    if (!container) return; 
+
+    if (!container) return;
 
     try {
         const res = await fetch(`${API_BASE}/patient/appointments?patient_id=${currentUser.id}`);
         const appts = await res.json();
 
         if (appts && appts.length > 0) {
-            const next = appts[0]; 
+            const next = appts[0];
             const docName = next.doctor ? next.doctor.full_name : 'Unknown Doctor';
             const docSpec = next.doctor ? (next.doctor.specialization || 'General') : '';
-            
+
             const dateObj = new Date(next.scheduled_time);
             const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -63,12 +97,12 @@ async function loadNextAppointment() {
             document.getElementById('next-appt-date').textContent = `${dateStr} • ${timeStr}`;
             document.getElementById('next-appt-doc').textContent = docName;
             document.getElementById('next-appt-spec').textContent = docSpec;
-            
+
             container.classList.remove('hidden');
-            if(noApptMsg) noApptMsg.classList.add('hidden');
+            if (noApptMsg) noApptMsg.classList.add('hidden');
         } else {
             container.classList.add('hidden');
-            if(noApptMsg) noApptMsg.classList.remove('hidden');
+            if (noApptMsg) noApptMsg.classList.remove('hidden');
         }
     } catch (e) {
         console.error("Appt Fetch Error", e);
@@ -84,7 +118,7 @@ async function initBookingPage() {
     try {
         const res = await fetch(`${API_BASE}/patient/doctors`);
         const doctors = await res.json();
-        doctorSelect.innerHTML = doctors.length ? 
+        doctorSelect.innerHTML = doctors.length ?
             doctors.map(d => `<option value="${d.id}">${d.full_name} (${d.specialization || 'General'})</option>`).join('') :
             `<option>No doctors found</option>`;
     } catch (e) {
@@ -98,7 +132,7 @@ async function initBookingPage() {
             const date = document.getElementById('book-date').value;
             const time = document.getElementById('book-time').value;
 
-            if(!date || !time) { alert("Please select date and time"); return; }
+            if (!date || !time) { alert("Please select date and time"); return; }
 
             const btn = bookForm.querySelector('button[type="submit"]');
             const originalText = btn.innerText;
@@ -147,10 +181,10 @@ async function loadEMRHistory(isSummary = false) {
         displayRecords.forEach(rec => {
             const docName = rec.doctors ? rec.doctors.full_name : 'Unknown Doctor';
             const dateStr = rec.appointments ? new Date(rec.appointments.scheduled_time).toLocaleDateString() : 'Unknown Date';
-            
+
             const card = document.createElement('div');
             card.className = "relative bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6";
-            if(!isSummary) card.innerHTML += `<div class="absolute -left-[41px] top-6 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm"></div>`;
+            if (!isSummary) card.innerHTML += `<div class="absolute -left-[41px] top-6 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm"></div>`;
 
             card.innerHTML += `
                 <div class="flex justify-between items-start mb-2">
@@ -166,7 +200,7 @@ async function loadEMRHistory(isSummary = false) {
             container.appendChild(card);
         });
     } catch (err) {
-        if(!isSummary) container.innerHTML = `<div class="text-red-500">Error loading records.</div>`;
+        if (!isSummary) container.innerHTML = `<div class="text-red-500">Error loading records.</div>`;
     }
 }
 
@@ -184,7 +218,7 @@ function showSuccessModal(title, message, redirectUrl) {
             <button id="modal-success-btn" class="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition-all transform active:scale-[0.98] shadow-lg">Go to Dashboard</button>
         </div>`;
     document.body.appendChild(modal);
-    if(window.feather) feather.replace();
+    if (window.feather) feather.replace();
     requestAnimationFrame(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
     modal.querySelector('#modal-success-btn').onclick = () => window.location.href = redirectUrl;
 }
