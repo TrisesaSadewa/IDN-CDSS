@@ -188,10 +188,17 @@ function renderDashboard() {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <a href="APPOINTMENTS.html" class="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center justify-between group">
+                <a href="DOCTOR_PORTAL.html" class="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center justify-between group">
+                    <div>
+                        <h3 class="text-xl font-bold">Go to Dashboard</h3>
+                        <p class="text-indigo-100 text-sm mt-1">Review my performance and patient stats</p>
+                    </div>
+                    <i data-feather="grid" class="group-hover:translate-x-1 transition-transform"></i>
+                </a>
+                <a href="APPOINTMENTS.html" class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 text-indigo-700 shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-between group">
                     <div>
                         <h3 class="text-xl font-bold">Go to Queue</h3>
-                        <p class="text-indigo-100 text-sm mt-1">View patient list & start consultations</p>
+                        <p class="text-indigo-600/70 text-sm mt-1">View patient list & start consultations</p>
                     </div>
                     <i data-feather="arrow-right" class="group-hover:translate-x-1 transition-transform"></i>
                 </a>
