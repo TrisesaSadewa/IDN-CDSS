@@ -231,6 +231,7 @@ async function initEMRPage() {
         safeSetText('pain-location', t.pain_location || '--');
 
         loadHistoryPanel(p.id);
+        loadLabResults(p.id);
 
     } catch (err) {
         console.error(err);
@@ -848,25 +849,113 @@ window.replaceDrug = (oldName, newName, newClass) => {
 async function loadHistoryPanel(patientId) {
     const container = document.getElementById('historyContent');
     if (!container) return;
+
     try {
-        const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
-        const history = await res.json();
+        let history = [];
+        try {
+            const res = await fetch(`${API_BASE}/patient/history?patient_id=${patientId}`);
+            if (res.ok) history = await res.json();
+        } catch (e) {
+            console.warn("Backend fail, falling back", e);
+        }
+
+        if ((!history || history.length === 0) && supabaseClient) {
+            const { data: appts } = await supabaseClient.from('appointments').select('id').eq('patient_id', patientId);
+            if (appts && appts.length > 0) {
+                const { data: consults } = await supabaseClient.from('consultations').select('*, doctors:profiles(full_name)').in('appointment_id', appts.map(a => a.id));
+                if (consults) history = consults;
+            }
+        }
+
         container.innerHTML = '';
-        if (history.length === 0) { container.innerHTML = '<div class="p-4 text-sm text-gray-400">No history found.</div>'; return; }
+        if (!history || history.length === 0) {
+            container.innerHTML = '<div class="p-8 text-center"><div class="text-gray-300 mb-2"><i data-feather="clock" class="w-12 h-12 mx-auto opacity-20"></i></div><p class="text-sm text-gray-400">No medical history found for this patient.</p></div>';
+            if (window.feather) feather.replace();
+            return;
+        }
 
         history.forEach(h => {
             const date = new Date(h.created_at).toLocaleDateString();
-            let title = h.assessment;
+            let title = h.assessment || 'No Diagnosis';
             if (h.assessment && h.assessment.includes("PRIMARY:")) {
-                title = h.assessment.split('\n')[0].replace('PRIMARY:', '').trim();
+                const parts = h.assessment.split('\n');
+                title = parts[0].replace('PRIMARY:', '').trim();
             }
+
             const div = document.createElement('div');
-            div.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-all";
-            div.innerHTML = `<div class="flex justify-between mb-1"><span class="text-sm font-bold text-blue-700">${date}</span><span class="text-xs text-gray-500">Dr. ${h.doctors ? h.doctors.full_name : 'Unknown'}</span></div><h4 class="font-semibold text-gray-800 text-sm">${title || 'No Diagnosis'}</h4>`;
+            div.className = "group p-4 bg-white border border-gray-100 rounded-xl mb-3 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all duration-200";
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">${date}</span>
+                    <span class="text-[10px] font-medium text-gray-400">Dr. ${h.doctors ? h.doctors.full_name : 'Medical Staff'}</span>
+                </div>
+                <h4 class="font-bold text-gray-800 text-sm mb-1 group-hover:text-blue-700 transition-colors">${title}</h4>
+                <p class="text-xs text-gray-500 line-clamp-2">${h.plan || 'No plan notes.'}</p>
+            `;
             container.appendChild(div);
         });
-    } catch (e) { }
+    } catch (e) {
+        container.innerHTML = '<div class="p-4 text-xs text-red-400">Error loading medical history.</div>';
+    }
 }
+
+async function loadLabResults(patientId) {
+    const container = document.getElementById('labContent');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<div class="p-8 text-center text-gray-300"><i data-feather="loader" class="animate-spin w-8 h-8 mx-auto mb-2 opacity-50"></i><p class="text-sm">Fetching lab records...</p></div>';
+        if (window.feather) feather.replace();
+
+        let labs = [];
+        if (supabaseClient) {
+            const { data, error } = await supabaseClient
+                .from('lab_results')
+                .select('*')
+                .eq('patient_id', patientId)
+                .order('created_at', { ascending: false });
+            if (!error) labs = data;
+        }
+
+        container.innerHTML = '';
+        if (!labs || labs.length === 0) {
+            container.innerHTML = '<div class="p-8 text-center"><div class="text-gray-300 mb-2"><i data-feather="activity" class="w-12 h-12 mx-auto opacity-20"></i></div><p class="text-sm text-gray-400">No laboratory results found.</p></div>';
+            if (window.feather) feather.replace();
+            return;
+        }
+
+        // Group by category
+        const categories = [...new Set(labs.map(l => l.test_category))];
+
+        categories.forEach(cat => {
+            const catHeader = document.createElement('div');
+            catHeader.className = "text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4 mb-2 first:mt-0";
+            catHeader.textContent = cat || "General";
+            container.appendChild(catHeader);
+
+            labs.filter(l => l.test_category === cat).forEach(lab => {
+                const date = new Date(lab.created_at).toLocaleDateString();
+                const div = document.createElement('div');
+                div.className = "p-3 bg-white border border-gray-100 rounded-lg mb-2 flex justify-between items-center shadow-sm";
+                div.innerHTML = `
+                    <div>
+                        <p class="text-xs font-bold text-gray-700">${lab.test_name}</p>
+                        <p class="text-[10px] text-gray-400">${date}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-black text-blue-600">${lab.result_value}</span>
+                        <p class="text-[9px] text-gray-400 uppercase font-bold">${lab.status}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        });
+        if (window.feather) feather.replace();
+    } catch (e) {
+        container.innerHTML = '<div class="p-4 text-xs text-red-400">Error loading laboratory results.</div>';
+    }
+}
+
 
 function updateSummary() {
     safeSetText('summaryCC', getVal('chiefComplaintInput'));
