@@ -47,7 +47,7 @@
             const { data, error } = await staffSupabase
                 .from('profiles')
                 .select('*')
-                .in('role', ['doctor', 'nurse', 'pharmacist'])
+                .in('role', ['doctor', 'nurse', 'pharmacist', 'lab_tech'])
                 .order('role', { ascending: true });
 
             if (error) {
@@ -87,6 +87,7 @@
                 case 'doctor': return 'bg-blue-100 text-blue-700';
                 case 'nurse': return 'bg-pink-100 text-pink-700';
                 case 'pharmacist': return 'bg-emerald-100 text-emerald-700';
+                case 'lab_tech': return 'bg-rose-100 text-rose-700';
                 default: return 'bg-gray-100 text-gray-700';
             }
         }
@@ -249,6 +250,7 @@
                             <option value="pharmacist">Pharmacist</option>
                             <option value="doctor">Doctor</option>
                             <option value="nurse">Nurse</option>
+                            <option value="lab_tech">Lab Technician</option>
                         </select>
                     </div>
                     <div>
