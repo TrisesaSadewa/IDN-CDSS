@@ -55,6 +55,28 @@
 
     <main class="flex-grow max-w-4xl mx-auto w-full px-6 py-8 space-y-8">
 
+        <!-- Clinical Alerts (Sync with Pregnancy Status) -->
+        <div id="clinical-alerts" class="hidden animate-in fade-in slide-in-from-top-4 duration-500">
+            <div
+                class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+                        <i data-feather="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Clinical Alert</p>
+                        <p class="text-sm font-bold text-amber-900" id="active-alert-text">Active Antenatal Care
+                            (Pregnancy)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="px-3 py-1 bg-amber-200/50 text-amber-800 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-amber-200">High
+                        Visibility</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Welcome & Next Appointment -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
