@@ -68,6 +68,8 @@ async function checkPregnancyStatus() {
 
         if (isPregnant) {
             tracker.classList.remove('hidden');
+            const alertPanel = document.getElementById('clinical-alerts');
+            if (alertPanel) alertPanel.classList.remove('hidden');
         }
     } catch (e) {
         console.error("Pregnancy Status Error", e);
