@@ -248,8 +248,22 @@ async function initEMRPage() {
         safeSetValue('temperature', t.temperature);
         calculateBMI();
 
+        // 🤰 Pregnancy Alert Sync
+        const pregAlert = document.getElementById('pt-pregnancy-alert');
+        if (pregAlert) {
+            const isPregnant = t.pregnancy_status === 'pregnant' ||
+                (t.nurse_notes && t.nurse_notes.toLowerCase().includes('pregnant')) ||
+                (data.assessment && data.assessment.toLowerCase().includes('pregnant'));
+
+            if (isPregnant) {
+                pregAlert.classList.remove('hidden');
+                // Extract term if mentioned in assessment
+                if (data.assessment && data.assessment.includes('20 Weeks')) pregAlert.innerText = "🤰 Pregnant (20w)";
+            }
+        }
+
         // --- Populate the "Nurse Notes" UI from Nurse Triage ---
-        safeSetText('nurse-notes-text', t.chief_complaint || "No notes recorded by nurse.");
+        safeSetText('nurse-notes-text', t.chief_complaint || t.nurse_notes || "No notes recorded by nurse.");
         safeSetText('pain-score', t.pain_score !== null && t.pain_score !== undefined ? t.pain_score : '--');
         safeSetText('pain-location', t.pain_location || '--');
 
