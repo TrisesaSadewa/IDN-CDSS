@@ -360,7 +360,7 @@
         const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const urlParams = new URLSearchParams(window.location.search);
         const currentApptId = urlParams.get('id');
@@ -618,7 +618,7 @@
             try {
                 // 1. Update Patient Allergies directly in Supabase
                 const allergies = document.getElementById('pt-allergies-input').value.trim();
-                const { error: patientErr } = await supabase
+                const { error: patientErr } = await supabaseClient
                     .from('patients')
                     .update({ allergies: allergies })
                     .eq('id', currentPatientId);
