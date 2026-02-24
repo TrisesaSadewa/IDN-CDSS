@@ -278,9 +278,14 @@
                                 <div class="flex justify-between items-start pt-1">
                                     <span class="text-sm font-bold text-red-500 flex items-center"><i
                                             data-feather="alert-triangle" class="w-4 h-4 mr-1"></i> Alerts</span>
-                                    <span
-                                        class="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-1 rounded shadow-sm text-right max-w-[150px] break-words"
-                                        id="pt-allergies">None Known</span>
+                                    <div class="flex flex-col gap-1 items-end" id="pt-alerts-container">
+                                        <span
+                                            class="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-1 rounded shadow-sm text-right max-w-[150px] break-words"
+                                            id="pt-allergies">None Known</span>
+                                        <span
+                                            class="hidden text-[10px] font-black text-amber-700 bg-amber-100 border border-amber-200 px-2 py-1 rounded shadow-sm uppercase tracking-widest text-right"
+                                            id="pt-pregnancy-alert">🤰 Pregnant (20w)</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
