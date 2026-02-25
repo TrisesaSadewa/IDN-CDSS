@@ -399,6 +399,48 @@
                         </div>
                     </section>
 
+                    <!-- Laboratory Investigations -->
+                    <section class="form-section bg-white rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <i data-feather="flask-conical" class="w-5 h-5 text-indigo-500"></i> Lab Investigations
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Test Category</label>
+                                <select id="labCategorySelect" onchange="updateLabTestOptions()"
+                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <option value="">-- Select Category --</option>
+                                    <option value="Hematology">Hematology</option>
+                                    <option value="Biochemistry">Biochemistry</option>
+                                    <option value="Immunology">Immunology</option>
+                                    <option value="Microbiology">Microbiology</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Specific Test</label>
+                                <div class="flex gap-2">
+                                    <select id="labTestSelect"
+                                        class="input-field w-full px-3 py-2 border border-gray-300 rounded-md grow"
+                                        disabled>
+                                        <option value="">-- Select Category First --</option>
+                                    </select>
+                                    <button id="addLabRequestBtn"
+                                        class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-sm">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Clinical Notes for Lab</label>
+                            <textarea id="labNotesInput"
+                                class="input-field w-full px-3 py-1 border border-gray-300 rounded-md h-12 text-sm"
+                                placeholder="Reason for test, clinical indications..."></textarea>
+                        </div>
+                        <div id="requestedLabsList"
+                            class="space-y-2 min-h-[40px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                            <p class="text-xs text-gray-400 italic">No investigations requested yet.</p>
+                        </div>
+                    </section>
+
                     <!-- Treatment -->
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Treatment</h2>
