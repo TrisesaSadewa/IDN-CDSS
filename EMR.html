@@ -512,35 +512,191 @@
                 </div>
 
                 <!-- SUMMARY VIEW -->
-                <div id="summaryView" class="hidden-view space-y-6">
-                    <section class="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
-                        <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Visit Summary</h2>
-                        <div class="grid grid-cols-2 gap-8 mb-8">
+                <div id="summaryView" class="hidden-view space-y-6 pb-20">
+                    <!-- Header: Verification Card -->
+                    <section class="bg-indigo-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 opacity-10">
+                            <i data-feather="check-circle" class="w-24 h-24"></i>
+                        </div>
+                        <div
+                            class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                             <div>
-                                <h3 class="text-xs font-bold text-blue-600 uppercase mb-2">Subjective</h3>
-                                <p class="text-sm text-gray-700" id="summaryCC">--</p>
-                                <p class="text-sm text-gray-700 mt-2" id="summaryHistory">--</p>
+                                <h2 class="text-3xl font-black mb-1">Verify Consultation</h2>
+                                <p class="text-indigo-100 font-medium">Please review all clinical data before final
+                                    submission to EHR.</p>
                             </div>
-                            <div>
-                                <h3 class="text-xs font-bold text-green-600 uppercase mb-2">Objective</h3>
-                                <p class="text-sm text-gray-700">BP: <span id="summaryBP">--</span></p>
+                            <div class="bg-white/10 backdrop-blur-md px-6 py-4 rounded-xl border border-white/20">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Patient
+                                    Identity</p>
+                                <p class="text-xl font-bold" id="summary-pt-name">--</p>
+                                <p class="text-sm text-indigo-100" id="summary-pt-id">--</p>
                             </div>
-                        </div>
-                        <div>
-                            <h3 class="text-xs font-bold text-purple-600 uppercase mb-2">Diagnosis</h3>
-                            <p class="text-sm text-gray-700" id="summaryDiagnosis">--</p>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-xs font-bold text-gray-600 uppercase mb-2">Plan</h3>
-                            <p class="text-sm text-gray-700" id="summaryInstructions">--</p>
-                            <div class="text-sm text-gray-800 mt-1" id="summaryMeds">--</div>
-                        </div>
-                        <div class="mt-8 flex justify-end">
-                            <button id="submitSummaryView"
-                                class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Finalize &
-                                Submit</button>
                         </div>
                     </section>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left Column: SOAP High Level -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Subjective & Assessment Card -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div
+                                    class="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                        <i data-feather="message-square" class="w-4 h-4 text-blue-500"></i> Clinical
+                                        Assessment
+                                    </h3>
+                                    <span
+                                        class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded uppercase tracking-widest">S-O-A</span>
+                                </div>
+                                <div class="p-6 space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4
+                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                                                Subjective Notes</h4>
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-blue-500 uppercase mb-1">Chief
+                                                        Complaint</p>
+                                                    <p class="text-sm text-gray-700 font-medium border-l-2 border-blue-100 pl-3 py-1"
+                                                        id="summaryCC">--</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                                        History of Illness</p>
+                                                    <p class="text-sm text-gray-600 leading-relaxed border-l-2 border-gray-100 pl-3 py-1"
+                                                        id="summaryHistory">--</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4
+                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                                                Assessment & Diagnosis</h4>
+                                            <div class="space-y-4">
+                                                <div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                                    <p class="text-[10px] font-bold text-purple-600 uppercase mb-1">
+                                                        Primary Diagnosis</p>
+                                                    <p class="text-base font-black text-gray-800" id="summaryDiagnosis">
+                                                        --</p>
+                                                    <p class="text-xs font-mono text-purple-700 mt-1" id="summaryICD">--
+                                                    </p>
+                                                </div>
+                                                <div id="summarySecondaryList" class="space-y-2">
+                                                    <!-- Secondary diagnoses injected here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-6 border-t border-gray-100">
+                                        <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                                            Clinical Analysis Notes</h4>
+                                        <p class="text-sm text-gray-600 italic leading-relaxed" id="summaryAnalysis">--
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Laboratory & Treatment Plan -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-100">
+                                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                        <i data-feather="clipboard" class="w-4 h-4 text-green-500"></i> Plan &
+                                        Interventions
+                                    </h3>
+                                </div>
+                                <div class="p-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <!-- Lab Requests -->
+                                        <div>
+                                            <h4
+                                                class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                Investigations <span id="summaryLabCount"
+                                                    class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[9px]">0</span>
+                                            </h4>
+                                            <div id="summaryLabList" class="space-y-2">
+                                                <p class="text-xs text-gray-400 italic">No investigations ordered.</p>
+                                            </div>
+                                        </div>
+                                        <!-- Prescription -->
+                                        <div>
+                                            <h4
+                                                class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                Active Prescriptions <span id="summaryDrugCount"
+                                                    class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[9px]">0</span>
+                                            </h4>
+                                            <div id="summaryMeds" class="space-y-2">
+                                                <p class="text-xs text-gray-400 italic">No medications prescribed.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-8 pt-6 border-t border-gray-100">
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">
+                                            Non-Pharmacological / Therapy Instructions</p>
+                                        <p class="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed"
+                                            id="summaryInstructions">--</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Vitals & Submission -->
+                        <div class="space-y-6">
+                            <!-- Vitals Widget -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Vital
+                                    Signs Summary</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-rose-50 p-4 rounded-2xl border border-rose-100 text-center">
+                                        <p class="text-[9px] font-black text-rose-400 uppercase mb-1">Blood Pressure</p>
+                                        <p class="text-lg font-black text-rose-700" id="summaryBP">--</p>
+                                        <p class="text-[9px] font-bold text-rose-400">mmHg</p>
+                                    </div>
+                                    <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
+                                        <p class="text-[9px] font-black text-orange-400 uppercase mb-1">Temperature</p>
+                                        <p class="text-lg font-black text-orange-700" id="summaryTemp">--</p>
+                                        <p class="text-[9px] font-bold text-orange-400">°C</p>
+                                    </div>
+                                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                                        <p class="text-[9px] font-black text-blue-400 uppercase mb-1">Weight</p>
+                                        <p class="text-lg font-black text-blue-700" id="summaryWeight">--</p>
+                                        <p class="text-[9px] font-bold text-blue-400">KG</p>
+                                    </div>
+                                    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-center">
+                                        <p class="text-[9px] font-black text-emerald-400 uppercase mb-1">BMI</p>
+                                        <p class="text-lg font-black text-emerald-700" id="summaryBMI">--</p>
+                                        <p class="text-[9px] font-bold text-emerald-400">Index</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Finalize Widget -->
+                            <div class="bg-slate-900 rounded-2xl p-6 shadow-2xl shadow-slate-200">
+                                <h4 class="text-white font-bold mb-2">Publish Results</h4>
+                                <p class="text-slate-400 text-xs mb-6">Finalizing this record will lock the EMR and
+                                    transition the patient to the Pharmacy/Lab queue.</p>
+
+                                <button id="submitSummaryView"
+                                    class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    <i data-feather="upload-cloud" class="w-5 h-5"></i> Publish to EHR
+                                </button>
+
+                                <button onclick="switchView('doctor')"
+                                    class="w-full mt-4 py-2 text-slate-500 text-xs font-bold hover:text-white transition-colors">
+                                    Go Back to Edit
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <p class="text-[10px] text-gray-400 font-medium">Digital Signature: Dr. <span
+                                        id="summary-doc-name">--</span></p>
+                                <p class="text-[9px] text-gray-300">Timestamp: <span id="summary-timestamp">--</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
