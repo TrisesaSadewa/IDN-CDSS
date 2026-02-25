@@ -13,151 +13,406 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .view-active {
+            display: block !important;
+        }
+
+        .nav-active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-right: 4px solid #4338ca;
+        }
+
+        .hidden-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 
-<body class="bg-slate-50 relative min-h-screen pt-20">
+<body class="bg-slate-50 relative min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-indigo-100 shadow-sm z-50">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2 text-indigo-700">
-                <i data-feather="microscope" class="w-6 h-6"></i>
-                <h1 class="font-bold text-lg tracking-tight">Smart LIS <span
-                        class="text-sm font-medium text-slate-500">| Laboratory Information System</span></h1>
+    <!-- Sidebar Navigation -->
+    <aside
+        class="fixed left-0 top-0 h-full w-20 lg:w-64 bg-white border-r border-slate-200 z-50 flex flex-col shadow-xl transition-all duration-300">
+        <div class="p-6 flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                <i data-feather="activity" class="w-6 h-6"></i>
             </div>
-            <div class="flex items-center gap-4">
-                <span id="userNameDisplay" class="text-sm font-medium text-slate-600">Lab Technician</span>
-                <button onclick="logout()" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
-                    <i data-feather="log-out" class="w-5 h-5"></i>
+            <h1 class="font-bold text-lg tracking-tight hidden lg:block">Smart LIS</h1>
+        </div>
+
+        <nav class="flex-grow mt-6 px-4 space-y-2">
+            <button onclick="switchView('queue')" id="nav-queue"
+                class="nav-active w-full flex items-center p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-600">
+                <i data-feather="list" class="w-5 h-5 shrink-0"></i>
+                <span class="ml-3 font-semibold text-sm hidden lg:block text-left grow">Incoming Orders</span>
+                <span id="queueCount"
+                    class="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full hidden lg:block">0</span>
+            </button>
+            <button onclick="switchView('entry')" id="nav-entry"
+                class="w-full flex items-center p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-600">
+                <i data-feather="edit-3" class="w-5 h-5 shrink-0"></i>
+                <span class="ml-3 font-semibold text-sm hidden lg:block text-left grow">Manual Entry</span>
+            </button>
+            <button onclick="switchView('inventory')" id="nav-inventory"
+                class="w-full flex items-center p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-600">
+                <i data-feather="package" class="w-5 h-5 shrink-0"></i>
+                <span class="ml-3 font-semibold text-sm hidden lg:block text-left grow">Lab Inventory</span>
+            </button>
+            <button onclick="switchView('history')" id="nav-history"
+                class="w-full flex items-center p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-600">
+                <i data-feather="clock" class="w-5 h-5 shrink-0"></i>
+                <span class="ml-3 font-semibold text-sm hidden lg:block text-left grow">Result History</span>
+            </button>
+        </nav>
+
+        <div class="p-6 border-t border-slate-100 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-indigo-600"
+                    id="userInitial">LT</div>
+                <div class="hidden lg:block">
+                    <p id="userNameDisplay" class="text-xs font-bold text-slate-700">Lab Technician</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Technician</p>
+                </div>
+            </div>
+            <button onclick="logout()"
+                class="w-full flex items-center p-2 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors text-sm font-bold">
+                <i data-feather="log-out" class="w-4 h-4"></i>
+                <span class="ml-2 hidden lg:block">Log Out</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="ml-20 lg:ml-64 p-4 lg:p-8">
+
+        <!-- QUEUE VIEW -->
+        <section id="view-queue" class="space-y-6">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Incoming Orders</h2>
+                    <p class="text-slate-500 text-sm">Real-time queue of laboratory requests from clinical stations.</p>
+                </div>
+                <button onclick="loadQueue()"
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition-all">
+                    <i data-feather="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Status Columns -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Incoming</h3>
+                        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    </div>
+                    <div id="queue-requested"
+                        class="space-y-3 min-h-[500px] p-2 bg-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Processing</h3>
+                        <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                    </div>
+                    <div id="queue-processing"
+                        class="space-y-3 min-h-[500px] p-2 bg-orange-50/50 rounded-2xl border-2 border-dashed border-orange-100">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-4 outline-2 outline-indigo-200 outline">
+                    <div id="queue-detail-placeholder"
+                        class="h-full bg-white rounded-3xl border border-slate-200 flex flex-col items-center justify-center p-12 text-center text-slate-400 shadow-sm">
+                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                            <i data-feather="inbox" class="w-8 h-8 opacity-40"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-700">Select an Order</h4>
+                        <p class="text-sm max-w-[200px] mt-1">Review the details and begin technical processing of the
+                            sample.</p>
+                    </div>
+
+                    <div id="queue-detail-card"
+                        class="hidden h-full bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-fade-in flex flex-col">
+                        <!-- Detail content populates here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ENTRY VIEW (Existing functionality moved here) -->
+        <section id="view-entry" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Panel: Patient Search -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h2
+                            class="text-sm border-b pb-2 mb-4 font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <i data-feather="users" class="w-4 h-4 text-indigo-500"></i> Find Patient
+                        </h2>
+                        <div class="relative">
+                            <i data-feather="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="patientSearch" placeholder="Search by Name or MRN..."
+                                class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm shadow-sm bg-slate-50 focus:bg-white">
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 h-[500px] overflow-y-auto hidden-scrollbar">
+                        <h2
+                            class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2 tracking-tighter">
+                            Directory Records</h2>
+                        <div id="patientList" class="space-y-2">
+                            <div class="text-center p-8 text-slate-400 text-sm">Type a name to search...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: LIS Entry Module -->
+                <div class="lg:col-span-2">
+                    <div id="emptyState"
+                        class="bg-white rounded-3xl border border-dashed border-slate-300 h-full flex flex-col items-center justify-center p-12 text-slate-400">
+                        <i data-feather="file-text" class="w-16 h-16 mb-4 opacity-30 text-indigo-300"></i>
+                        <p class="font-bold text-slate-600 mb-1">No Active Transaction</p>
+                        <p class="text-sm text-slate-400">Select a patient from the left panel to begin manual result
+                            entry.</p>
+                    </div>
+
+                    <div id="labEntryCard"
+                        class="bg-white rounded-3xl shadow-xl border border-slate-200 hidden overflow-hidden">
+                        <!-- Patient Header -->
+                        <div class="bg-indigo-600 p-8 text-white flex justify-between items-center group">
+                            <div>
+                                <h2 id="entryPtName" class="text-2xl font-black mb-1">Loading...</h2>
+                                <p id="entryPtDetails" class="text-indigo-100 text-sm font-medium tracking-wide">MRN:
+                                    --- | Age: ---</p>
+                            </div>
+                            <div class="bg-white/10 px-5 py-3 rounded-2xl backdrop-blur-md border border-white/20">
+                                <p class="text-[10px] text-indigo-100 font-black tracking-widest uppercase mb-1">
+                                    Technical Status</p>
+                                <p class="text-sm font-black flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span> SYSTEM
+                                    READY
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- LIS Entry Form -->
+                        <div class="p-8 space-y-8">
+                            <div
+                                class="bg-indigo-50 border border-indigo-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm">
+                                <div class="bg-white p-2.5 rounded-xl shadow-sm border border-indigo-100">
+                                    <i data-feather="info" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-indigo-900 font-bold mb-1">International Standard Protocol
+                                        (LOINC)</p>
+                                    <p class="text-[11px] text-indigo-700/80 leading-relaxed font-medium">
+                                        All entries captured through this interface are automatically mapped to the
+                                        <span class="underline">Longitudinal Observation Identifiers Names and
+                                            Codes</span> system for global interoperability.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test
+                                        Category</label>
+                                    <select id="testCategory" onchange="updateTestOptions()"
+                                        class="w-full p-3.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-semibold">
+                                        <option value="">-- Choose Segment --</option>
+                                        <option value="Hematology">Hematology Panel</option>
+                                        <option value="Biochemistry">Biochemistry / Metabolic</option>
+                                        <option value="Immunology">Immunology / Serology</option>
+                                        <option value="Microbiology">Microbiology Culture</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LOINC
+                                        Mapped Test</label>
+                                    <select id="testName"
+                                        class="w-full p-3.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-semibold"
+                                        disabled>
+                                        <option value="">-- Choose Category First --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Laboratory
+                                    Result Value</label>
+                                <div class="flex gap-3">
+                                    <input type="text" id="testResult" placeholder="Measured Magnitude (e.g. 14.2)"
+                                        class="p-4 border border-slate-200 rounded-2xl text-lg font-black text-indigo-600 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all flex-grow shadow-inner bg-slate-50">
+                                    <input type="text" id="testUnits" placeholder="Units (g/dL)"
+                                        class="w-40 p-4 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all shadow-inner bg-slate-50">
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                                <button onclick="resetLabForm()"
+                                    class="px-6 py-3 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">Clear
+                                    Form</button>
+                                <button onclick="submitLabResult()" id="submitLabBtn"
+                                    class="px-8 py-3 bg-indigo-600 shadow-xl shadow-indigo-100 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2">
+                                    <i data-feather="save" class="w-4 h-4"></i> Finalize & Publish
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent History for Context -->
+                        <div class="bg-slate-50 p-8 border-t border-slate-100">
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 ml-1">
+                                Clinical Context: Recent Lab History</h3>
+                            <div id="recentLabsContainer" class="space-y-3">
+                                <p class="text-xs text-slate-400 italic px-4">Loading clinical history...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INVENTORY VIEW -->
+        <section id="view-inventory" class="hidden space-y-6">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Technical Inventory</h2>
+                    <p class="text-slate-500 text-sm">Manage contrast media, reagents, and specialized laboratory items.
+                    </p>
+                </div>
+                <button onclick="openInventoryModal()"
+                    class="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 flex items-center gap-2 transition-all">
+                    <i data-feather="plus" class="w-4 h-4"></i> Add New Item
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="bg-blue-50 p-3 rounded-2xl text-blue-600">
+                        <i data-feather="package" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total SKUs</p>
+                        <h4 id="invTotalSKUs" class="text-xl font-black text-slate-800">--</h4>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="bg-rose-50 p-3 rounded-2xl text-rose-600">
+                        <i data-feather="alert-triangle" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low Stock Alert</p>
+                        <h4 id="invLowStock" class="text-xl font-black text-slate-800">--</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock
+                                Item</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Category</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock
+                                Level</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Threshold</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryList" class="divide-y divide-slate-100">
+                        <!-- Dynamic items -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- HISTORY VIEW -->
+        <section id="view-history" class="hidden">
+            <h2 class="text-xl font-black text-slate-800 mb-6 tracking-tight uppercase tracking-widest text-xs">Full
+                Result Registry</h2>
+            <div id="fullHistoryContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic cards -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Add Inventory -->
+    <div id="inventoryModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="p-6 bg-indigo-600 text-white flex justify-between items-center">
+                <h3 class="font-black">Add Clinical Item</h3>
+                <button onclick="closeInventoryModal()" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><i
+                        data-feather="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Item
+                        Name</label>
+                    <input type="text" id="invItemName"
+                        class="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none transition-all shadow-inner bg-slate-50">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Category</label>
+                        <select id="invCategory"
+                            class="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none transition-all shadow-inner bg-slate-50">
+                            <option value="Contrast Media">Contrast Media</option>
+                            <option value="Reagent">Reagent</option>
+                            <option value="Consumable">Consumable</option>
+                            <option value="Glassware">Glassware</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Unit</label>
+                        <input type="text" id="invUnit" placeholder="e.g. vial, pcs"
+                            class="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none transition-all shadow-inner bg-slate-50">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Initial
+                            Stock</label>
+                        <input type="number" id="invStock" value="0"
+                            class="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none transition-all shadow-inner bg-slate-50">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Warning
+                            Level</label>
+                        <input type="number" id="invThreshold" value="5"
+                            class="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none transition-all shadow-inner bg-slate-50">
+                    </div>
+                </div>
+                <button onclick="saveInventoryItem()"
+                    class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                    <i data-feather="save" class="w-4 h-4"></i> Commit to Ledger
                 </button>
             </div>
         </div>
-    </nav>
-
-    <!-- Main App Container -->
-    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        <!-- Left Panel: Patient Search & Queue -->
-        <div class="lg:col-span-1 space-y-6">
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2
-                    class="text-sm border-b pb-2 mb-4 font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                    <i data-feather="users" class="w-4 h-4 text-indigo-500"></i> Find Patient
-                </h2>
-                <div class="relative">
-                    <i data-feather="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
-                    <input type="text" id="patientSearch" placeholder="Search by Name or MRN..."
-                        class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm">
-                </div>
-            </div>
-
-            <div
-                class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex-1 h-[600px] overflow-y-auto hidden-scrollbar">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Patient Directory</h2>
-                <div id="patientList" class="space-y-2">
-                    <!-- Dynamic patient list here -->
-                    <div class="text-center p-8 text-slate-400 text-sm">Type a name to search...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Panel: LIS Entry Module -->
-        <div class="lg:col-span-2">
-            <div id="emptyState"
-                class="bg-white rounded-2xl border border-dashed border-slate-300 h-full flex flex-col items-center justify-center p-12 text-slate-400">
-                <i data-feather="file-text" class="w-16 h-16 mb-4 opacity-50 text-indigo-300"></i>
-                <p class="font-medium text-slate-600 mb-1">No Patient Selected</p>
-                <p class="text-sm text-slate-400">Search and select a patient to enter laboratory results.</p>
-            </div>
-
-            <div id="labEntryCard"
-                class="bg-white rounded-2xl shadow-sm border border-slate-200 hidden overflow-hidden">
-                <!-- Patient Header -->
-                <div class="bg-indigo-600 p-6 text-white flex justify-between items-center">
-                    <div>
-                        <h2 id="entryPtName" class="text-xl font-bold mb-1">Loading...</h2>
-                        <p id="entryPtDetails" class="text-indigo-200 text-sm">MRN: --- | Age: ---</p>
-                    </div>
-                    <div class="bg-indigo-800/50 px-4 py-2 rounded-lg backdrop-blur-sm border border-indigo-400/30">
-                        <p class="text-[10px] text-indigo-200 font-bold tracking-widest uppercase mb-1">Status</p>
-                        <p class="text-sm font-semibold flex items-center gap-2">
-                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div> Ready to Record</p>
-                    </div>
-                </div>
-
-                <!-- LIS Entry Form -->
-                <div class="p-6 space-y-6">
-                    <div class="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-start gap-3">
-                        <i data-feather="info" class="w-5 h-5 text-orange-500 shrink-0 mt-0.5"></i>
-                        <p class="text-xs text-orange-800 leading-relaxed">
-                            <strong>International Standard Alert:</strong> All results mapped below will automatically
-                            attach a globally standardized <span class="font-bold underline">LOINC Code</span>. Ensure
-                            accurate value entry.
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-1">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Test
-                                Category / Panel</label>
-                            <select id="testCategory" onchange="updateTestOptions()"
-                                class="w-full p-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                                <option value="">-- Select Category --</option>
-                                <option value="Hematology">Hematology Panel</option>
-                                <option value="Biochemistry">Biochemistry (Metabolic)</option>
-                                <option value="Immunology">Immunology / Serology</option>
-                                <option value="Microbiology">Microbiology</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Specific
-                                Test (LOINC Mapped)</label>
-                            <select id="testName"
-                                class="w-full p-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                disabled>
-                                <option value="">-- Select Category First --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Result
-                            Value</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="testResult" placeholder="e.g. 13.5"
-                                class="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all flex-1">
-                            <input type="text" id="testUnits" placeholder="Units (e.g. g/dL)"
-                                class="w-48 p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                        </div>
-                    </div>
-
-                    <div class="pt-4 border-t flex justify-end gap-3">
-                        <button onclick="resetLabForm()"
-                            class="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">Default</button>
-                        <button onclick="submitLabResult()" id="submitLabBtn"
-                            class="px-6 py-2 bg-indigo-600 shadow-md shadow-indigo-200 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 hover:shadow-lg transition-all flex items-center gap-2">
-                            <i data-feather="save" class="w-4 h-4"></i> Save Record (LOINC)
-                        </button>
-                    </div>
-
-                </div>
-
-                <!-- Recent Saved Labs (For Context) -->
-                <div class="bg-slate-50 p-6 border-t border-slate-100">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Patient's Recent Labs
-                    </h3>
-                    <div id="recentLabsContainer" class="space-y-2">
-                        <!-- Loaded dynamically -->
-                        <p class="text-xs text-slate-400">Loading...</p>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-    </main>
+    </div>
 
     <!-- Supabase Logic -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
