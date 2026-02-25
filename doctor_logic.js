@@ -1103,19 +1103,85 @@ async function loadLabResults(patientId) {
 
 
 function updateSummary() {
-    safeSetText('summaryCC', getVal('chiefComplaintInput'));
-    safeSetText('summaryHistory', getVal('historyInput'));
+    // Basic Patient Info
+    safeSetText('summary-pt-name', document.getElementById('pt-name')?.textContent || 'Unknown Patient');
+    safeSetText('summary-pt-id', document.getElementById('pt-id')?.textContent || 'MRN: ---');
+    safeSetText('summary-doc-name', DOCTOR_NAME || 'Medical Professional');
+    safeSetText('summary-timestamp', new Date().toLocaleString());
+
+    // SOAP - Subjective
+    safeSetText('summaryCC', getVal('chiefComplaintInput') || 'Not specified');
+    safeSetText('summaryHistory', getVal('historyInput') || 'No additional history provided.');
+
+    // SOAP - Objective (Vitals)
     safeSetText('summaryBP', `${getVal('systolic')}/${getVal('diastolic')}`);
-    safeSetText('summaryDiagnosis', getVal('primaryDiagnosisInput'));
-    safeSetText('summaryInstructions', getVal('therapyInput'));
-    const summaryMeds = document.getElementById('summaryMeds');
-    if (summaryMeds) {
-        if (currentDrugsList.length > 0) {
-            summaryMeds.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + currentDrugsList.map(d => `<li><strong>${d.name}</strong> - ${d.dosage}</li>`).join('') + '</ul>';
-        } else {
-            summaryMeds.textContent = "No medications.";
+    safeSetText('summaryTemp', getVal('temperature') || '--');
+    safeSetText('summaryWeight', getVal('weight') || '--');
+    safeSetText('summaryBMI', document.getElementById('bmi')?.textContent || '--');
+
+    // SOAP - Assessment
+    safeSetText('summaryDiagnosis', getVal('primaryDiagnosisInput') || 'No primary diagnosis');
+    const icdVal = getVal('primaryICDInput');
+    safeSetText('summaryICD', icdVal ? `ICD-10: ${icdVal}` : 'No ICD-10 code');
+    safeSetText('summaryAnalysis', getVal('analysisNotesInput') || 'No additional analysis notes.');
+
+    // Secondary diagnoses
+    const secondaryList = document.getElementById('summarySecondaryList');
+    if (secondaryList) {
+        secondaryList.innerHTML = '';
+        if (secondaryDiagnoses.length > 0) {
+            secondaryDiagnoses.forEach(d => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-2 bg-gray-50 rounded-lg text-xs border border-gray-100";
+                div.innerHTML = `<span class="font-bold text-gray-700">${d.description}</span> <span class="text-purple-600 font-mono font-bold">${d.code}</span>`;
+                secondaryList.appendChild(div);
+            });
         }
     }
+
+    // SOAP - Plan (Labs & Drugs)
+    safeSetText('summaryLabCount', requestedLabs.length);
+    const labList = document.getElementById('summaryLabList');
+    if (labList) {
+        labList.innerHTML = '';
+        if (requestedLabs.length > 0) {
+            requestedLabs.forEach(lab => {
+                const div = document.createElement('div');
+                div.className = "p-2 bg-indigo-50/50 rounded-lg border border-indigo-100 flex justify-between items-center";
+                div.innerHTML = `
+                    <span class="text-xs font-bold text-indigo-700">${lab.name}</span>
+                    <span class="text-[9px] font-black text-indigo-400 font-mono tracking-widest">${lab.code}</span>
+                `;
+                labList.appendChild(div);
+            });
+        } else {
+            labList.innerHTML = '<p class="text-xs text-gray-400 italic">No investigations ordered.</p>';
+        }
+    }
+
+    safeSetText('summaryDrugCount', currentDrugsList.length);
+    const summaryMeds = document.getElementById('summaryMeds');
+    if (summaryMeds) {
+        summaryMeds.innerHTML = '';
+        if (currentDrugsList.length > 0) {
+            currentDrugsList.forEach(d => {
+                const div = document.createElement('div');
+                div.className = "p-2 bg-emerald-50/50 rounded-lg border border-emerald-100";
+                div.innerHTML = `
+                    <p class="text-xs font-bold text-gray-800">${d.name}</p>
+                    <p class="text-[10px] text-emerald-600 font-medium">${d.dosage} | ${d.frequency || 'Sig: As directed'}</p>
+                `;
+                summaryMeds.appendChild(div);
+            });
+        } else {
+            summaryMeds.innerHTML = '<p class="text-xs text-gray-400 italic">No medications prescribed.</p>';
+        }
+    }
+
+    safeSetText('summaryInstructions', getVal('therapyInput') || 'General clinical monitoring and follow-up as advised.');
+
+    // Refresh icons in the summary
+    if (window.feather) feather.replace();
 }
 
 async function submitConsultation() {
