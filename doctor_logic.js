@@ -12,7 +12,33 @@ let currentApptId = null;
 let currentPatientId = null;
 let currentDrugsList = [];
 let secondaryDiagnoses = [];
+let requestedLabs = [];
 let lastDDIResults = [];
+
+const LOINC_DB = {
+    'Hematology': [
+        { name: 'Hemoglobin', code: '718-7' },
+        { name: 'WBC (Leukocytes)', code: '6690-2' },
+        { name: 'Platelets', code: '777-3' },
+        { name: 'Hematocrit', code: '4544-3' }
+    ],
+    'Biochemistry': [
+        { name: 'Glucose (Random)', code: '2345-7' },
+        { name: 'Glucose (Fasting)', code: '14771-0' },
+        { name: 'Creatinine', code: '2160-0' },
+        { name: 'BUN (Blood Urea Nitrogen)', code: '3094-0' },
+        { name: 'Cholesterol (Total)', code: '2093-3' }
+    ],
+    'Immunology': [
+        { name: 'H. Pylori Antigen', code: '13006-2' },
+        { name: 'Dengue NS1 Ag', code: '56475-7' },
+        { name: 'COVID-19 RT-PCR', code: '94500-6' }
+    ],
+    'Microbiology': [
+        { name: 'Blood Culture', code: '600-7' },
+        { name: 'Urine Culture', code: '630-4' }
+    ]
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     // Standardized Profile Loader
@@ -415,6 +441,9 @@ function setupEMRInteractions() {
             finally { parseBtn.disabled = false; parseBtn.innerHTML = "Parse"; feather.replace(); }
         };
     }
+
+    const addLabBtn = document.getElementById('addLabRequestBtn');
+    if (addLabBtn) addLabBtn.onclick = addLabRequest;
 
     const submitBtn = document.getElementById('submitDoctorView');
     if (submitBtn) submitBtn.onclick = () => switchView('summary');
@@ -1104,10 +1133,25 @@ async function submitConsultation() {
         secondary_diagnoses: secondaryDiagnoses.map(d => `${d.description} (${d.code})`),
         clinical_notes: getVal('analysisNotesInput'),
         therapy_instructions: getVal('therapyInput'),
-        prescription_items: currentDrugsList
+        prescription_items: currentDrugsList,
+        lab_requests: requestedLabs
     };
 
     try {
+        // First, handle Lab Requests if any
+        if (requestedLabs.length > 0 && supabaseClient) {
+            const labPayloads = requestedLabs.map(lab => ({
+                patient_id: currentPatientId,
+                doctor_id: DOCTOR_ID,
+                test_category: lab.category,
+                test_name: lab.name,
+                loinc_code: lab.code,
+                clinical_notes: getVal('labNotesInput'),
+                status: 'requested'
+            }));
+            const { error: labError } = await supabaseClient.from('lab_results').insert(labPayloads);
+            if (labError) console.error("Lab Request Error:", labError);
+        }
         const res = await fetch(`${API_BASE}/doctor/submit-consultation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1187,3 +1231,69 @@ function calculateBMI() {
     }
 }
 function calculateAge(dob) { if (!dob) return '--'; return Math.floor((new Date() - new Date(dob)) / 31557600000); }
+
+function renderRequestedLabs() {
+    const list = document.getElementById('requestedLabsList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (requestedLabs.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400 italic px-2">No investigations requested yet.</p>';
+        return;
+    }
+    requestedLabs.forEach((lab, idx) => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-2 bg-white border border-gray-100 rounded-lg shadow-sm';
+        div.innerHTML = `
+            <div>
+                <p class="text-xs font-bold text-gray-700">${lab.name}</p>
+                <p class="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">${lab.category} | ${lab.code}</p>
+            </div>
+            <button onclick="removeLabRequest(${idx})" class="text-gray-300 hover:text-red-500 transition-colors"><i data-feather="x" class="w-4 h-4"></i></button>
+        `;
+        list.appendChild(div);
+    });
+    if (window.feather) feather.replace();
+}
+
+window.updateLabTestOptions = () => {
+    const catEl = document.getElementById('labCategorySelect');
+    const testEl = document.getElementById('labTestSelect');
+    const cat = catEl.value;
+
+    testEl.innerHTML = '<option value="">-- Select Test --</option>';
+    if (!cat || !LOINC_DB[cat]) {
+        testEl.disabled = true;
+        return;
+    }
+
+    testEl.disabled = false;
+    LOINC_DB[cat].forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.dataset.code = t.code;
+        opt.textContent = `${t.name} (${t.code})`;
+        testEl.appendChild(opt);
+    });
+};
+
+function addLabRequest() {
+    const catEl = document.getElementById('labCategorySelect');
+    const testEl = document.getElementById('labTestSelect');
+
+    if (!catEl.value || !testEl.value) return alert("Select category and test.");
+
+    const selected = testEl.options[testEl.selectedIndex];
+    requestedLabs.push({
+        category: catEl.value,
+        name: testEl.value,
+        code: selected.dataset.code
+    });
+
+    renderRequestedLabs();
+    testEl.value = '';
+}
+
+window.removeLabRequest = (idx) => {
+    requestedLabs.splice(idx, 1);
+    renderRequestedLabs();
+};
