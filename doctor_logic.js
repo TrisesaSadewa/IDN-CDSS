@@ -515,19 +515,23 @@ function renderDDIResults(interactions, isSafe) {
 
     // --- 1. DASHBOARD SUMMARY ---
     const majorCount = interactions.filter(i => i.severity === 'Major').length;
-    const moderateCount = interactions.filter(i => i.severity === 'Intermediate' || i.severity === 'Moderate').length;
-    const minorCount = interactions.filter(i => i.severity === 'Minor').length;
+    const intermediateCount = interactions.filter(i => i.severity === 'Intermediate' || i.severity === 'Moderate').length;
+    const minorCount = interactions.filter(i => i.severity === 'Minor' || i.severity === 'Info').length;
 
     const dashboard = document.createElement('div');
-    dashboard.className = "mb-6 grid grid-cols-3 gap-2 sticky top-0 bg-gray-50 pt-2 pb-4 z-10 border-b border-gray-200";
+    dashboard.className = "mb-6 grid grid-cols-4 gap-1.5 sticky top-0 bg-gray-50 pt-2 pb-4 z-10 border-b border-gray-200";
     dashboard.innerHTML = `
         <button onclick="filterDDI('Major')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-red-500 transition-all group ${majorCount > 0 ? 'border-red-100' : 'opacity-50 grayscale border-gray-100'}">
             <span class="text-xs font-black text-red-600">${majorCount}</span>
             <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Major</span>
         </button>
-        <button onclick="filterDDI('Moderate')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-orange-500 transition-all group ${moderateCount > 0 ? 'border-orange-100' : 'opacity-50 grayscale border-gray-100'}">
-            <span class="text-xs font-black text-orange-500">${moderateCount}</span>
-            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Moderate</span>
+        <button onclick="filterDDI('Moderate')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-orange-500 transition-all group ${intermediateCount > 0 ? 'border-orange-100' : 'opacity-50 grayscale border-gray-100'}">
+            <span class="text-xs font-black text-orange-500">${intermediateCount}</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Interm.</span>
+        </button>
+        <button onclick="filterDDI('Minor')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-amber-400 transition-all group ${minorCount > 0 ? 'border-amber-100' : 'opacity-50 grayscale border-gray-100'}">
+            <span class="text-xs font-black text-amber-500">${minorCount}</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Minor</span>
         </button>
         <button onclick="filterDDI('All')" class="flex flex-col items-center p-2 rounded-xl border bg-white shadow-sm hover:border-blue-500 transition-all group border-blue-100">
             <span class="text-xs font-black text-blue-600">${interactions.length}</span>
@@ -548,13 +552,13 @@ function renderDDIResults(interactions, isSafe) {
             theme = { bg: "bg-red-50", border: "border-red-200", badge: "bg-red-600 text-white", icon: "alert-octagon", glow: "shadow-[0_0_15px_rgba(239,68,68,0.1)]" };
         } else if (item.severity === "Intermediate" || item.severity === "Moderate") {
             theme = { bg: "bg-orange-50", border: "border-orange-200", badge: "bg-orange-500 text-white", icon: "alert-triangle", glow: "" };
-        } else if (item.severity === "Minor") {
-            theme = { bg: "bg-yellow-50", border: "border-yellow-200", badge: "bg-yellow-400 text-yellow-900", icon: "alert-circle", glow: "" };
+        } else if (item.severity === "Minor" || item.severity === "Info") {
+            theme = { bg: "bg-amber-50/30", border: "border-amber-100/50", badge: "bg-amber-400 text-white", icon: "info", glow: "" };
         }
 
         const card = document.createElement('div');
         card.className = `ddi-card relative overflow-hidden rounded-2xl border ${theme.border} ${theme.bg} ${theme.glow} transition-all duration-300 group`;
-        card.dataset.severity = item.severity === 'Major' ? 'Major' : (item.severity === 'Minor' ? 'Minor' : 'Moderate');
+        card.dataset.severity = (item.severity === 'Major') ? 'Major' : (item.severity === 'Minor' || item.severity === 'Info' ? 'Minor' : 'Moderate');
 
         card.innerHTML = `
             <!-- COMPACT HEADER (Always Visible) -->
