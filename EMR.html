@@ -369,10 +369,12 @@
                     <section class="form-section bg-white rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Analysis</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="md:col-span-2"><label
-                                    class="block text-xs font-medium text-gray-500 mb-1">Primary Diagnosis</label><input
-                                    type="text" id="primaryDiagnosisInput"
-                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-md"></div>
+                            <div class="md:col-span-2 relative">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Primary Diagnosis</label>
+                                <input type="text" id="primaryDiagnosisInput"
+                                    class="input-field w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <div id="primaryDiagnosisSuggestions" class="autocomplete-list hidden"></div>
+                            </div>
                             <div class="relative"><label class="block text-xs font-medium text-gray-500 mb-1">ICD-10
                                     Code</label><input type="text" id="primaryICDInput"
                                     class="input-field w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-blue-700">
