@@ -501,28 +501,47 @@
                     `;
                     } else {
                         const majorCount = interactions.filter(i => i.severity === 'Major').length;
-                        const modCount = interactions.filter(i => i.severity !== 'Major').length;
+                        const interCount = interactions.filter(i => i.severity === 'Intermediate').length;
+                        const minorCount = interactions.filter(i => i.severity !== 'Major' && i.severity !== 'Intermediate').length;
 
                         statusBadge.innerHTML = `
-                        <div class="flex gap-2">
-                            ${majorCount > 0 ? `<span class="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-rose-200">${majorCount} Major</span>` : ''}
-                            ${modCount > 0 ? `<span class="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-amber-200">${modCount} Moderate</span>` : ''}
+                        <div class="flex items-center gap-2">
+                             <span class="hidden sm:inline text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Triage Summary:</span>
+                            ${majorCount > 0 ? `<div class="flex items-center gap-1.5 bg-rose-50 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-100 shadow-sm">
+                                <span class="flex h-2 w-2 relative">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                                </span>
+                                <span class="text-[10px] font-black uppercase tracking-widest">${majorCount} Major</span>
+                             </div>` : ''}
+                            ${interCount > 0 ? `<div class="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-xl border border-orange-100 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                <span class="text-[10px] font-black uppercase tracking-widest">${interCount} Intermediate</span>
+                             </div>` : ''}
+                            ${minorCount > 0 ? `<div class="flex items-center gap-1.5 bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                <span class="text-[10px] font-black uppercase tracking-widest">${minorCount} Minor</span>
+                             </div>` : ''}
                         </div>
                     `;
 
                         container.innerHTML = `
                         <div class="space-y-4">
                             ${interactions.map(i => {
-                            const isMajor = i.severity === 'Major';
-                            const theme = isMajor
-                                ? { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-900', icon: 'bg-rose-600 text-white' }
-                                : { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', icon: 'bg-amber-500 text-white' };
+                            let theme;
+                            if (i.severity === 'Major') {
+                                theme = { bg: 'bg-rose-50/50', border: 'border-rose-100', text: 'text-rose-900', icon: 'bg-rose-600 text-white', iconName: 'alert-octagon' };
+                            } else if (i.severity === 'Intermediate') {
+                                theme = { bg: 'bg-orange-50/50', border: 'border-orange-100', text: 'text-orange-900', icon: 'bg-orange-500 text-white', iconName: 'alert-triangle' };
+                            } else {
+                                theme = { bg: 'bg-slate-50/50', border: 'border-slate-100', text: 'text-slate-800', icon: 'bg-slate-400 text-white', iconName: 'info' };
+                            }
 
                             return `
                                     <div class="interaction-card ${theme.bg} border ${theme.border} rounded-3xl p-6 shadow-sm">
                                         <div class="flex items-start gap-4">
                                             <div class="p-2 rounded-xl ${theme.icon} shrink-0">
-                                                <i data-feather="${isMajor ? 'alert-octagon' : 'alert-triangle'}" class="w-5 h-5"></i>
+                                                <i data-feather="${theme.iconName}" class="w-5 h-5"></i>
                                             </div>
                                             <div class="flex-1">
                                                 <div class="flex justify-between items-start mb-3">
