@@ -366,7 +366,7 @@ function setupEMRInteractions() {
     });
 
     // ADDED: Allow searching by typing directly into the Diagnosis Description field
-    setupAutocomplete('primaryDiagnosisInput', 'primaryICDSuggestions', 'icd10', (item) => {
+    setupAutocomplete('primaryDiagnosisInput', 'primaryDiagnosisSuggestions', 'icd10', (item) => {
         document.getElementById('primaryICDInput').value = item.code;
         document.getElementById('primaryDiagnosisInput').value = item.description;
     });
