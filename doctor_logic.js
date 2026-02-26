@@ -469,9 +469,9 @@ async function runDDICheck() {
     let checkList = [];
     currentDrugsList.forEach(d => {
         if (d.ingredients && Array.isArray(d.ingredients)) {
-            d.ingredients.forEach(i => checkList.push(i.name));
+            d.ingredients.forEach(i => checkList.push({ name: i.name, frequency: d.frequency }));
         } else {
-            checkList.push(d.name);
+            checkList.push({ name: d.name, frequency: d.frequency });
         }
     });
 
@@ -479,7 +479,7 @@ async function runDDICheck() {
         const res = await fetch(`${API_BASE}/api/check-ddi`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ drugs: checkList })
+            body: JSON.stringify({ medications: checkList })
         });
 
         const data = await res.json();
