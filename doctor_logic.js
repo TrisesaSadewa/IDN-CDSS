@@ -15,30 +15,7 @@ let secondaryDiagnoses = [];
 let requestedLabs = [];
 let lastDDIResults = [];
 
-const LOINC_DB = {
-    'Hematology': [
-        { name: 'Hemoglobin', code: '718-7' },
-        { name: 'WBC (Leukocytes)', code: '6690-2' },
-        { name: 'Platelets', code: '777-3' },
-        { name: 'Hematocrit', code: '4544-3' }
-    ],
-    'Biochemistry': [
-        { name: 'Glucose (Random)', code: '2345-7' },
-        { name: 'Glucose (Fasting)', code: '14771-0' },
-        { name: 'Creatinine', code: '2160-0' },
-        { name: 'BUN (Blood Urea Nitrogen)', code: '3094-0' },
-        { name: 'Cholesterol (Total)', code: '2093-3' }
-    ],
-    'Immunology': [
-        { name: 'H. Pylori Antigen', code: '13006-2' },
-        { name: 'Dengue NS1 Ag', code: '56475-7' },
-        { name: 'COVID-19 RT-PCR', code: '94500-6' }
-    ],
-    'Microbiology': [
-        { name: 'Blood Culture', code: '600-7' },
-        { name: 'Urine Culture', code: '630-4' }
-    ]
-};
+let cachedLabDictionary = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     // Standardized Profile Loader
@@ -1321,25 +1298,51 @@ function renderRequestedLabs() {
     if (window.feather) feather.replace();
 }
 
-window.updateLabTestOptions = () => {
+window.updateLabTestOptions = async () => {
     const catEl = document.getElementById('labCategorySelect');
     const testEl = document.getElementById('labTestSelect');
     const cat = catEl.value;
 
-    testEl.innerHTML = '<option value="">-- Select Test --</option>';
-    if (!cat || !LOINC_DB[cat]) {
-        testEl.disabled = true;
+    testEl.innerHTML = '<option value="">-- Loading Tests... --</option>';
+    testEl.disabled = true;
+
+    if (!cat) {
+        testEl.innerHTML = '<option value="">-- Select Category First --</option>';
         return;
     }
 
-    testEl.disabled = false;
-    LOINC_DB[cat].forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.name;
-        opt.dataset.code = t.code;
-        opt.textContent = `${t.name} (${t.code})`;
-        testEl.appendChild(opt);
-    });
+    try {
+        if (!cachedLabDictionary) {
+            if (!supabaseClient && window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            const { data, error } = await supabaseClient
+                .from('lab_dictionary')
+                .select('test_name, loinc_code, category');
+
+            if (error) throw error;
+            cachedLabDictionary = data;
+        }
+
+        const tests = cachedLabDictionary.filter(t => t.category === cat);
+
+        testEl.innerHTML = '<option value="">-- Select Test --</option>';
+        if (tests.length === 0) {
+            testEl.innerHTML = '<option value="">-- No tests in this category --</option>';
+        } else {
+            testEl.disabled = false;
+            tests.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.test_name;
+                opt.dataset.code = t.loinc_code;
+                opt.textContent = `${t.test_name} (${t.loinc_code})`;
+                testEl.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error("Lab Dictionary Fetch Error:", e);
+        testEl.innerHTML = '<option value="">-- Error Loading Dictionary --</option>';
+    }
 };
 
 function addLabRequest() {
