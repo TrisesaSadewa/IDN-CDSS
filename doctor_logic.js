@@ -118,6 +118,47 @@ async function handleAlgorithmicSuggestGeneral() {
     }
 }
 
+// 1b. Historical Prescription Search
+async function handleHistoricalSuggestRx() {
+    const btn = document.getElementById('btnHistoricalSuggestRx');
+    const box = document.getElementById('historicalSuggestionBox');
+    const textEl = document.getElementById('historicalSuggestionText');
+
+    let diagnosis = document.getElementById('primaryDiagnosisInput').value.trim();
+    if (!diagnosis) {
+        alert("Please enter a Primary Diagnosis to search historical prescriptions.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Searching EHR...`;
+    if (window.feather) feather.replace();
+
+    try {
+        const query = encodeURIComponent(diagnosis);
+        const res = await fetch(`${API_BASE}/api/recommend-drugs?diagnosis=${query}`);
+        if (!res.ok) throw new Error("Failed to fetch historical recommendations.");
+
+        const data = await res.json();
+        const suggestions = data.recommendations || [];
+
+        if (suggestions.length > 0) {
+            textEl.innerHTML = `<strong class="block mb-2 text-emerald-800"><i data-feather="clock" class="inline w-4 h-4 mr-1"></i> Historical EHR Prescriptions for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-2">` +
+                suggestions.map(s => `<li><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} prescriptions</span></li>`).join('') +
+                `</ul><p class="text-[10px] text-emerald-600 mt-3 italic mb-0">*Data sourced from similar past consultations in the local EHR.</p>`;
+        } else {
+            textEl.innerHTML = `No historical prescriptions found for "${diagnosis}" in the EHR.`;
+        }
+        box.classList.remove('hidden');
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-feather="clock" class="w-3.5 h-3.5 mr-1.5"></i> Historical Prescriptions`;
+        if (window.feather) feather.replace();
+    }
+}
+
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
 window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
     const container = btnElement.closest('.pt-3').querySelector('.ai-response-box');
@@ -316,6 +357,9 @@ function setupEMRInteractions() {
 
     const suggestBtn = document.getElementById('btnAlgorithmicSuggestRx');
     if (suggestBtn) suggestBtn.onclick = handleAlgorithmicSuggestGeneral;
+
+    const histSuggestBtn = document.getElementById('btnHistoricalSuggestRx');
+    if (histSuggestBtn) histSuggestBtn.onclick = handleHistoricalSuggestRx;
 
     window.switchView = function (viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
