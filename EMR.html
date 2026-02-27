@@ -455,6 +455,11 @@
                             <div class="flex justify-between items-center mb-3">
                                 <h4 class="font-semibold text-gray-800 text-sm">Add Drug</h4>
                                 <div class="flex items-center gap-2">
+                                    <!-- Historical Suggest Button -->
+                                    <button id="btnHistoricalSuggestRx"
+                                        class="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center shadow-sm">
+                                        <i data-feather="clock" class="w-3.5 h-3.5 mr-1.5"></i> Historical Prescriptions
+                                    </button>
                                     <!-- OPENFDA Suggest Button -->
                                     <button id="btnAlgorithmicSuggestRx"
                                         class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
@@ -475,6 +480,16 @@
                                     class="absolute top-2 right-2 text-indigo-400 hover:text-indigo-700"><i
                                         data-feather="x" class="w-4 h-4"></i></button>
                                 <div id="algorithmicSuggestionText"></div>
+                            </div>
+
+                            <!-- Historical Recommendation Box (Hidden by default) -->
+                            <div id="historicalSuggestionBox"
+                                class="hidden mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-900 shadow-inner whitespace-pre-wrap relative">
+                                <button
+                                    onclick="document.getElementById('historicalSuggestionBox').classList.add('hidden')"
+                                    class="absolute top-2 right-2 text-emerald-400 hover:text-emerald-700"><i
+                                        data-feather="x" class="w-4 h-4"></i></button>
+                                <div id="historicalSuggestionText"></div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
