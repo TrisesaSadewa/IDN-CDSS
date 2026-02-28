@@ -460,6 +460,11 @@
                                         class="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center shadow-sm">
                                         <i data-feather="clock" class="w-3.5 h-3.5 mr-1.5"></i> Historical Prescriptions
                                     </button>
+                                    <!-- Smart Patient AI Suggest Button -->
+                                    <button id="btnSmartSuggestRx"
+                                        class="text-xs font-bold bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors flex items-center shadow-sm">
+                                        <i data-feather="cpu" class="w-3.5 h-3.5 mr-1.5"></i> Smart AI Suggest
+                                    </button>
                                     <!-- OPENFDA Suggest Button -->
                                     <button id="btnAlgorithmicSuggestRx"
                                         class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center shadow-sm">
@@ -490,6 +495,15 @@
                                     class="absolute top-2 right-2 text-emerald-400 hover:text-emerald-700"><i
                                         data-feather="x" class="w-4 h-4"></i></button>
                                 <div id="historicalSuggestionText"></div>
+                            </div>
+
+                            <!-- Smart Profile Recommendation Box (Hidden by default) -->
+                            <div id="smartSuggestionBox"
+                                class="hidden mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900 shadow-inner whitespace-pre-wrap relative">
+                                <button onclick="document.getElementById('smartSuggestionBox').classList.add('hidden')"
+                                    class="absolute top-2 right-2 text-purple-400 hover:text-purple-700"><i
+                                        data-feather="x" class="w-4 h-4"></i></button>
+                                <div id="smartSuggestionText"></div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
