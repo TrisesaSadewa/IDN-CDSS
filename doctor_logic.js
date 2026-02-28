@@ -225,7 +225,72 @@ async function handleSmartSuggestRx() {
     }
 }
 
-// 1d. Add Recommended Drug QoL Helper
+// 1d. Symptom to Diagnosis Analysis
+async function handleAnalyzeSymptoms() {
+    const btn = document.getElementById('btnAnalyzeSymptoms');
+    const box = document.getElementById('symptomSuggestionBox');
+    const textEl = document.getElementById('symptomSuggestionText');
+    const cc = document.getElementById('chiefComplaintInput').value.trim();
+
+    if (!cc) {
+        alert("Please enter a Chief Complaint first to analyze symptoms.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-feather="loader" class="w-2.5 h-2.5 animate-spin"></i> Analyzing...`;
+    if (window.feather) feather.replace();
+
+    try {
+        const res = await fetch(`${API_BASE}/api/analyze-symptoms?cc=${encodeURIComponent(cc)}`);
+        if (!res.ok) throw new Error("Backend analysis failed.");
+        const data = await res.json();
+        const suggestions = data.suggestions || [];
+
+        if (suggestions.length > 0) {
+            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="search" class="inline w-3 h-3 mr-1"></i> EHR-Driven Diagnosis Suggestions:</strong><div class="space-y-1">` +
+                suggestions.map(s => `
+                    <div class="flex items-center justify-between py-1.5 border-b border-indigo-100 last:border-0 hover:bg-white/40 px-1 rounded transition-colors group">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-800 text-[11px]">${s.diagnosis}</span>
+                            <span class="text-[9px] text-indigo-500 font-mono font-bold">${s.code}</span>
+                        </div>
+                        <button onclick="selectSuggestedDiagnosis('${s.diagnosis.replace(/'/g, "\\'")}', '${s.code}')" class="text-[9px] font-bold bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer border-0">SELECT</button>
+                    </div>
+                `).join('') +
+                `</div><p class="text-[9px] text-indigo-400 mt-2 italic">*Based on most frequent diagnoses for similar chief complaints in this clinic.</p>`;
+        } else {
+            textEl.innerHTML = `<div class="flex items-center gap-2 text-gray-400 italic text-[11px] py-1"><i data-feather="info" class="w-3 h-3"></i> No historical diagnosis found for this specific symptom pattern.</div>`;
+        }
+        box.classList.remove('hidden');
+    } catch (e) {
+        alert("Analysis failed: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-feather="zap" class="w-2.5 h-2.5 group-hover:fill-current"></i> AI Suggest from CC`;
+        if (window.feather) feather.replace();
+    }
+}
+
+window.selectSuggestedDiagnosis = function (diagnosis, code) {
+    const diagInput = document.getElementById('primaryDiagnosisInput');
+    const icdInput = document.getElementById('primaryICDInput');
+
+    if (diagInput) diagInput.value = diagnosis;
+    if (icdInput) icdInput.value = (code === 'Unknown' || !code) ? '' : code;
+
+    const box = document.getElementById('symptomSuggestionBox');
+    if (box) box.classList.add('hidden');
+
+    // Visual feedback
+    if (diagInput) {
+        diagInput.focus();
+        diagInput.classList.add('ring-2', 'ring-indigo-300', 'bg-indigo-50');
+        setTimeout(() => diagInput.classList.remove('ring-2', 'ring-indigo-300', 'bg-indigo-50'), 600);
+    }
+};
+
+// 1e. Add Recommended Drug QoL Helper
 window.selectRecommendedDrug = function (drugName) {
     const input = document.getElementById('drugName');
     if (input) {
@@ -443,6 +508,9 @@ function setupEMRInteractions() {
 
     const smartSuggestBtn = document.getElementById('btnSmartSuggestRx');
     if (smartSuggestBtn) smartSuggestBtn.onclick = handleSmartSuggestRx;
+
+    const analyzeCCBtn = document.getElementById('btnAnalyzeSymptoms');
+    if (analyzeCCBtn) analyzeCCBtn.onclick = handleAnalyzeSymptoms;
 
     window.switchView = function (viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
