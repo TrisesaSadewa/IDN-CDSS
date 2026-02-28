@@ -159,6 +159,72 @@ async function handleHistoricalSuggestRx() {
     }
 }
 
+// 1c. Smart Prediction Search (ICD + Demographics)
+async function handleSmartSuggestRx() {
+    const btn = document.getElementById('btnSmartSuggestRx');
+    const box = document.getElementById('smartSuggestionBox');
+    const textEl = document.getElementById('smartSuggestionText');
+
+    let icd10 = document.getElementById('primaryICDInput').value.trim();
+    if (!icd10) {
+        alert("Please enter a Primary Diagnosis / ICD-10 Code first.");
+        return;
+    }
+
+    // Attempt to extract age from "45 years old | Male"
+    let age = null;
+    let gender = null;
+    let weight = parseFloat(document.getElementById('weight').value) || null;
+
+    try {
+        const ptStr = document.getElementById('pt-details').innerText;
+        const matches = ptStr.match(/(\d+)\s*years/i);
+        if (matches && matches[1]) age = parseInt(matches[1]);
+        if (ptStr.toLowerCase().includes('female')) gender = 'female';
+        else if (ptStr.toLowerCase().includes('male')) gender = 'male';
+    } catch (e) { }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-feather="loader" class="w-3.5 h-3.5 mr-1.5 animate-spin"></i> Analyzing...`;
+    if (window.feather) feather.replace();
+
+    try {
+        const queryParams = new URLSearchParams({ icd10: icd10 });
+        if (age) queryParams.append('age', age);
+        if (weight) queryParams.append('weight', weight);
+        if (gender) queryParams.append('gender', gender);
+
+        const res = await fetch(`${API_BASE}/api/recommend-smart?${queryParams.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch smart recommendations.");
+
+        const data = await res.json();
+        const suggestions = data.recommendations || [];
+        const notes = data.profile_notes || [];
+
+        if (suggestions.length > 0) {
+            let notesHtml = notes.map(n => `<span class="bg-white/60 px-2 py-0.5 rounded text-[9px] font-bold text-purple-600 mr-2 border border-purple-100">${n}</span>`).join('');
+
+            textEl.innerHTML = `
+                <div class="mb-3">
+                    <strong class="block text-purple-800"><i data-feather="cpu" class="inline w-4 h-4 mr-1"></i> Patient-Tailored Recommendations for ICD [${icd10}]:</strong>
+                    <div class="mt-1 flex flex-wrap gap-1">${notesHtml}</div>
+                </div>
+                <ul class="list-disc pl-5 space-y-2">` +
+                suggestions.map(s => `<li><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-purple-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} matching cases</span></li>`).join('') +
+                `</ul><p class="text-[10px] text-purple-500 mt-3 italic mb-0">*Ranked AI matches based on ${age ? age + 'yo ' : ''}${gender ? gender + ' ' : ''}patient profile and similar clinical history.</p>`;
+        } else {
+            textEl.innerHTML = `No highly correlated profile-based prescriptions found for "[${icd10}]".`;
+        }
+        box.classList.remove('hidden');
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-feather="cpu" class="w-3.5 h-3.5 mr-1.5"></i> Smart AI Suggest`;
+        if (window.feather) feather.replace();
+    }
+}
+
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
 window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
     const container = btnElement.closest('.pt-3').querySelector('.ai-response-box');
@@ -360,6 +426,9 @@ function setupEMRInteractions() {
 
     const histSuggestBtn = document.getElementById('btnHistoricalSuggestRx');
     if (histSuggestBtn) histSuggestBtn.onclick = handleHistoricalSuggestRx;
+
+    const smartSuggestBtn = document.getElementById('btnSmartSuggestRx');
+    if (smartSuggestBtn) smartSuggestBtn.onclick = handleSmartSuggestRx;
 
     window.switchView = function (viewName) {
         ['nurseView', 'doctorView', 'summaryView'].forEach(id => document.getElementById(id).classList.add('hidden-view'));
