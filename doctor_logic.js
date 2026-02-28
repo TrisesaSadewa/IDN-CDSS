@@ -102,8 +102,8 @@ async function handleAlgorithmicSuggestGeneral() {
         suggestions = [...new Set(suggestions)]; // Deduplicate generic names
 
         if (suggestions.length > 0) {
-            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="database" class="inline w-4 h-4 mr-1"></i> OpenFDA Approvals for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-1">` +
-                suggestions.map(s => `<li class="capitalize font-medium">${s.toLowerCase()}</li>`).join('') +
+            textEl.innerHTML = `<strong class="block mb-2 text-indigo-800"><i data-feather="database" class="inline w-4 h-4 mr-1"></i> OpenFDA Approvals for "${diagnosis}":</strong><ul class="list-none p-0 space-y-1">` +
+                suggestions.map(s => `<li class="flex items-center justify-between py-1 border-b border-indigo-100 last:border-0"><span class="capitalize font-medium">${s.toLowerCase()}</span> <button onclick="selectRecommendedDrug('${s}')" class="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors shadow-sm cursor-pointer">SELECT</button></li>`).join('') +
                 `</ul><p class="text-[10px] text-indigo-500 mt-3 italic">*Data sourced directly from US FDA Indications and Usage labels.</p>`;
         } else {
             textEl.innerHTML = `No standard generics found in FDA database for "${diagnosis}". Try a broader term.`;
@@ -143,8 +143,8 @@ async function handleHistoricalSuggestRx() {
         const suggestions = data.recommendations || [];
 
         if (suggestions.length > 0) {
-            textEl.innerHTML = `<strong class="block mb-2 text-emerald-800"><i data-feather="clock" class="inline w-4 h-4 mr-1"></i> Historical EHR Prescriptions for "${diagnosis}":</strong><ul class="list-disc pl-5 space-y-2">` +
-                suggestions.map(s => `<li><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} prescriptions</span></li>`).join('') +
+            textEl.innerHTML = `<strong class="block mb-2 text-emerald-800"><i data-feather="clock" class="inline w-4 h-4 mr-1"></i> Historical EHR Prescriptions for "${diagnosis}":</strong><ul class="list-none p-0 space-y-1">` +
+                suggestions.map(s => `<li class="flex items-center justify-between py-1 border-b border-emerald-100 last:border-0"><div><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} prescriptions</span></div> <button onclick="selectRecommendedDrug('${s.name}')" class="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-1 rounded hover:bg-emerald-300 transition-colors shadow-sm cursor-pointer">SELECT</button></li>`).join('') +
                 `</ul><p class="text-[10px] text-emerald-600 mt-3 italic mb-0">*Data sourced from similar past consultations in the local EHR.</p>`;
         } else {
             textEl.innerHTML = `No historical prescriptions found for "${diagnosis}" in the EHR.`;
@@ -209,8 +209,8 @@ async function handleSmartSuggestRx() {
                     <strong class="block text-purple-800"><i data-feather="cpu" class="inline w-4 h-4 mr-1"></i> Patient-Tailored Recommendations for ICD [${icd10}]:</strong>
                     <div class="mt-1 flex flex-wrap gap-1">${notesHtml}</div>
                 </div>
-                <ul class="list-disc pl-5 space-y-2">` +
-                suggestions.map(s => `<li><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-purple-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} matching cases</span></li>`).join('') +
+                <ul class="list-none p-0 space-y-1">` +
+                suggestions.map(s => `<li class="flex items-center justify-between py-1 border-b border-purple-100 last:border-0"><div><span class="font-bold text-gray-800">${s.name}</span> <span class="text-[10px] font-bold text-purple-600 bg-white px-2 py-0.5 rounded border ml-2 drop-shadow-sm uppercase tracking-wider">${s.count} matching cases</span></div> <button onclick="selectRecommendedDrug('${s.name}')" class="text-[10px] font-bold bg-purple-200 text-purple-800 px-2 py-1 rounded hover:bg-purple-300 transition-colors shadow-sm cursor-pointer">SELECT</button></li>`).join('') +
                 `</ul><p class="text-[10px] text-purple-500 mt-3 italic mb-0">*Ranked AI matches based on ${age ? age + 'yo ' : ''}${gender ? gender + ' ' : ''}patient profile and similar clinical history.</p>`;
         } else {
             textEl.innerHTML = `No highly correlated profile-based prescriptions found for "[${icd10}]".`;
@@ -224,6 +224,20 @@ async function handleSmartSuggestRx() {
         if (window.feather) feather.replace();
     }
 }
+
+// 1d. Add Recommended Drug QoL Helper
+window.selectRecommendedDrug = function (drugName) {
+    const input = document.getElementById('drugName');
+    if (input) {
+        input.value = drugName;
+        input.focus();
+        // Add a temporary flash effect using existing tailwind utility classes if applicable
+        input.classList.add('ring-2', 'ring-indigo-300', 'bg-indigo-50');
+        setTimeout(() => {
+            input.classList.remove('ring-2', 'ring-indigo-300', 'bg-indigo-50');
+        }, 600);
+    }
+};
 
 // 2. DDI Resolution Algorithm (Called from inside Sidebar Card)
 window.askAlgorithmForAlternative = async function (drugA, drugB, btnElement) {
