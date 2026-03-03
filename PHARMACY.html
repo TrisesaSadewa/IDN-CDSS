@@ -104,6 +104,33 @@
         .autocomplete-list div:last-child {
             border-bottom: none;
         }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #printable-labels,
+            #printable-labels * {
+                visibility: visible;
+            }
+
+            #printable-labels {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+
+            .print-border {
+                border: 2px solid #000;
+            }
+        }
     </style>
 </head>
 
@@ -207,7 +234,6 @@
 
                 <!-- Queue List -->
                 <div id="queue-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <!-- Cards injected by JS -->
                     <div class="flex justify-center items-center py-20 col-span-full">
                         <div class="flex flex-col items-center text-slate-400">
                             <i data-feather="loader" class="w-8 h-8 animate-spin mb-2"></i>
@@ -274,7 +300,6 @@
                                 </tr>
                             </thead>
                             <tbody id="inventory-table" class="divide-y divide-slate-100">
-                                <!-- Rows injected by JS -->
                             </tbody>
                         </table>
                     </div>
@@ -384,11 +409,10 @@
                 <div class="bg-slate-50 rounded-lg p-4 mb-4 border border-slate-100 text-sm">
                     <p class="text-slate-500 text-xs uppercase font-bold mb-2">Order Summary</p>
                     <ul id="modal-summary" class="space-y-1 text-slate-700">
-                        <!-- Populated by JS -->
                     </ul>
                 </div>
 
-                <!-- DDI Pharmacy Notes (Dynamically populated) -->
+                <!-- DDI Pharmacy Notes -->
                 <div id="modal-ddi-notes"></div>
 
                 <div class="space-y-3 mb-6 bg-rose-50 p-4 border border-rose-100 rounded-lg">
@@ -410,6 +434,13 @@
                     </label>
                 </div>
 
+                <div class="mb-4">
+                    <button onclick="printLabels()"
+                        class="w-full py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center shadow-sm">
+                        <i data-feather="printer" class="w-4 h-4 mr-2"></i> Print Labels & Patient Info
+                    </button>
+                </div>
+
                 <div class="flex gap-3">
                     <button onclick="closeModal()"
                         class="flex-1 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
@@ -421,6 +452,9 @@
             </div>
         </div>
     </div>
+
+    <!-- PRINTABLE LABELS AREA (Hidden on screen) -->
+    <div id="printable-labels" class="hidden font-sans p-4"></div>
 
     <!-- LOGIC SCRIPT -->
     <script src="pharmacy_logic.js"></script>
