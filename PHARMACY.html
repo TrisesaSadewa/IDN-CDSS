@@ -5,15 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacy - Smart HIS</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Logic Script (Must be before body to define globally) -->
     <script src="pharmacy_logic.js"></script>
-    <!-- Google Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
         rel="stylesheet">
@@ -392,6 +387,9 @@
                         <!-- Populated by JS -->
                     </ul>
                 </div>
+
+                <!-- DDI Pharmacy Notes (Dynamically populated) -->
+                <div id="modal-ddi-notes"></div>
 
                 <div class="space-y-3 mb-6 bg-rose-50 p-4 border border-rose-100 rounded-lg">
                     <h4 class="text-xs font-bold text-rose-800 uppercase tracking-widest"><i
