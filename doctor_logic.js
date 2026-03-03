@@ -14,6 +14,7 @@ let currentDrugsList = [];
 let secondaryDiagnoses = [];
 let requestedLabs = [];
 let lastDDIResults = [];
+let acknowledgedDDINotes = { pharmacy: '', monitoring: '', acknowledged: false };
 
 let cachedLabDictionary = null;
 
@@ -825,6 +826,19 @@ function renderDDIResults(interactions, isSafe) {
     });
 
     container.appendChild(list);
+
+    // --- 3. ACKNOWLEDGE & NOTED BUTTON (Sticky Footer) ---
+    const ackFooter = document.createElement('div');
+    ackFooter.className = "sticky bottom-0 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-6 pb-4 px-1 z-20";
+    ackFooter.innerHTML = `
+        <button id="btnAcknowledgeDDI" onclick="acknowledgeDDI()" 
+            class="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm">
+            <i data-feather="check-square" class="w-4 h-4"></i> Acknowledge & Noted
+        </button>
+        <p class="text-[9px] text-gray-400 text-center mt-2 font-medium">Adds dispensing notes to Pharmacy & monitoring reminders to Summary</p>
+    `;
+    container.appendChild(ackFooter);
+
     if (window.feather) feather.replace();
 
     // Auto-expand the first Major interaction if any
@@ -897,6 +911,116 @@ function resetDDIStatus() {
         const icon = item.querySelector('.ddi-warning-icon');
         if (icon) icon.remove();
     });
+    if (window.feather) feather.replace();
+}
+
+// ==========================================
+// DDI ACKNOWLEDGMENT LOGIC
+// ==========================================
+function acknowledgeDDI() {
+    if (!lastDDIResults || lastDDIResults.length === 0) return;
+
+    const pharmacyLines = [];
+    const monitoringLines = [];
+
+    lastDDIResults.forEach(item => {
+        const pairLabel = `${item.pair[0]} + ${item.pair[1]}`;
+        const sev = item.severity;
+        const advice = item.advice || '';
+
+        // --- Extract PHARMACY dispensing notes (patient-facing) ---
+        if (/space out|hours apart|stagger/i.test(advice)) {
+            pharmacyLines.push(`\u26A0\uFE0F [${sev}] ${pairLabel}: ${advice}`);
+        } else if (/avoid concurrent/i.test(advice)) {
+            pharmacyLines.push(`\uD83D\uDEAB [${sev}] ${pairLabel}: ${advice}`);
+        } else if (sev === 'Major') {
+            pharmacyLines.push(`\uD83D\uDEAB [MAJOR] ${pairLabel}: ${advice}`);
+        } else if (sev === 'Intermediate' || sev === 'Moderate') {
+            pharmacyLines.push(`\u26A0\uFE0F [${sev}] ${pairLabel}: ${advice}`);
+        } else {
+            pharmacyLines.push(`\u2139\uFE0F [${sev}] ${pairLabel}: ${advice}`);
+        }
+
+        // --- Extract MONITORING reminders (doctor-facing, for follow-up) ---
+        if (/monitor\s+(blood\s+pressure|BP)/i.test(advice)) {
+            monitoringLines.push(`\uD83E\uDE7A Monitor Blood Pressure (due to ${pairLabel})`);
+        }
+        if (/monitor.*potassium|hyperkalemia/i.test(advice)) {
+            monitoringLines.push(`\uD83E\uDDEA Monitor Serum Potassium (due to ${pairLabel})`);
+        }
+        if (/monitor.*renal|eGFR|creatinine/i.test(advice)) {
+            monitoringLines.push(`\uD83E\uDDEA Monitor Renal Function / eGFR (due to ${pairLabel})`);
+        }
+        if (/monitor.*digoxin|digitalis/i.test(advice)) {
+            monitoringLines.push(`\uD83E\uDDEA Monitor Digoxin Levels (due to ${pairLabel})`);
+        }
+        if (/INR|bleeding|hemorrhage|bruising|melena/i.test(advice)) {
+            monitoringLines.push(`\uD83E\uDE78 Monitor for Bleeding / INR (due to ${pairLabel})`);
+        }
+        if (/monitor.*heart\s+rate|HR|bradycardia/i.test(advice)) {
+            monitoringLines.push(`\uD83D\uDC93 Monitor Heart Rate (due to ${pairLabel})`);
+        }
+        if (/blood\s+sugar|hypoglyc/i.test(advice)) {
+            monitoringLines.push(`\uD83C\uDF6C Monitor Blood Sugar Levels (due to ${pairLabel})`);
+        }
+        // Generic fallback for any "monitor" advice not caught above
+        if (/monitor/i.test(advice) && monitoringLines.filter(l => l.includes(pairLabel)).length === 0) {
+            monitoringLines.push(`\uD83D\uDCCB ${advice} (${pairLabel})`);
+        }
+    });
+
+    // Deduplicate monitoring lines
+    const uniqueMonitoring = [...new Set(monitoringLines)];
+
+    acknowledgedDDINotes = {
+        pharmacy: pharmacyLines.join('\n'),
+        monitoring: uniqueMonitoring.join('\n'),
+        acknowledged: true
+    };
+
+    // --- Update button to confirmed state ---
+    const btn = document.getElementById('btnAcknowledgeDDI');
+    if (btn) {
+        btn.disabled = true;
+        btn.className = "w-full py-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-black rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 text-sm cursor-default";
+        btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> DDI Notes Acknowledged';
+        if (window.feather) feather.replace();
+    }
+
+    // --- Inject monitoring notes into Summary View ---
+    renderDDISummaryNotes();
+
+    // Provide visual feedback toast
+    const toast = document.createElement('div');
+    toast.className = "fixed bottom-6 right-6 bg-violet-600 text-white px-6 py-3 rounded-xl shadow-2xl z-[200] animate-fade-in text-sm font-bold flex items-center gap-2";
+    toast.innerHTML = '<i data-feather="bell" class="w-4 h-4"></i> ' + pharmacyLines.length + ' pharmacy notes + ' + uniqueMonitoring.length + ' monitoring reminders saved';
+    document.body.appendChild(toast);
+    if (window.feather) feather.replace();
+    setTimeout(() => toast.remove(), 4000);
+}
+
+function renderDDISummaryNotes() {
+    const summaryNotesContainer = document.getElementById('summaryDDINotes');
+    if (!summaryNotesContainer || !acknowledgedDDINotes.acknowledged) return;
+
+    const pharmacyLines = acknowledgedDDINotes.pharmacy.split('\n').filter(l => l.trim());
+    const monitorLines = acknowledgedDDINotes.monitoring.split('\n').filter(l => l.trim());
+
+    summaryNotesContainer.innerHTML = '';
+
+    if (pharmacyLines.length > 0) {
+        const pharmacySection = document.createElement('div');
+        pharmacySection.className = 'mb-4';
+        pharmacySection.innerHTML = '<h5 class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-feather="package" class="w-3 h-3"></i> Pharmacy Dispensing Notes</h5><div class="space-y-1">' + pharmacyLines.map(l => '<p class="text-[11px] text-gray-700 leading-relaxed pl-3 border-l-2 border-amber-200 py-0.5">' + l + '</p>').join('') + '</div>';
+        summaryNotesContainer.appendChild(pharmacySection);
+    }
+
+    if (monitorLines.length > 0) {
+        const monitorSection = document.createElement('div');
+        monitorSection.innerHTML = '<h5 class="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-feather="eye" class="w-3 h-3"></i> Follow-Up Monitoring Reminders</h5><div class="space-y-1">' + monitorLines.map(l => '<p class="text-[11px] text-gray-700 font-medium leading-relaxed pl-3 border-l-2 border-rose-200 py-0.5">' + l + '</p>').join('') + '</div>';
+        summaryNotesContainer.appendChild(monitorSection);
+    }
+
     if (window.feather) feather.replace();
 }
 
@@ -1469,6 +1593,9 @@ function updateSummary() {
 
     safeSetText('summaryInstructions', getVal('therapyInput') || 'General clinical monitoring and follow-up as advised.');
 
+    // Render DDI acknowledged notes in the summary
+    renderDDISummaryNotes();
+
     // Refresh icons in the summary
     if (window.feather) feather.replace();
 }
@@ -1479,6 +1606,8 @@ async function submitConsultation() {
     if (btn) { btn.textContent = "Processing..."; btn.disabled = true; }
 
     const payload = {
+        ddi_pharmacy_notes: acknowledgedDDINotes.acknowledged ? acknowledgedDDINotes.pharmacy : null,
+        ddi_monitoring_notes: acknowledgedDDINotes.acknowledged ? acknowledgedDDINotes.monitoring : null,
         doctor_id: DOCTOR_ID,
         appointment_id: currentApptId,
         chief_complaint: getVal('chiefComplaintInput'),
