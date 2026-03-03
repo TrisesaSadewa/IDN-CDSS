@@ -81,7 +81,6 @@
             border-bottom: none;
         }
 
-        /* Animations */
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -98,7 +97,6 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
-        /* DDI Enhanced Styles */
         .ddi-card.is-expanded {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             margin-bottom: 1rem;
@@ -158,7 +156,6 @@
             opacity: 1;
         }
 
-        /* Responsive Panel Width */
         @media (max-width: 1200px) {
             #rightPanel {
                 width: 40% !important;
@@ -171,7 +168,6 @@
             }
         }
 
-        /* DDI Flashing Animation for Major Warnings */
         @keyframes flashMajor {
 
             0%,
@@ -274,7 +270,6 @@
                                 <div class="flex justify-between border-b border-blue-100 pb-2"><span
                                         class="text-sm font-medium text-gray-600">BMI</span><span
                                         class="text-sm font-semibold text-gray-800" id="bmi">N/A</span></div>
-                                <!-- ADDED: Allergy & Special Conditions Alert -->
                                 <div class="flex justify-between items-start pt-1">
                                     <span class="text-sm font-bold text-red-500 flex items-center"><i
                                             data-feather="alert-triangle" class="w-4 h-4 mr-1"></i> Alerts</span>
@@ -492,7 +487,7 @@
                                 </div>
                             </div>
 
-                            <!-- Therapeutic Class Reference (NEW) -->
+                            <!-- Therapeutic Class Reference -->
                             <div class="mb-4 flex flex-wrap gap-2 py-2 border-y border-slate-50">
                                 <span
                                     class="text-[10px] font-black text-slate-400 uppercase tracking-widest self-center mr-1">Quick
@@ -534,12 +529,11 @@
                                         </button>
                                     </div>
                                     <div id="modalBody" class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                                        <!-- Dynamic Content -->
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- OpenFDA Recommendation Box (Hidden by default) -->
+                            <!-- OpenFDA Recommendation Box -->
                             <div id="algorithmicSuggestionBox"
                                 class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-900 shadow-inner whitespace-pre-wrap relative">
                                 <button
@@ -549,7 +543,7 @@
                                 <div id="algorithmicSuggestionText"></div>
                             </div>
 
-                            <!-- Historical Recommendation Box (Hidden by default) -->
+                            <!-- Historical Recommendation Box -->
                             <div id="historicalSuggestionBox"
                                 class="hidden mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-900 shadow-inner whitespace-pre-wrap relative">
                                 <button
@@ -559,7 +553,7 @@
                                 <div id="historicalSuggestionText"></div>
                             </div>
 
-                            <!-- Smart Profile Recommendation Box (Hidden by default) -->
+                            <!-- Smart Profile Recommendation Box -->
                             <div id="smartSuggestionBox"
                                 class="hidden mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900 shadow-inner whitespace-pre-wrap relative">
                                 <button onclick="document.getElementById('smartSuggestionBox').classList.add('hidden')"
@@ -676,7 +670,6 @@
                                                     </p>
                                                 </div>
                                                 <div id="summarySecondaryList" class="space-y-2">
-                                                    <!-- Secondary diagnoses injected here -->
                                                 </div>
                                             </div>
                                         </div>
@@ -730,6 +723,27 @@
                                             Non-Pharmacological / Therapy Instructions</p>
                                         <p class="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed"
                                             id="summaryInstructions">--</p>
+                                    </div>
+
+                                    <!-- DDI Acknowledged Notes Section -->
+                                    <div id="summaryDDINotesWrapper" class="mt-6 pt-6 border-t border-violet-100">
+                                        <div class="flex items-center gap-2 mb-4">
+                                            <div class="p-2 bg-violet-50 rounded-lg">
+                                                <i data-feather="shield" class="w-4 h-4 text-violet-600"></i>
+                                            </div>
+                                            <div>
+                                                <h4
+                                                    class="text-[10px] font-black text-violet-500 uppercase tracking-widest">
+                                                    DDI Safety Notes</h4>
+                                                <p class="text-[9px] text-gray-400">Doctor-acknowledged interaction
+                                                    advice</p>
+                                            </div>
+                                        </div>
+                                        <div id="summaryDDINotes"
+                                            class="bg-violet-50/30 p-4 rounded-xl border border-violet-100">
+                                            <p class="text-[10px] text-gray-400 italic">No DDI notes acknowledged for
+                                                this consultation.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
