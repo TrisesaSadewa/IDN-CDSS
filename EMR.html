@@ -492,6 +492,53 @@
                                 </div>
                             </div>
 
+                            <!-- Therapeutic Class Reference (NEW) -->
+                            <div class="mb-4 flex flex-wrap gap-2 py-2 border-y border-slate-50">
+                                <span
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest self-center mr-1">Quick
+                                    Class Ref:</span>
+                                <button onclick="showClassGuide('Beta-Blockers')"
+                                    class="text-[10px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                                    Beta-Blockers
+                                </button>
+                                <button onclick="showClassGuide('ACE-Inhibitors')"
+                                    class="text-[10px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> ACE-Inhibitors
+                                </button>
+                                <button onclick="showClassGuide('NSAIDs')"
+                                    class="text-[10px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span> NSAIDs
+                                </button>
+                                <button onclick="showClassGuide('Anticoagulants')"
+                                    class="text-[10px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Anticoagulants
+                                </button>
+                                <button onclick="showClassGuide('TPO-Agonists')"
+                                    class="text-[10px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <span class="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> TPO-Agonists
+                                </button>
+                            </div>
+
+                            <!-- Class Guide Modal for EMR (Hidden by default) -->
+                            <div id="classGuideModal"
+                                class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+                                <div
+                                    class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-200">
+                                    <div class="px-6 py-4 bg-slate-50 border-b flex justify-between items-center">
+                                        <h4 id="modalTitle" class="text-lg font-bold text-slate-800">Class Info</h4>
+                                        <button
+                                            onclick="document.getElementById('classGuideModal').classList.add('hidden')"
+                                            class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                                            <i data-feather="x" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                    <div id="modalBody" class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                                        <!-- Dynamic Content -->
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- OpenFDA Recommendation Box (Hidden by default) -->
                             <div id="algorithmicSuggestionBox"
                                 class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-900 shadow-inner whitespace-pre-wrap relative">
