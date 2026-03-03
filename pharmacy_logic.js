@@ -238,6 +238,7 @@ function renderQueue(orders) {
                 <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded border border-indigo-100">
                     ${order.items.length} Items
                 </span>
+                ${order.ddi_pharmacy_notes ? '<span class="bg-amber-50 text-amber-700 text-[9px] font-black px-2 py-1 rounded border border-amber-200 flex items-center gap-1"><i data-feather="alert-triangle" class="w-3 h-3"></i>DDI</span>' : ''}
             </div>
 
             <div class="bg-slate-50 rounded-lg p-3 mb-4 flex-1 border border-slate-100 pl-3">
@@ -295,6 +296,27 @@ function openDispenseModal(orderId) {
             <span class="font-bold">x${i.qty}</span>
         </li>
     `).join('');
+
+    // Show DDI Pharmacy Notes if available
+    const ddiNotesEl = document.getElementById('modal-ddi-notes');
+    if (ddiNotesEl) {
+        if (selectedOrder.ddi_pharmacy_notes) {
+            const lines = selectedOrder.ddi_pharmacy_notes.split('\n').filter(l => l.trim());
+            ddiNotesEl.innerHTML = `
+                <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                    <h5 class="text-[9px] font-black text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <i data-feather="alert-triangle" class="w-3 h-3"></i> Drug Interaction Notes
+                    </h5>
+                    <div class="space-y-1">
+                        ${lines.map(l => `<p class="text-[11px] text-amber-900 font-medium pl-2 border-l-2 border-amber-300 py-0.5">${l}</p>`).join('')}
+                    </div>
+                </div>
+            `;
+            if (window.feather) feather.replace();
+        } else {
+            ddiNotesEl.innerHTML = '';
+        }
+    }
     // Setup Confirm Button Strict Checks
     const confirmBtn = document.getElementById('confirm-dispense-btn');
     document.getElementById('check-allergies').checked = false;
