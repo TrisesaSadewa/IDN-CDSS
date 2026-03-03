@@ -779,9 +779,20 @@ function renderDDIResults(interactions, isSafe) {
             <!-- EXPANDABLE CONTENT -->
             <div class="ddi-details hidden px-4 pb-4 animate-slide-down">
                 <div class="pt-2 border-t border-gray-200/50 space-y-4">
+                    
+                    <div class="bg-indigo-50/60 rounded-2xl p-3 border border-indigo-100/50">
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 flex items-center">
+                            <i data-feather="tool" class="w-3 h-3 mr-1.5"></i> Pharmacological Mechanisms
+                        </p>
+                        <ul class="text-[11px] text-gray-600 space-y-1 ml-2 list-disc list-outside marker:text-indigo-300">
+                            <li><strong class="text-gray-800">${item.pair[0]}:</strong> ${item.drug_a_moa || 'Unspecified mechanism.'}</li>
+                            <li><strong class="text-gray-800">${item.pair[1]}:</strong> ${item.drug_b_moa || 'Unspecified mechanism.'}</li>
+                        </ul>
+                    </div>
+
                     <div>
                         <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 flex items-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span> Mechanism
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span> Interaction Rationale
                         </p>
                         <p class="text-xs text-gray-700 leading-relaxed font-medium">${item.description}</p>
                     </div>
@@ -1074,6 +1085,112 @@ function renderPrescriptions() {
 }
 
 window.removeDrug = (idx) => { currentDrugsList.splice(idx, 1); renderPrescriptions(); resetDDIStatus(); }
+
+// --- THERAPEUTIC CLASS REFERENCE (NEW) ---
+const classData = {
+    'Beta-Blockers': {
+        desc: 'Used to manage abnormal heart rhythms and hypertension.',
+        moa: 'Antagonizes beta-adrenergic receptors, reducing cardiac workload and heart rate.',
+        drugs: [
+            { name: 'Bisoprolol', class: 'beta-blocker', dose: '5 mg', freq: '1 x 1' },
+            { name: 'Carvedilol', class: 'beta-blocker', dose: '6.25 mg', freq: '2 x 1' },
+            { name: 'Atenolol', class: 'beta-blocker', dose: '50 mg', freq: '1 x 1' },
+            { name: 'Propranolol', class: 'beta-blocker', dose: '10 mg', freq: '3 x 1' }
+        ]
+    },
+    'ACE-Inhibitors': {
+        desc: 'Widens blood vessels and lowers blood pressure.',
+        moa: 'Blocks Angiotensin-Converting Enzyme, preventing the formation of Angiotensin II (a vasoconstrictor).',
+        drugs: [
+            { name: 'Captopril', class: 'ace-inhibitor', dose: '12.5 mg', freq: '2 x 1' },
+            { name: 'Lisinopril', class: 'ace-inhibitor', dose: '10 mg', freq: '1 x 1' },
+            { name: 'Ramipril', class: 'ace-inhibitor', dose: '5 mg', freq: '1 x 1' }
+        ]
+    },
+    'NSAIDs': {
+        desc: 'Used for pain relief and reducing inflammation.',
+        moa: 'Targets and inhibits COX-1 & COX-2 enzymes to block prostaglandin synthesis.',
+        drugs: [
+            { name: 'Aspirin', class: 'nsaid', dose: '80 mg', freq: '1 x 1' },
+            { name: 'Ibuprofen', class: 'nsaid', dose: '400 mg', freq: '3 x 1' },
+            { name: 'Meloxicam', class: 'nsaid', dose: '15 mg', freq: '1 x 1' },
+            { name: 'Natrium Diklofenak', class: 'nsaid', dose: '50 mg', freq: '2 x 1' }
+        ]
+    },
+    'Anticoagulants': {
+        desc: 'Prevents blood clots from forming.',
+        moa: 'Inhibits clotting factors (e.g., Vitamin K dependent factors) in the coagulation cascade.',
+        drugs: [
+            { name: 'Warfarin', class: 'anticoagulant', dose: '2 mg', freq: '1 x 1' },
+            { name: 'Simarc', class: 'anticoagulant', dose: '2 mg', freq: '1 x 1' }
+        ]
+    },
+    'TPO-Agonists': {
+        desc: 'Used for low platelet counts (thrombocytopenia).',
+        moa: 'Increases platelet production by stimulating the thrombopoietin receptor.',
+        drugs: [
+            { name: 'Eltrombopag', class: 'tpo-agonist', dose: '25 mg', freq: '1 x 1' },
+            { name: 'Avatrombopag', class: 'tpo-agonist', dose: '20 mg', freq: '1 x 1' }
+        ]
+    }
+};
+
+window.showClassGuide = function (className) {
+    const info = classData[className];
+    if (!info) return;
+
+    const modal = document.getElementById('classGuideModal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+
+    title.textContent = className;
+    body.innerHTML = `
+        <div class="space-y-4">
+            <section>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Description</p>
+                <p class="text-sm text-slate-600 leading-relaxed">${info.desc}</p>
+            </section>
+            
+            <section class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <i data-feather="tool" class="w-3 h-3"></i> Mechanism of Action
+                </p>
+                <p class="text-sm font-bold text-indigo-900 leading-relaxed">${info.moa}</p>
+            </section>
+
+            <div class="pt-4 border-t">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Common Drugs & Standard Regimen</p>
+                <div class="grid grid-cols-1 gap-2">
+                    ${info.drugs.map(d => `
+                        <button onclick="addDrugFromGuide('${d.name}', '${d.class}', '${d.dose}', '${d.freq}')" 
+                            class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 transition-all text-left group">
+                            <div>
+                                <p class="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">${d.name}</p>
+                                <p class="text-[10px] text-slate-400">${d.dose} • ${d.freq}</p>
+                            </div>
+                            <i data-feather="plus" class="w-4 h-4 text-slate-300 group-hover:text-indigo-400 transition-colors"></i>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+    if (window.feather) feather.replace();
+};
+
+window.addDrugFromGuide = function (name, className, dose, freq) {
+    if (currentDrugsList.some(d => d.name === name)) return;
+    currentDrugsList.push({
+        name: name,
+        class: className,
+        dosage: dose,
+        frequency: freq
+    });
+    renderPrescriptions();
+    resetDDIStatus();
+    document.getElementById('classGuideModal').classList.add('hidden');
+};
 
 window.replaceDrug = (oldName, newName, newClass) => {
     const idx = currentDrugsList.findIndex(d => d.name === oldName);
