@@ -5,13 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDI Inspector - Smart HIS</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap"
         rel="stylesheet">
@@ -90,7 +86,6 @@
             transform: scale(1.01);
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -136,7 +131,6 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-10 space-y-8" id="fdaModalBody">
-                <!-- Data injected here -->
             </div>
 
             <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
@@ -183,7 +177,7 @@
     </header>
 
     <div class="flex h-screen pt-16">
-        <!-- Sleek Sidebar -->
+        <!-- Sidebar -->
         <aside class="sidebar bg-slate-900 text-white w-16 flex flex-col items-center py-6 flex-shrink-0 z-50">
             <nav class="flex-1 flex flex-col space-y-6 w-full px-2">
                 <a href="DOCTOR_PORTAL.html"
@@ -258,10 +252,8 @@
                                 <i data-feather="search"
                                     class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
 
-                                <!-- Autocomplete -->
                                 <div id="drug-suggestions"
                                     class="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-2xl mt-2 shadow-xl z-20 hidden overflow-hidden">
-                                    <!-- Suggestions here -->
                                 </div>
                             </div>
 
@@ -273,7 +265,6 @@
                                         All</button>
                                 </h3>
                                 <div id="selected-drugs-container" class="flex flex-wrap gap-2">
-                                    <!-- Drug Tags -->
                                     <p class="text-xs text-slate-400 italic py-4 text-center w-full">No drugs selected
                                         yet.
                                     </p>
@@ -303,58 +294,23 @@
                             </div>
                         </div>
 
-                        <!-- Therapeutic Class Reference (NEW) -->
+                        <!-- Therapeutic Class Reference -->
                         <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
                             <h3
                                 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <i data-feather="book-open" class="w-4 h-4"></i> Class Reference Guide
                             </h3>
-                            <div class="grid grid-cols-1 gap-2">
-                                <button onclick="showClassInfo('Beta-Blockers')"
-                                    class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600 transition-colors">
-                                            <i data-feather="heart" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="text-left">
-                                            <p class="text-sm font-bold text-slate-700">Beta-Blockers</p>
-                                            <p class="text-[10px] text-slate-400">Bisoprolol, Carvedilol...</p>
-                                        </div>
-                                    </div>
-                                    <i data-feather="chevron-right" class="w-4 h-4 text-slate-300"></i>
-                                </button>
-
-                                <button onclick="showClassInfo('ACE-Inhibitors')"
-                                    class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 transition-colors">
-                                            <i data-feather="activity" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="text-left">
-                                            <p class="text-sm font-bold text-slate-700">ACE-Inhibitors</p>
-                                            <p class="text-[10px] text-slate-400">Captopril, Lisinopril...</p>
-                                        </div>
-                                    </div>
-                                    <i data-feather="chevron-right" class="w-4 h-4 text-slate-300"></i>
-                                </button>
-
-                                <button onclick="showClassInfo('NSAIDs')"
-                                    class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 bg-orange-50 rounded-lg text-orange-600 transition-colors">
-                                            <i data-feather="alert-circle" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="text-left">
-                                            <p class="text-sm font-bold text-slate-700">NSAIDs</p>
-                                            <p class="text-[10px] text-slate-400">Aspirin, Ibuprofen, Meloxicam...</p>
-                                        </div>
-                                    </div>
-                                    <i data-feather="chevron-right" class="w-4 h-4 text-slate-300"></i>
-                                </button>
+                            <div id="class-guide-grid" class="grid grid-cols-1 gap-2">
+                                <!-- Dynamic classes injected here -->
+                                <div class="p-8 text-center animate-pulse text-slate-300">
+                                    <i data-feather="loader" class="w-8 h-8 mx-auto mb-2 animate-spin"></i>
+                                    <p class="text-[10px] font-bold uppercase tracking-tighter">Syncing medical
+                                        classes...</p>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Class Guide Modal (Hidden by default) -->
+                        <!-- Class Guide Modal -->
                         <div id="classGuideModal"
                             class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
                             <div
@@ -367,7 +323,6 @@
                                     </button>
                                 </div>
                                 <div id="modalBody" class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                                    <!-- Dynamic Content -->
                                 </div>
                             </div>
                         </div>
@@ -384,7 +339,6 @@
                                         Pharmacopoeia</p>
                                 </div>
                                 <div id="status-badge">
-                                    <!-- Status Badge here -->
                                 </div>
                             </div>
 
@@ -411,7 +365,7 @@
             const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
             const DOCTOR_NAME = localStorage.getItem('smart_his_name');
-            let selectedDrugs = []; // Now stores { name: string, class: string }
+            let selectedDrugs = [];
 
             document.addEventListener('DOMContentLoaded', () => {
                 initSearch();
@@ -420,13 +374,54 @@
                 if (window.feather) feather.replace();
             });
 
-            // --- DYNAMIC CLASS GUIDE DATA ---
             let classData = {};
             async function loadClassData() {
                 try {
                     const res = await fetch(`${API_BASE}/api/drug-class-guide`);
                     classData = await res.json();
-                    console.log("Class Guide Data Loaded:", Object.keys(classData).length, "classes");
+
+                    const grid = document.getElementById('class-guide-grid');
+                    if (!grid) return;
+
+                    const entries = Object.entries(classData);
+                    if (entries.length === 0) {
+                        grid.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4 italic">No reference data available.</p>';
+                        return;
+                    }
+
+                    const typeColors = {
+                        'Beta-Blockers': { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'heart' },
+                        'ACE-Inhibitors': { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'activity' },
+                        'NSAIDs': { bg: 'bg-orange-50', text: 'text-orange-600', icon: 'alert-circle' },
+                        'Anticoagulants': { bg: 'bg-rose-50', text: 'text-rose-600', icon: 'droplet' },
+                        'ARBs': { bg: 'bg-indigo-50', text: 'text-indigo-600', icon: 'corner-down-right' },
+                        'Diuretics': { bg: 'bg-cyan-50', text: 'text-cyan-600', icon: 'refresh-cw' },
+                        'Statins': { bg: 'bg-amber-50', text: 'text-amber-600', icon: 'zap' }
+                    };
+
+                    grid.innerHTML = entries.map(([name, info]) => {
+                        const style = typeColors[name] || { bg: 'bg-slate-50', text: 'text-slate-600', icon: 'book' };
+                        const shortDrugs = info.drugs.slice(0, 2).join(', ') + (info.drugs.length > 2 ? '...' : '');
+
+                        return `
+                            <button onclick="showClassInfo('${name}')" 
+                                class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 ${style.bg} ${style.text} rounded-lg transition-colors">
+                                        <i data-feather="${style.icon}" class="w-4 h-4"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-sm font-bold text-slate-700">${name}</p>
+                                        <p class="text-[10px] text-slate-400">${shortDrugs || 'Mechanism details...'}</p>
+                                    </div>
+                                </div>
+                                <i data-feather="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                        `;
+                    }).join('');
+
+                    if (window.feather) feather.replace();
+
                 } catch (e) {
                     console.error("Failed to load class guide metadata:", e);
                 }
