@@ -362,6 +362,95 @@ function closeModal() {
     selectedOrder = null;
 }
 
+// --- PRINTING LOGIC ---
+function printLabels() {
+    if (!selectedOrder) return;
+
+    const container = document.getElementById('printable-labels');
+    if (!container) return;
+
+    let html = '';
+
+    let printNotes = '';
+    if (selectedOrder.ddi_pharmacy_notes) {
+        const lines = selectedOrder.ddi_pharmacy_notes.split('\n').filter(l => l.trim());
+        if (lines.length > 0) {
+            printNotes = `<div class="mt-4 pt-4 border-t-2 border-dashed border-slate-300">
+                <div class="flex items-center gap-2 mb-2 text-rose-700 font-bold uppercase text-[10px] tracking-widest">
+                    <i data-feather="alert-triangle" class="w-4 h-4"></i> Clinical Safety Warnings
+                </div>
+                <div class="space-y-1.5 pl-2 border-l-2 border-rose-300">
+                    ${lines.map(l => `<p class="text-xs text-rose-800 m-0 leading-snug">${l}</p>`).join('')}
+                </div>
+            </div>`;
+        }
+    }
+
+    selectedOrder.items.forEach((item, index) => {
+        html += `
+            <div class="page-break mb-8 w-[4in] print-border p-5 bg-white mx-auto relative font-sans text-slate-900 shadow-sm border border-slate-200 rounded-lg">
+                <!-- Header -->
+                <div class="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
+                    <div>
+                        <h2 class="font-black text-xl m-0 tracking-tight flex items-center gap-1.5">
+                            <i data-feather="plus-square" class="w-5 h-5"></i> Smart HIS Pharmacy
+                        </h2>
+                        <p class="text-[10px] text-slate-500 m-0 mt-1 uppercase tracking-widest font-bold">
+                            Rx: #${selectedOrder.id.substring(0, 8).toUpperCase()} &nbsp;•&nbsp; Date: ${new Date().toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Patient Info -->
+                <div class="mb-5 bg-slate-50 p-3 rounded border border-slate-100">
+                    <p class="text-sm m-0 flex justify-between">
+                        <span class="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Patient</span>
+                        <span class="font-bold text-slate-800">${selectedOrder.patient_name}</span>
+                    </p>
+                    <div class="border-t border-slate-200 my-2"></div>
+                    <p class="text-sm m-0 flex justify-between">
+                        <span class="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Prescriber</span>
+                        <span class="font-medium text-slate-700">${selectedOrder.doctor}</span>
+                    </p>
+                </div>
+                
+                <!-- Drug Info -->
+                <div class="mb-5">
+                    <h1 class="font-black text-2xl m-0 uppercase leading-none tracking-tight">${item.name}</h1>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-sm m-0 text-slate-600 font-medium">${item.dose || ''}</p>
+                        <p class="text-sm m-0 font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded">Qty: ${item.qty}</p>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="mb-4">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Take As Directed (Sig):</p>
+                    <p class="text-base font-medium m-0 pl-3 border-l-4 border-slate-800 py-1 bg-slate-50 leading-snug">
+                        ${item.frequency || 'Take as directed by physician'}
+                    </p>
+                </div>
+                
+                <!-- DDI Warnings -->
+                ${printNotes}
+                
+                <!-- Footer -->
+                <div class="mt-8 pt-3 border-t border-slate-200 text-center text-[9px] text-slate-400 font-medium uppercase tracking-widest">
+                    <i data-feather="info" class="w-3 h-3 inline pb-0.5"></i> Keep out of reach of children
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    if (window.feather) feather.replace();
+
+    // Trigger the print dialog
+    setTimeout(() => {
+        window.print();
+    }, 200);
+}
+
 // --- INVENTORY LOGIC (Live Database) ---
 async function renderInventory(searchQuery = "") {
     const tableBody = document.getElementById('inventory-table');
