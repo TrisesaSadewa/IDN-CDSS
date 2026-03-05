@@ -112,26 +112,22 @@ function renderDashboard() {
                 </a>
 
                 <!-- COMPLIANCE & SECURITY -->
-                <div class="bg-indigo-900 rounded-2xl p-6 shadow-sm border border-indigo-800 text-white relative overflow-hidden">
-                    <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-800/50 rounded-bl-full -mr-4 -mt-4"></div>
+                <a href="AUDIT_DASHBOARD.html" class="group bg-indigo-900 rounded-2xl p-6 shadow-sm border border-indigo-800 hover:border-indigo-400 hover:shadow-lg transition-all text-white relative overflow-hidden block cursor-pointer">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-800/50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10 flex flex-col h-full">
-                        <div class="mb-4 bg-indigo-800/70 text-indigo-300 w-fit p-3 rounded-xl border border-indigo-700">
+                        <div class="mb-4 bg-indigo-800/70 text-indigo-300 w-fit p-3 rounded-xl border border-indigo-700 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                             <i data-feather="shield" class="w-6 h-6"></i>
                         </div>
-                        <h4 class="text-lg font-bold text-white mb-2">Security & Compliance</h4>
+                        <h4 class="text-lg font-bold text-white mb-2 group-hover:text-indigo-200 transition-colors">Security & Compliance</h4>
                         <p class="text-indigo-200 text-sm mb-4">HIPAA/GDPR Audit Trails, Data Access Logs, and Security Monitoring.</p>
                         <div class="mt-auto space-y-2">
-                            <div class="flex justify-between items-center text-xs font-medium border-b border-indigo-800/50 pb-2">
-                                <span class="text-indigo-300">Data Access Events Today</span>
-                                <span class="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">1,402</span>
-                            </div>
-                            <div class="flex justify-between items-center text-xs font-medium">
-                                <span class="text-indigo-300">Unauthorized Attempts</span>
-                                <span class="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">0</span>
+                            <div class="flex justify-between items-center text-xs font-medium border-b border-indigo-800/50 pb-2 text-indigo-200 group-hover:text-white transition-colors">
+                                <span>Click to view Real-time Audit Logs</span>
+                                <i data-feather="arrow-right" class="w-4 h-4 transform group-hover:translate-x-1 transition-transform"></i>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         `;
     }
