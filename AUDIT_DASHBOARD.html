@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit & Compliance Logs - Smart HIS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .tab-btn.active {
+            border-bottom-width: 2px;
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+
+        .json-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation -->
+    <nav class="glass-header fixed w-full z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="ADMIN_PORTAL.html"
+                class="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">
+                <i data-feather="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div class="p-2 bg-indigo-900 rounded-lg text-white shadow-lg">
+                <i data-feather="shield" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xl font-bold text-gray-800 brand-font tracking-tight">HIPAA Audit Center</span>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="text-right hidden sm:block">
+                <p id="user-name" class="text-sm font-bold text-gray-800">Admin Staff</p>
+                <p class="text-xs text-indigo-600 uppercase tracking-wider font-semibold">System Administrator</p>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-28 px-6 pb-12 max-w-7xl mx-auto w-full">
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total PHI Views (24h)</p>
+                    <h3 class="text-3xl font-bold text-indigo-600 mt-1" id="stat-views">-</h3>
+                </div>
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i data-feather="eye"></i></div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Data Modifications (24h)</p>
+                    <h3 class="text-3xl font-bold text-emerald-600 mt-1" id="stat-edits">-</h3>
+                </div>
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><i data-feather="edit-2"></i></div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">System Compliance</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-1 text-green-500" id="stat-status">Secure</h3>
+                </div>
+                <div class="p-3 bg-gray-50 text-gray-600 rounded-xl"><i data-feather="check-circle"
+                        class="text-green-500"></i></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-[500px]">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200">
+                <button onclick="switchTab('access')" id="tab-btn-access"
+                    class="tab-btn active px-6 py-4 text-sm font-bold text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-2">
+                    <i data-feather="eye" class="w-4 h-4"></i> Access Logs (PHI Views)
+                </button>
+                <button onclick="switchTab('mutation')" id="tab-btn-mutation"
+                    class="tab-btn px-6 py-4 text-sm font-bold text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-2">
+                    <i data-feather="edit-3" class="w-4 h-4"></i> Mutation Logs (Edits)
+                </button>
+            </div>
+
+            <div class="p-6 overflow-auto">
+                <!-- Data Access Logs Table -->
+                <div id="tab-access" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold">Recent PHI View Events</h2>
+                        <button onclick="fetchAuditLogs()"
+                            class="text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium flex gap-1 items-center transition-colors">
+                            <i data-feather="refresh-cw" class="w-4 h-4"></i> Auto-Refreshing
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th class="p-3 border-b">Time</th>
+                                    <th class="p-3 border-b">Staff Member</th>
+                                    <th class="p-3 border-b">Target Patient</th>
+                                    <th class="p-3 border-b">Resource Category</th>
+                                    <th class="p-3 border-b">Action Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="access-log-body" class="text-sm">
+                                <tr>
+                                    <td colspan="5" class="p-4 text-center text-gray-400">Loading Access Logs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Data Mutation Logs Table -->
+                <div id="tab-mutation" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold">Recent Data Modification Events</h2>
+                        <button onclick="fetchAuditLogs()"
+                            class="text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium flex gap-1 items-center transition-colors">
+                            <i data-feather="refresh-cw" class="w-4 h-4"></i> Auto-Refreshing
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th class="p-3 border-b w-1/6">Time & Staff</th>
+                                    <th class="p-3 border-b w-1/6">Location</th>
+                                    <th class="p-3 border-b w-1/3">Changes (Before)</th>
+                                    <th class="p-3 border-b w-1/3">Changes (After)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mutation-log-body" class="text-sm">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-gray-400">Loading Edit Logs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Use your Supabase URL and ANON KEY here
+        const SUPABASE_URL = 'https://crywwqleinnwoacithmw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyeXd3cWxlaW5ud29hY2l0aG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDg4MTIsImV4cCI6MjA4Mzk4NDgxMn0.VTDI6ZQ_aN895A29_v0F1vHzqaS-RG7iGzOFM6qMKfk';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let activeTab = 'access';
+        let staffCache = {};
+        let patientCache = {};
+
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Unknown';
+            return new Date(timestamp).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+
+        async function resolveStaffName(userId) {
+            if (!userId) return 'System/Unknown';
+            if (staffCache[userId]) return staffCache[userId];
+            const { data } = await supabase.from('profiles').select('full_name, role').eq('id', userId).single();
+            const result = data ? `${data.full_name} (${data.role})` : userId;
+            staffCache[userId] = result;
+            return result;
+        }
+
+        async function resolvePatientName(userId) {
+            if (!userId) return 'Unknown';
+            if (patientCache[userId]) return patientCache[userId];
+            const { data } = await supabase.from('patients').select('full_name').eq('id', userId).single();
+            const result = data ? data.full_name : userId;
+            patientCache[userId] = result;
+            return result;
+        }
+
+        async function fetchAuditLogs() {
+            try {
+                // Fetch Access Logs (PHI views)
+                const { data: accessLogs, error: evtErr } = await supabase
+                    .from('access_logs')
+                    .schema('audit')
+                    .select('*')
+                    .order('accessed_at', { ascending: false })
+                    .limit(50);
+
+                if (accessLogs) {
+                    document.getElementById('stat-views').textContent = accessLogs.length + "+";
+
+                    const tbody = document.getElementById('access-log-body');
+                    tbody.innerHTML = '';
+                    if (accessLogs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No PHI view logs found yet.</td></tr>';
+                    } else {
+                        for (let log of accessLogs) {
+                            const staffName = await resolveStaffName(log.user_id);
+                            const ptName = await resolvePatientName(log.patient_id);
+
+                            let labelColor = 'bg-blue-100 text-blue-700';
+                            if (log.resource_type === 'MEDICAL_HISTORY') labelColor = 'bg-indigo-100 text-indigo-700';
+                            if (log.resource_type === 'LAB_RESULTS') labelColor = 'bg-teal-100 text-teal-700';
+
+                            tbody.innerHTML += `
+                                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+                                    <td class="p-3 text-xs text-gray-500">${formatTime(log.accessed_at)}</td>
+                                    <td class="p-3 font-medium text-gray-800">${staffName}</td>
+                                    <td class="p-3 text-gray-700">${ptName}</td>
+                                    <td class="p-3"><span class="px-2 py-1 text-[10px] font-bold uppercase rounded ${labelColor}">${log.resource_type}</span></td>
+                                    <td class="p-3 text-gray-600 font-medium">${log.action_description}</td>
+                                </tr>
+                            `;
+                        }
+                    }
+                }
+
+                // Fetch Mutation Logs
+                const { data: mutLogs, error: mutErr } = await supabase
+                    .from('mutation_logs')
+                    .schema('audit')
+                    .select('*')
+                    .order('changed_at', { ascending: false })
+                    .limit(50);
+
+                if (mutLogs) {
+                    document.getElementById('stat-edits').textContent = mutLogs.length + "+";
+
+                    const tbody = document.getElementById('mutation-log-body');
+                    tbody.innerHTML = '';
+                    if (mutLogs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500">No data modifications recorded yet.</td></tr>';
+                    } else {
+                        for (let log of mutLogs) {
+                            const staffName = await resolveStaffName(log.user_id);
+
+                            let actionColor = 'bg-emerald-100 text-emerald-700';
+                            if (log.action === 'UPDATE') actionColor = 'bg-amber-100 text-amber-700';
+                            if (log.action === 'DELETE') actionColor = 'bg-rose-100 text-rose-700';
+
+                            const oldJson = log.old_data ? JSON.stringify(log.old_data, null, 2) : '-';
+                            const newJson = log.new_data ? JSON.stringify(log.new_data, null, 2) : '-';
+
+                            tbody.innerHTML += `
+                                <tr class="border-b border-gray-100 last:border-0 align-top">
+                                    <td class="p-3 w-1/6">
+                                        <div class="text-xs text-gray-500 mb-1">${formatTime(log.changed_at)}</div>
+                                        <div class="font-medium text-indigo-600">${staffName}</div>
+                                    </td>
+                                    <td class="p-3 w-1/6">
+                                        <div class="font-bold text-gray-800">${log.table_name}</div>
+                                        <div class="mt-1"><span class="px-2 py-0.5 text-[10px] uppercase font-bold rounded ${actionColor}">${log.action}</span></div>
+                                        <div class="text-[10px] text-gray-400 mt-2 font-mono">ID: ${log.record_id.substring(0, 8)}...</div>
+                                    </td>
+                                    <td class="p-3 w-1/3">
+                                        ${log.old_data ? `<div class="json-block">${oldJson}</div>` : '<span class="text-gray-400 italic">None</span>'}
+                                    </td>
+                                    <td class="p-3 w-1/3">
+                                        ${log.new_data ? `<div class="json-block">${newJson}</div>` : '<span class="text-gray-400 italic">None</span>'}
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }
+                }
+
+            } catch (e) {
+                console.error("Failed fetching logs:", e);
+            }
+        }
+
+        function switchTab(tabId) {
+            document.getElementById('tab-access').classList.add('hidden');
+            document.getElementById('tab-mutation').classList.add('hidden');
+            document.getElementById('tab-btn-access').classList.remove('active');
+            document.getElementById('tab-btn-mutation').classList.remove('active');
+
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-btn-' + tabId).classList.add('active');
+            activeTab = tabId;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('smart_his_name') || 'Admin Staff';
+            document.getElementById('user-name').textContent = name;
+            feather.replace();
+            switchTab('access');
+            fetchAuditLogs();
+
+            // Auto refresh every 10 seconds
+            setInterval(fetchAuditLogs, 10000);
+        });
+    </script>
+</body>
+
+</html>
